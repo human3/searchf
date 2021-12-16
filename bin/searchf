@@ -1,5 +1,0 @@
-#!/usr/bin/env python
-
-import searchf.searchf
-searchf.searchf.main_loop()
-

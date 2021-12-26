@@ -502,7 +502,7 @@ line number and separator'''
 
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
-            return 'Cannot change case sentitivity. Enter a keyword first by pressing "Enter"'
+            return 'Cannot change case sentitivity (no keyword)'
         f = self._config.top_filter()
         f.ignore_case = not f.ignore_case
         self._sync_data(True)
@@ -939,11 +939,12 @@ def main_loop(scr, path):
     max_y, max_x = get_max_yx(scr)
 
     status = ''
-    status_x = 0
+    status_x = max(0, min(10, max_x - 50)) # allow for 50 char of status
     status_y = max_y - 1
 
     while True:
         scr.refresh()
+        scr.move(status_y, 0)
         try:
             key = get_ch(scr)
         except KeyboardInterrupt:

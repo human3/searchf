@@ -204,6 +204,9 @@ def bool_to_text(value):
     '''Converts a boolean value to text.'''
     return 'enabled' if value else 'disabled'
 
+CASE_MODE_TEXT = ['ignored', 'sensitive']
+CASE_MODE_LEN = len(max(CASE_MODE_TEXT, key=len))
+
 class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
@@ -256,40 +259,57 @@ line number and separator'''
             sep = ''
         return number_length + len(sep), number_length, sep
 
+    def _draw_bar(self, y):
+        style = curses.color_pair(BAR_COLOR_ID)
+        self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
+
+        x = 1
+        if not self._config.has_filters():
+            text = ' No filter '
+            self._win.addstr(y, x, text, style)
+        else:
+            text = ' Case '
+            self._win.addstr(y, x, f'{text}', style)
+
+            x = CASE_MODE_LEN + 1
+            text = f'{sum(self._hits):>8} hits '
+            self._win.addstr(y, x, text, style)
+
+        # Print from right to left
+        x = self._w
+        text = f' {self._name} '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style)
+
+        x = x - 5 - 1 # voffest_desc at most 5 char long
+        if len(self._voffset_desc) > 0:
+            text = f' {self._voffset_desc:>3} '
+            self._win.addstr(y, x, text, style)
+
+        text = f' {len(self._lines)} lines '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style)
+
+        text = f' {self._basename} '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style | curses.A_BOLD)
+
+        assert len(self._hits) == len(self._config.filters)
+        for i, f in enumerate(self._config.filters):
+            color = curses.color_pair(self._config.get_color(i))
+
+            x = 0
+            text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
+            self._win.addstr(y + 1 + i, x, text)
+
+            x += CASE_MODE_LEN + 1
+            text = ' AND '.join(f.keywords)
+            self._win.addstr(y + 1 + i, x, f'{self._hits[i]:>8} {text}', color)
+
     def draw(self):
         '''Draws the view'''
         debug(f'{self._name} draw {self._voffset}')
         self._win.clear()
-
-        def draw_bar(y):
-            style = curses.color_pair(BAR_COLOR_ID)
-            self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
-
-            x = 2
-            text = f'{sum(self._hits):>8} hits'
-            self._win.addstr(y, x, text, style)
-
-            x += len(text)
-            text = f' {self._basename}'
-            self._win.addstr(y, x, text, style | curses.A_BOLD)
-
-            x += len(text)
-            text = f' {len(self._lines)} lines '
-            self._win.addstr(y, x, text, style)
-
-            text = f' {self._voffset_desc} {self._name} '
-            hoffset = self._w - len(text) - 1
-            self._win.addstr(y, hoffset, text, style)
-
-            assert len(self._hits) == len(self._config.filters)
-            for i, f in enumerate(self._config.filters):
-                color = curses.color_pair(self._config.get_color(i))
-                desc = ' AND '.join(f.keywords)
-                if f.ignore_case:
-                    desc += '  (case ignored)'
-                else:
-                    desc += '  (case sensitive)'
-                self._win.addstr(y + 1 + i, 2, f'{self._hits[i]:>8} {desc}', color)
 
         prefix_info = self._get_prefix_info()
 
@@ -316,7 +336,7 @@ line number and separator'''
                                text, s, self._hoffset + offset, color)
 
         try:
-            draw_bar(self._content_lines_count)
+            self._draw_bar(self._content_lines_count)
         except curses.error:
             pass
 

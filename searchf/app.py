@@ -12,13 +12,14 @@
 # nothing offending in our code, so disabling it...
 # pylint: disable=no-member
 
-from enum import Enum, auto
 from curses.textpad import Textbox
+from enum import Enum, auto
+import argparse
 import curses
 import math
+import os
 import re
 import sys
-import os
 
 import searchf
 import searchf.segments as segments
@@ -939,11 +940,12 @@ def main_loop(scr, path):
             status = ''
         scr.addstr(status_y, status_x, status[:max_x-1])
 
-# https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
-os.environ.setdefault('ESCDELAY', '25')
-
 def main():
-    import argparse
+    '''Application entry point'''
+
+    # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
+    os.environ.setdefault('ESCDELAY', '25')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('file')
     args = parser.parse_args()

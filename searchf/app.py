@@ -209,6 +209,7 @@ class TextView:
     def __init__(self, scr, name, path):
         self._name = name
         self._path = path
+        self._basename = os.path.basename(path)
         self._scr = scr
         self._config = ViewConfig()
 
@@ -268,7 +269,7 @@ line number and separator'''
             self._win.addstr(y, x, text, style)
 
             x += len(text)
-            text = f' {self._path}'
+            text = f' {self._basename}'
             self._win.addstr(y, x, text, style | curses.A_BOLD)
 
             x += len(text)

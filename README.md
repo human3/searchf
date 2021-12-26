@@ -17,9 +17,13 @@ Why this utility? I had to dig into build log files, which were a raw aggregate 
 
 `pip install searchf`
 
-## Usage
+then run
 
-`searchf-test` to run tests
+`searchf-test`
+
+to run builtin application tests and verify your installation. Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
+
+## Usage
 
 `searchf <FILE>`
 
@@ -41,9 +45,19 @@ launched as a module:
 
 `python3 -m searchf.app <FILE>`
 
+To run all tests:
+
+`python3 -m searchf.test.all`
+
+Some unit tests can get triggerred through `pytest`.
+
+To get coverage report (requires coverage package):
+
+`coverage run -m searchf.test.all`
+`coverage html`
+
 ## Tips
 
-- Make sure to enable UTF-8 (eg. start tmux like this "tmux -u")
 
 ## Known Issues
 
@@ -55,10 +69,11 @@ launched as a module:
 
 ## Wish list
 
-- More palettes
-- Cleanup code! Remove COLOR_BAR hack in source (inner beauty's sake)
+- More palettes (and move them into separate module)
+- Ability to save/load filters
+- Ability to pass current filters to another view
 - Tail function that automatically reload (instead of having to press `t`)
 - Screen dynamic resizing
-- Bookmark
-- Ability to save/load filters
+- Bookmarks
 - Ability to save filtered file
+- Cleanup: remove COLOR_BAR hack in source (inner beauty's sake)

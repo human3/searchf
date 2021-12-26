@@ -20,7 +20,8 @@ import re
 import sys
 import os
 
-__version__ = '1.0'
+import searchf
+import searchf.segments as segments
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -109,64 +110,6 @@ def _box_edit(box):
 def get_text(scr, y, x, prompt):
     '''Prompts user to enter some text.'''
     return _get_text(scr, y, x, prompt, _box_edit)
-
-# A word on segments as used by this program to identify portion of text in a string:
-# a segment is a pair of indices (start, end) that identify a portion of text
-
-def sort_and_merge_segments(segments):
-    '''Takes a list of segments, merges overlapping ones and returns the resulting
-list cleared off any overlapping segments. This function only looks at
-indices. For instance, in "abcde" the 2 keywords "abc" and "cde" are repectively
-matching segments (0,3) and (2,5), which contain overlapping indices. This
-function would merge them as one segment (0,5).'''
-    merged = set()
-    pending = ()
-    for c in sorted(segments):
-        assert c[0] < c[1]
-        if not pending:
-            pending = c
-        elif pending[1] >= c[0]:
-            pending = (pending[0], max(pending[1], c[1]))
-        else:
-            merged.add(pending)
-            pending = c
-    if pending:
-        merged.add(pending)
-    return sorted(merged)
-
-def iter_segments(start, end, segments):
-    '''This function is used to build the list of text draw commands required to
-display a line containing highlighted keywords.
-
-The given 'segments' is a list of pair of indices defining the segments of a
-string that must be highlighted. iter_segments() returns these highlighted
-segments with True to indicate they should be highlighted but interleaves them
-with the non-matching complementary segments returned with False, indicating
-they should not be highlighted. Finally, start and end are indices defining the
-boundaries we actually care about.'''
-    assert start < end
-    for c in segments:
-        if start >= c[1]:
-            continue
-        if end < c[0]:
-            if start < end:
-                yield (False, start, end)
-            return
-        if start < c[0]:
-            yield (False, start, c[0])
-            if end < c[1]:
-                if c[0] < end:
-                    yield (True, c[0], end)
-                return
-            yield (True, c[0], c[1])
-        elif start < c[1]:
-            assert start < min(c[1], end)
-            yield (True, start, min(c[1], end))
-            if end < c[1]:
-                return
-        start = c[1]
-    if start < end:
-        yield (False, start, end)
 
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
@@ -360,7 +303,7 @@ line number and separator'''
             idata, offset = self._ddata[iddata]
             iddata += 1
 
-            idx, fidx, text, segments = self._data[idata]
+            idx, fidx, text, s = self._data[idata]
             color = 0 if fidx < 0 else self._config.get_color(fidx)
             color = curses.color_pair(color)
 
@@ -368,7 +311,7 @@ line number and separator'''
                 self._draw_prefix((y, 0), prefix_info, idx, color)
 
             self._draw_content((y, prefix_info[0]),
-                               text, segments, self._hoffset + offset, color)
+                               text, s, self._hoffset + offset, color)
 
         try:
             draw_bar(self._content_lines_count)
@@ -423,18 +366,18 @@ line number and separator'''
         def find_matches(text, f):
             keywords = f.keywords
             flags = re.IGNORECASE if f.ignore_case else 0
-            segments = set() # Use a set() as multiple matches are possible
+            s = set() # Use a set() as multiple matches are possible
             for kw in keywords:
                 matching = False
                 for m in re.finditer(kw, text, flags):
                     matching = True
-                    segments.add((m.start(), m.end()))
+                    s.add((m.start(), m.end()))
                 if not matching:
                     # Bail out early as soon as one keyword has no match
                     return False, set()
 
             # Sort all segments and then merge them as overlap can happen
-            return True, sort_and_merge_segments(segments)
+            return True, segments.sort_and_merge_segments(s)
 
         data = []
         filters = self._config.filters
@@ -447,10 +390,10 @@ line number and separator'''
 
             matching = False
             for fidx, f in enumerate(filters):
-                matching, segments = find_matches(line, f)
+                matching, s = find_matches(line, f)
                 if matching:
                     hits[fidx] += 1
-                    data.append([i, fidx, line, segments])
+                    data.append([i, fidx, line, s])
                     break
             if not matching and not only_matching:
                 data.append([i, -1, line, set()])
@@ -556,7 +499,7 @@ line number and separator'''
         else:
             self._win.addstr(y, x, f'{idx:>{w_index}}{sep}', color | curses.A_BOLD)
 
-    def _draw_content(self, position, text, segments, offset, color):
+    def _draw_content(self, position, text, s, offset, color):
         y, x = position
         vend = offset + self._w_text
         if self._config.show_spaces:
@@ -566,7 +509,7 @@ line number and separator'''
             text = f'{text:<{self._w_text}}'
             self._win.addnstr(y, x, text, self._w, color)
         else:
-            for match, start, end in iter_segments(offset, vend, segments):
+            for match, start, end in segments.iter_segments(offset, vend, s):
                 assert start < end
                 c = color if match else 0
                 l = end - start
@@ -698,7 +641,7 @@ line number and separator'''
 
 HELP = f'''  ~ Searchf Help ~
 
-  Version: {__version__}
+  Version: {searchf.__VERSION__}
   More info: https://github.com/human3/searchf
 
   Utility to interactively search into line-oriented text files.
@@ -965,7 +908,7 @@ def init_colors():
     # HACK for color of bar with background
     curses.init_pair(BAR_COLOR_ID, 0, BAR_COLOR)
 
-def main(scr, path):
+def main_loop(scr, path):
     '''Main curses entry point.'''
     init_colors()
     scr.refresh() # Must be call once on empty screen?
@@ -998,12 +941,12 @@ def main(scr, path):
 # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
 os.environ.setdefault('ESCDELAY', '25')
 
-def main_loop():
+def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('file')
     args = parser.parse_args()
-    curses.wrapper(main, args.file)
+    curses.wrapper(main_loop, args.file)
 
 if __name__ == '__main__':
-    main_loop()
+     main()

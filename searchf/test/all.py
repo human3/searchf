@@ -1,11 +1,8 @@
 import os, sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import searchf
+import searchf.app
 import curses
 import time
-
-import unit
 
 INPUTS = []
 INPUT_IDX = 0
@@ -25,14 +22,14 @@ def my_get_text(self):
 def run_test(stdscr, path, keys, inputs):
     stdscr.clear()
     reset_inputs(inputs)
-    searchf.init_colors()
-    searchf.views.create(stdscr, path)
-    searchf.views.get_text = my_get_text
+    searchf.app.init_colors()
+    searchf.app.views.create(stdscr, path)
+    searchf.app.views.get_text = my_get_text
     for key in keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.1)
-        handled = searchf.views.handle_key(ord(key))
+        handled = searchf.app.views.handle_key(ord(key))
         assert handled or key == 'q'
 
 KEYS = [' ', '>', '<']
@@ -51,9 +48,9 @@ def my_get_ch(_):
 # (cf all assert in code). By maintaining code coverage above 95%,
 # these tests are still very useful to catch regression when
 # refactoring.
-def main(stdscr):
+def run_all(stdscr):
 
-    dummy_file = '../../../README.md'
+    dummy_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 
     # Test keywords that are invalid regex
     run_test(stdscr, dummy_file,
@@ -98,17 +95,17 @@ def main(stdscr):
     def get_max_yx(stdscr):
         return 20, 20
 
-    original_get_max_yx = searchf.get_max_yx
-    searchf.get_max_yx = get_max_yx
+    original_get_max_yx = searchf.app.get_max_yx
+    searchf.app.get_max_yx = get_max_yx
     run_test(stdscr, dummy_file, ['?', ' ', 'b', 's', 'w'], [])
     run_test(stdscr, dummy_file, ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], [])
-    searchf.get_max_yx = original_get_max_yx
+    searchf.app.get_max_yx = original_get_max_yx
 
-    # Testing searchf._get_text
+    # Testing searchf.app.get_text
     def my_handler(box):
         pass
 
-    searchf._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
+    searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
 
     class MyBox:
         def edit(self, validate):
@@ -116,17 +113,22 @@ def main(stdscr):
             assert curses.KEY_BACKSPACE == validate(curses.ascii.DEL)
             validate(curses.ascii.ESC)
 
-    searchf._box_edit(MyBox())
+    searchf.app._box_edit(MyBox())
 
     # Testing searchf.main wrapper
-    searchf.get_ch = my_get_ch
-    searchf.main(stdscr, dummy_file)
-    searchf.get_ch = stdscr.getch
+    searchf.app.get_ch = my_get_ch
+    searchf.app.main_loop(stdscr, dummy_file)
+    searchf.app.get_ch = stdscr.getch
 
+def main():
+    curses.wrapper(run_all)
+    
 if __name__ == '__main__':
-    print('Testing searchf')
-    unit.tests()
-    curses.wrapper(main)
+    print('Running unit tests')
+    # test_unit.test_iter_segments()
+    # test_unit.test_sort_and_merge_segments()
+
+    main()
 
     print('To generate coverage data:')
     print('  coverage run all.py')

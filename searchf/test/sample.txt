@@ -19,9 +19,7 @@ Why this utility? I had to dig into build log files, which were a raw aggregate 
 
 ## Usage
 
-`searchf-test` to run tests
-
-`searchf <FILE>`
+`searchf <file>`
 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
@@ -34,12 +32,10 @@ Showing all lines, with wrapping and numbers enabled, colorizing lines as a whol
 
 ![Screenshot searchf 2](https://user-images.githubusercontent.com/15265841/145871759-74e6d755-4d02-43a2-8bbb-c3fdec18c61f.png)
 
-## Development
+## Warning
 
-If working from the sources (ie not an installed package), the application can be
-launched as a module:
-
-`python3 -m searchf.app <FILE>`
+- Better alternatives are likely many, I just couldn't find any that suits me so far. I considered lnav, few VSCode extensions, `cat | grep` and alikes ...
+- This script loads everything in memory, so...
 
 ## Tips
 

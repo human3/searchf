@@ -2,7 +2,7 @@
 
 Utility program to interactively search for keywords in text files (log files, build output files, etc.), colorize matching lines and help you discover the things you should care about, "squeezing" useful information out of files. Works in terminals, uses curses for text base UI.
 
-![Screenshot searchf 1](https://user-images.githubusercontent.com/15265841/145870066-a5411df9-e8e2-4f3e-ba14-c4cd55f22778.png)
+![Screenshot searchf 1](https://user-images.githubusercontent.com/15265841/147424844-9bece2d4-ceb0-4ea1-b989-a40ea3e6d3ac.png)
 
 A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file. By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning lines are shown in the color of the first filter they match.
 
@@ -30,13 +30,13 @@ to run builtin application tests and verify your installation. Please note that 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
  
-![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/145870427-25009b65-fd35-446c-bf27-a1e350cc224f.png)
+![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/147424944-cbb41951-9911-4577-bd3a-857293802f0a.png)
 
 When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
 
 Showing all lines, with wrapping and numbers enabled, colorizing lines as a whole instead of just keywords:
 
-![Screenshot searchf 2](https://user-images.githubusercontent.com/15265841/145871759-74e6d755-4d02-43a2-8bbb-c3fdec18c61f.png)
+![Screenshot searchf 2](https://user-images.githubusercontent.com/15265841/147425069-609e346d-c84d-452c-bfb2-8e32cadf10d5.png)
 
 ## Development
 
@@ -53,8 +53,12 @@ Some unit tests can get triggerred through `pytest`.
 
 To get coverage report (requires coverage package):
 
-`coverage run -m searchf.test.all`
+`coverage run -m searchf.test.all`, then
 `coverage html`
+
+As of version 1.2:
+
+![Screenshot searchf coverage](https://user-images.githubusercontent.com/15265841/147425126-9c9e7d0f-e4d6-430c-b7f6-1aa4c486f134.png)
 
 ## Tips
 

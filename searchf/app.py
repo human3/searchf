@@ -12,13 +12,14 @@
 # nothing offending in our code, so disabling it...
 # pylint: disable=no-member
 
-from enum import Enum, auto
 from curses.textpad import Textbox
+from enum import Enum, auto
+import argparse
 import curses
 import math
+import os
 import re
 import sys
-import os
 
 import searchf
 import searchf.segments as segments
@@ -203,12 +204,16 @@ def bool_to_text(value):
     '''Converts a boolean value to text.'''
     return 'enabled' if value else 'disabled'
 
+CASE_MODE_TEXT = ['ignored', 'sensitive']
+CASE_MODE_LEN = len(max(CASE_MODE_TEXT, key=len))
+
 class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
     def __init__(self, scr, name, path):
         self._name = name
         self._path = path
+        self._basename = os.path.basename(path)
         self._scr = scr
         self._config = ViewConfig()
 
@@ -254,40 +259,57 @@ line number and separator'''
             sep = ''
         return number_length + len(sep), number_length, sep
 
+    def _draw_bar(self, y):
+        style = curses.color_pair(BAR_COLOR_ID)
+        self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
+
+        x = 1
+        if not self._config.has_filters():
+            text = ' No filter '
+            self._win.addstr(y, x, text, style)
+        else:
+            text = ' Case '
+            self._win.addstr(y, x, f'{text}', style)
+
+            x = CASE_MODE_LEN + 1
+            text = f'{sum(self._hits):>8} hits '
+            self._win.addstr(y, x, text, style)
+
+        # Print from right to left
+        x = self._w
+        text = f' {self._name} '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style)
+
+        x = x - 5 - 1 # voffest_desc at most 5 char long
+        if len(self._voffset_desc) > 0:
+            text = f' {self._voffset_desc:>3} '
+            self._win.addstr(y, x, text, style)
+
+        text = f' {len(self._lines)} lines '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style)
+
+        text = f' {self._basename} '
+        x = x - len(text) - 1
+        self._win.addstr(y, x, text, style | curses.A_BOLD)
+
+        assert len(self._hits) == len(self._config.filters)
+        for i, f in enumerate(self._config.filters):
+            color = curses.color_pair(self._config.get_color(i))
+
+            x = 0
+            text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
+            self._win.addstr(y + 1 + i, x, text)
+
+            x += CASE_MODE_LEN + 1
+            text = ' AND '.join(f.keywords)
+            self._win.addstr(y + 1 + i, x, f'{self._hits[i]:>8} {text}', color)
+
     def draw(self):
         '''Draws the view'''
         debug(f'{self._name} draw {self._voffset}')
         self._win.clear()
-
-        def draw_bar(y):
-            style = curses.color_pair(BAR_COLOR_ID)
-            self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
-
-            x = 2
-            text = f'{sum(self._hits):>8} hits'
-            self._win.addstr(y, x, text, style)
-
-            x += len(text)
-            text = f' {self._path}'
-            self._win.addstr(y, x, text, style | curses.A_BOLD)
-
-            x += len(text)
-            text = f' {len(self._lines)} lines '
-            self._win.addstr(y, x, text, style)
-
-            text = f' {self._voffset_desc} {self._name} '
-            hoffset = self._w - len(text) - 1
-            self._win.addstr(y, hoffset, text, style)
-
-            assert len(self._hits) == len(self._config.filters)
-            for i, f in enumerate(self._config.filters):
-                color = curses.color_pair(self._config.get_color(i))
-                desc = ' AND '.join(f.keywords)
-                if f.ignore_case:
-                    desc += '  (case ignored)'
-                else:
-                    desc += '  (case sensitive)'
-                self._win.addstr(y + 1 + i, 2, f'{self._hits[i]:>8} {desc}', color)
 
         prefix_info = self._get_prefix_info()
 
@@ -314,7 +336,7 @@ line number and separator'''
                                text, s, self._hoffset + offset, color)
 
         try:
-            draw_bar(self._content_lines_count)
+            self._draw_bar(self._content_lines_count)
         except curses.error:
             pass
 
@@ -480,7 +502,7 @@ line number and separator'''
 
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
-            return 'Cannot change case sentitivity. Enter a keyword first by pressing "Enter"'
+            return 'Cannot change case sentitivity (no keyword)'
         f = self._config.top_filter()
         f.ignore_case = not f.ignore_case
         self._sync_data(True)
@@ -917,11 +939,12 @@ def main_loop(scr, path):
     max_y, max_x = get_max_yx(scr)
 
     status = ''
-    status_x = 0
+    status_x = max(0, min(10, max_x - 50)) # allow for 50 char of status
     status_y = max_y - 1
 
     while True:
         scr.refresh()
+        scr.move(status_y, 0)
         try:
             key = get_ch(scr)
         except KeyboardInterrupt:
@@ -938,15 +961,16 @@ def main_loop(scr, path):
             status = ''
         scr.addstr(status_y, status_x, status[:max_x-1])
 
-# https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
-os.environ.setdefault('ESCDELAY', '25')
-
 def main():
-    import argparse
+    '''Application entry point'''
+
+    # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
+    os.environ.setdefault('ESCDELAY', '25')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('file')
     args = parser.parse_args()
     curses.wrapper(main_loop, args.file)
 
 if __name__ == '__main__':
-     main()
+    main()

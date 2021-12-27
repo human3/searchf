@@ -973,4 +973,4 @@ def main():
     curses.wrapper(main_loop, args.file)
 
 if __name__ == '__main__':
-     main()
+    main()

@@ -7,6 +7,7 @@ import time
 
 import searchf
 import searchf.app
+import searchf.test.test_segments
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 if len(sys.argv) > 1:
@@ -20,9 +21,9 @@ def reset_inputs(inputs):
     INPUTS = inputs
     INPUT_IDX = 0
 
-def my_get_text(_):
+def my_get_text(_1, _2, _3, _4, _5):
     global INPUTS, INPUT_IDX
-    assert INPUT_IDX < len(INPUTS)
+    assert INPUT_IDX < len(INPUTS), f'{INPUT_IDX} {INPUTS}'
     text = INPUTS[INPUT_IDX]
     INPUT_IDX += 1
     return text
@@ -33,13 +34,15 @@ def run_test(stdscr, description, keys, inputs):
     reset_inputs(inputs)
     searchf.app.init_colors()
     searchf.app.views.create(stdscr, TEST_FILE)
-    searchf.app.views.get_text = my_get_text
+    original_get_text = searchf.app._get_text
+    searchf.app._get_text = my_get_text
     for key in keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.1)
         handled = searchf.app.views.handle_key(ord(key))
         assert handled or key == 'q'
+    searchf.app._get_text = original_get_text
 
 KEYS = [' ', '>', '<']
 KEY_IDX = 0
@@ -57,7 +60,7 @@ def my_get_ch(_):
 # (cf all assert in code). By maintaining code coverage above 95%,
 # these tests are still very useful to catch regression when
 # refactoring.
-def run_all(stdscr):
+def run_app_tests(stdscr):
 
     # Log param, that might be useful to repro any issue
     print(f'TEST_FILE = {TEST_FILE}')
@@ -89,10 +92,10 @@ def run_all(stdscr):
              ['i', '/', 'i', 'i'],
              ['Show'])
 
-    searchf.USE_DEBUG = True
+    searchf.app.USE_DEBUG = True
     run_test(stdscr, 'Test special debug mode',
              ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
-    searchf.USE_DEBUG = False
+    searchf.app.USE_DEBUG = False
 
     def get_max_yx(_):
         return 20, 20
@@ -108,9 +111,10 @@ def run_all(stdscr):
     print('Test searchf.app.get_text()')
     def my_handler(_):
         pass
+    reset_inputs(['dummy'])
     searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
 
-    print('Test searchf.app._bpx_edit()')
+    print('Test searchf.app._box_edit()')
     class MyBox:
         def edit(self, validate):
             assert validate('a') == 'a'
@@ -122,6 +126,22 @@ def run_all(stdscr):
     searchf.app.get_ch = my_get_ch
     searchf.app.main_loop(stdscr, TEST_FILE)
     searchf.app.get_ch = stdscr.getch
+
+    print('Test searchf.app.main()')
+    original_main_loop = searchf.app.main_loop
+    main_loop_called = False
+    def my_main_loop(_1, _2):
+        nonlocal main_loop_called
+        main_loop_called = True
+    searchf.app.main_loop = my_main_loop
+    searchf.app.main()
+    assert main_loop_called
+    searchf.app.main_loop = original_main_loop
+
+def run_unit_tests():
+    print('Test segments')
+    searchf.test.test_segments.test_iter_segments()
+    searchf.test.test_segments.test_sort_and_merge_segments()
 
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''
@@ -145,18 +165,19 @@ def main():
 
     error = None
     try:
-        curses.wrapper(run_all)
-    except Exception as ex:
+        curses.wrapper(run_app_tests)
+    except Exception as ex: # pragma: no cover
         error = ex
 
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     print(test_stdout.get())
 
-    if error:
+    if error: # pragma: no cover
         print('== test failed ==')
         raise error
 
+    run_unit_tests()
     print('== test passed ==')
 
 if __name__ == '__main__':

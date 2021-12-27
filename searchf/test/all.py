@@ -86,7 +86,7 @@ def run_app_tests(stdscr):
              ['+', 'f', '-', 'F'],
              ['', ''])
     run_test(stdscr, 'Test keyword search',
-             ['/', 'n', 'n', 'n', 'p', 'p'],
+             ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p'],
              ['filter'])
     run_test(stdscr, 'Test case sensitive search',
              ['i', '/', 'i', 'i'],
@@ -127,16 +127,9 @@ def run_app_tests(stdscr):
     searchf.app.main_loop(stdscr, TEST_FILE)
     searchf.app.get_ch = stdscr.getch
 
-    print('Test searchf.app.main()')
-    original_main_loop = searchf.app.main_loop
-    main_loop_called = False
-    def my_main_loop(_1, _2):
-        nonlocal main_loop_called
-        main_loop_called = True
-    searchf.app.main_loop = my_main_loop
-    searchf.app.main()
-    assert main_loop_called
-    searchf.app.main_loop = original_main_loop
+    print('Test searchf.app.init_env()')
+    parser = searchf.app.init_env()
+    assert parser
 
 def run_unit_tests():
     print('Test segments')
@@ -166,14 +159,14 @@ def main():
     error = None
     try:
         curses.wrapper(run_app_tests)
-    except Exception as ex: # pragma: no cover
+    except Exception as ex:
         error = ex
 
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     print(test_stdout.get())
 
-    if error: # pragma: no cover
+    if error:
         print('== test failed ==')
         raise error
 

@@ -961,14 +961,18 @@ def main_loop(scr, path):
             status = ''
         scr.addstr(status_y, status_x, status[:max_x-1])
 
-def main():
-    '''Application entry point'''
-
+def init_env():
+    '''Initialize environment and return argument parser'''
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('file')
+    return parser
+
+def main():
+    '''Application entry point'''
+    parser = init_env()
     args = parser.parse_args()
     curses.wrapper(main_loop, args.file)
 

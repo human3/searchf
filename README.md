@@ -58,7 +58,7 @@ To get coverage report (requires coverage package):
 
 As of version 1.2:
 
-![Screenshot searchf coverage](https://user-images.githubusercontent.com/15265841/147425126-9c9e7d0f-e4d6-430c-b7f6-1aa4c486f134.png)
+![Screenshot searchf coverage](https://user-images.githubusercontent.com/15265841/147427412-9ac304b6-c0d1-40fe-bc8a-b8539af7f5c4.png)
 
 ## Tips
 

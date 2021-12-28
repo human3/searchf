@@ -1,17 +1,24 @@
 # [searchf](https://github.com/human3/searchf)
 
-Utility program to interactively search for keywords in text files (log files, build output files, etc.), colorize matching lines and help you discover the things you should care about, "squeezing" useful information out of files. Works in terminals, uses curses for text base UI.
+Utility program to interactively search and colorize keywords in text files, select relevant lines, remove noise and help you discover the things you should care about. Works in terminals and uses stack-based interactions to minimize the number of key presses (think HP calculators).
 
 ![Screenshot searchf 1](https://user-images.githubusercontent.com/15265841/147424844-9bece2d4-ceb0-4ea1-b989-a40ea3e6d3ac.png)
 
-A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file. By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning lines are shown in the color of the first filter they match.
-
-In the above screenshot, 3 filters have been defined:
+The above screenshot shows how the content of a "random" text file (`app.py` being the source of this utility) can be filtered using 3 filters:
 - `def AND init` reveals 6 lines in red
 - `def AND push` reveals 3 lines in orange
-- `keyword` reveals 44 lines in yellow
+- `keyword` reveals 40 lines in yellow
 
-Why this utility? I had to dig into build log files, which were a raw aggregate of many heterogenous sources (numerous compiler output, deployment scripts, test run and results, ...) resulting in rather unstructured output. The only commonality being that everything was somehow and more or less line-oriented... When a build failure occured, hints of the root caused could be hiding about anywhere. So this tool is born from my need to be able to explore log files in interactive fashion, searching for cues, going down some exploratory paths pm the side (hence the support of views), hitting dead ends and backtracking (hence the use of push/pop of filter and keyword), etc. Little or no assumption is made on the input file, which can be anything, unstructured and heterogenous, as long as it is line oriented.
+Keywords can be added to the most recent filter (the one at the bottom and associated to yellow) by pressing `+` or `=`, and removed/poped from the filter by pressing `-`. New filters can be pushed to the stack by pressing `ENTER` or `f`, and poped by pressing `backspace` or `delete`.
+
+A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning lines are shown in the color of the first filter they match.
+
+## Features
+
+- Supports multiple views (try pressing `1`, `2`, `3`)
+- Supports multiple palettes (try pressing `c` for color)
+- Various display modes (`l` toggle line numbers, `m` toggle non-matching line, ...)
+- `less` like search key bindings (`/`, then `n` for next, `p` for previous)
 
 ## Installation
 
@@ -38,10 +45,17 @@ Showing all lines, with wrapping and numbers enabled, colorizing lines as a whol
 
 ![Screenshot searchf 2](https://user-images.githubusercontent.com/15265841/147425069-609e346d-c84d-452c-bfb2-8e32cadf10d5.png)
 
+## Why this utility?
+
+This tool is born from my need to be able to efficiently explore log files in interactive fashion, searching for cues, hitting dead ends and backtracking (hence the use of push/pop of filter and keyword), but also going down some exploratory paths on the side (hence the support of views).
+
+To be more specific, I had to dig into build log files, which were a raw aggregate of many heterogenous sources (numerous compiler output, deployment scripts, test run and results, ...) resulting in rather unstructured output. The only commonality being that everything was somehow and more or less line-oriented... When a build failure occured, hints of the root caused could be hiding about anywhere.
+
+So this tool ended making little or no assumption on the input file, which can be anything, unstructured and heterogenous, as long as it is line oriented.
+
 ## Development
 
-If working from the sources (ie not an installed package), the application can be
-launched as a module:
+If working from the sources (ie not an installed package), the application can be launched as a module:
 
 `python3 -m searchf.app <FILE>`
 
@@ -59,9 +73,6 @@ To get coverage report (requires coverage package):
 As of version 1.2:
 
 ![Screenshot searchf coverage](https://user-images.githubusercontent.com/15265841/147427412-9ac304b6-c0d1-40fe-bc8a-b8539af7f5c4.png)
-
-## Tips
-
 
 ## Known Issues
 

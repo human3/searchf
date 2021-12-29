@@ -8,10 +8,6 @@
 # We want one letter variable name in simple functions.
 # pylint: disable=invalid-name
 
-# The no-member error fires on dynamically generated members of curses only, and
-# nothing offending in our code, so disabling it...
-# pylint: disable=no-member
-
 from curses.textpad import Textbox
 from enum import Enum, auto
 import argparse
@@ -96,12 +92,12 @@ def _get_text(scr, y, x, prompt, handler):
     return text if text else ''
 
 def _box_edit(box):
-    def validate(ch):
-        if ch == curses.ascii.DEL:
-            ch = curses.KEY_BACKSPACE
-        elif ch == curses.ascii.ESC:
+    def validate(c):
+        if c == curses.ascii.DEL:
+            c = curses.KEY_BACKSPACE
+        elif c == curses.ascii.ESC:
             raise EscapeInterrupt()
-        return ch
+        return c
 
     try:
         box.edit(validate=validate)
@@ -140,12 +136,12 @@ class Filter:
 class ViewConfig:
     '''Holds the configuration of a view'''
     # pylint: disable=too-many-instance-attributes
-    line_numbers:  bool = False
-    wrap:          bool = True
-    bullets:       bool = False
+    line_numbers: bool = False
+    wrap: bool = True
+    bullets: bool = False
     only_matching: bool = True
-    show_spaces:   bool = False
-    whole_line:    bool = False
+    show_spaces: bool = False
+    whole_line: bool = False
     palette_index: int = 0
 
     def __init__(self):
@@ -177,28 +173,28 @@ class ViewConfig:
 
 class TextViewCommand(Enum):
     '''Simple commands accepted by TextView class, that do not take any argument.'''
-    GO_UP                 = auto()
-    GO_DOWN               = auto()
-    GO_LEFT               = auto()
-    GO_RIGHT              = auto()
-    GO_HOME               = auto()
-    GO_END                = auto()
-    GO_NPAGE              = auto()
-    GO_PPAGE              = auto()
-    GO_SLEFT              = auto()
-    GO_SRIGHT             = auto()
-    POP_FILTER            = auto()
-    POP_KEYWORD           = auto()
+    GO_UP = auto()
+    GO_DOWN = auto()
+    GO_LEFT = auto()
+    GO_RIGHT = auto()
+    GO_HOME = auto()
+    GO_END = auto()
+    GO_NPAGE = auto()
+    GO_PPAGE = auto()
+    GO_SLEFT = auto()
+    GO_SRIGHT = auto()
+    POP_FILTER = auto()
+    POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    TOGGLE_ONLY_MATCHING  = auto()
-    TOGGLE_LINE_NUMBERS   = auto()
-    TOGGLE_WRAP           = auto()
-    TOGGLE_BULLETS        = auto()
-    TOGGLE_SHOW_SPACES    = auto()
-    TOGGLE_WHOLE_LINE     = auto()
-    TOGGLE_IGNORE_CASE    = auto()
-    NEXT_PALETTE          = auto()
+    TOGGLE_ONLY_MATCHING = auto()
+    TOGGLE_LINE_NUMBERS = auto()
+    TOGGLE_WRAP = auto()
+    TOGGLE_BULLETS = auto()
+    TOGGLE_SHOW_SPACES = auto()
+    TOGGLE_WHOLE_LINE = auto()
+    TOGGLE_IGNORE_CASE = auto()
+    NEXT_PALETTE = auto()
 
 def bool_to_text(value):
     '''Converts a boolean value to text.'''
@@ -968,8 +964,10 @@ def init_env():
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
 
-    parser = argparse.ArgumentParser(description='Console application to search into text files and highlight keywords.',
-                                     epilog='Press ? in the application for more information, or go to https://github.com/human3/searchf')
+    parser = argparse.ArgumentParser(
+        description='Console application to search into text files and highlight keywords.',
+        epilog='Press ? in the application for more information, or go to\
+        https://github.com/human3/searchf')
     parser.add_argument('file')
     return parser
 

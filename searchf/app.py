@@ -376,26 +376,8 @@ line number and separator'''
 
     def _sync_data(self, redraw):
         # Recompute the model data (self._data) based on the file content and
-        # the selected filters. Layout and Draw() are done after model data has
+        # the selected filters. Layout and drawing are done after model data has
         # been computed.
-
-        # Returns a list of segments (ie pair of indices (start,end)) locating
-        # keywords in the given text
-        def find_matches(text, f):
-            keywords = f.keywords
-            flags = re.IGNORECASE if f.ignore_case else 0
-            s = set() # Use a set() as multiple matches are possible
-            for kw in keywords:
-                matching = False
-                for m in re.finditer(kw, text, flags):
-                    matching = True
-                    s.add((m.start(), m.end()))
-                if not matching:
-                    # Bail out early as soon as one keyword has no match
-                    return False, set()
-
-            # Sort all segments and then merge them as overlap can happen
-            return True, segments.sort_and_merge_segments(s)
 
         data = []
         filters = self._config.filters
@@ -408,7 +390,7 @@ line number and separator'''
 
             matching = False
             for fidx, f in enumerate(filters):
-                matching, s = find_matches(line, f)
+                matching, s = segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
                     data.append([i, fidx, line, s])
@@ -425,7 +407,7 @@ line number and separator'''
         self._layout(redraw)
 
     def set_lines(self, lines):
-        '''Sets the content of this view. Assumes view is offline, and does
+        '''Sets the content of this view. Assumes the view is offscreen and does
         not trigger a redraw.'''
         self._lines = lines
         self._sync_data(False)
@@ -527,7 +509,7 @@ line number and separator'''
             text = f'{text:<{self._w_text}}'
             self._win.addnstr(y, x, text, self._w, color)
         else:
-            for match, start, end in segments.iter_segments(offset, vend, s):
+            for match, start, end in segments.iterate(offset, vend, s):
                 assert start < end
                 c = color if match else 0
                 l = end - start

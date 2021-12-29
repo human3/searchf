@@ -4,15 +4,17 @@ A segment is just a pair of indices (start, end) that identifies a
 portion of text displayed with a given style.
 '''
 
+import re
+
 # We want one letter variable name in simple functions.
 # pylint: disable=invalid-name
 
-def sort_and_merge_segments(segments):
+def _sort_and_merge(segments):
     '''Takes a list of segments, merges overlapping ones and returns the resulting
 list cleared off any overlapping segments. This function only looks at
 indices. For instance, in "abcde" the 2 keywords "abc" and "cde" are repectively
 matching segments (0,3) and (2,5), which contain overlapping indices. This
-function would merge them as one segment (0,5).'''
+function merges them as one segment (0,5).'''
     merged = set()
     pending = ()
     for s in sorted(segments):
@@ -28,7 +30,26 @@ function would merge them as one segment (0,5).'''
         merged.add(pending)
     return sorted(merged)
 
-def iter_segments(start, end, segments):
+def find_matching(text, keywords, ignore_case):
+    '''Returns True and the segments matching any of the given keywords if
+each keyword is found at least once in the given text, False and an
+empty set otherwise.'''
+    assert len(keywords) > 0
+    flags = re.IGNORECASE if ignore_case else 0
+    s = set() # Use a set() as multiple matches are possible
+    for k in keywords:
+        matching = False
+        for m in re.finditer(k, text, flags):
+            matching = True
+            s.add((m.start(), m.end()))
+        if not matching:
+            # Bail out early as soon as one keyword has no match
+            return False, set()
+
+    # Sort all segments and then merge them as overlap can happen
+    return True, _sort_and_merge(s)
+
+def iterate(start, end, segments):
     '''This function is used to build the list of text draw commands required to
 display a line containing highlighted keywords.
 

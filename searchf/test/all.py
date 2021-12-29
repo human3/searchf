@@ -133,8 +133,9 @@ def run_app_tests(stdscr):
 
 def run_unit_tests():
     print('Test segments')
-    searchf.test.test_segments.test_iter_segments()
-    searchf.test.test_segments.test_sort_and_merge_segments()
+    searchf.test.test_segments.test_iterate()
+    searchf.test.test_segments.test_sort_and_merge()
+    searchf.test.test_segments.test_find_matching()
 
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''

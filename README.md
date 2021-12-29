@@ -4,12 +4,12 @@ Utility program to interactively search and colorize keywords in text files, sel
 
 ![Screenshot searchf 1](https://user-images.githubusercontent.com/15265841/147424844-9bece2d4-ceb0-4ea1-b989-a40ea3e6d3ac.png)
 
-The above screenshot shows how the content of a "random" text file (`app.py` being the source of this utility) can be filtered using 3 filters:
+The above screenshot shows how the content of a text file can be filtered. In this example, 3 filters have been defined and are displayed in the filter stack, at the bottom and right below the blue bar:
 - `def AND init` reveals 6 lines in red
 - `def AND push` reveals 3 lines in orange
 - `keyword` reveals 40 lines in yellow
 
-Keywords can be added to the most recent filter (the one at the bottom and associated to yellow) by pressing `+` or `=`, and removed/poped from the filter by pressing `-`. New filters can be pushed to the stack by pressing `ENTER` or `f`, and poped by pressing `backspace` or `delete`.
+New filters can be pushed to the stack by pressing `ENTER` or `f`, and poped by pressing `backspace` or `delete`. Keywords can be added to the most recent filter (the one at the bottom and associated to yellow in the above screenshot) by pressing `+` or `=`, and removed from the filter by pressing `-`.
 
 A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning lines are shown in the color of the first filter they match.
 
@@ -17,8 +17,8 @@ A filter is a list of keywords that a line must contain to match and get highlig
 
 - Supports multiple views (try pressing `1`, `2`, `3`)
 - Supports multiple palettes (try pressing `c` for color)
-- Various display modes (`l` toggle line numbers, `m` toggle non-matching line, ...)
-- `less` like search key bindings (`/`, then `n` for next, `p` for previous)
+- Various display modes (`l` toggles line numbers, `m` toggles visibility of non-matching line, `k` toggles line wrapping, ...)
+- Common search key bindings (`/`, then `n` for next, `p` for previous)
 
 ## Installation
 
@@ -76,11 +76,7 @@ As of version 1.2:
 
 ## Known Issues
 
-- Does not work on Windows... No color there... It can run, but it's hard:
-  - py -m pip install windows-curses
-    https://www.lfd.uci.edu/~gohlke/pythonlibs/#curses
-  - py -m pip install "YOUR\_DOWNLOADS\curses-2.2.1+utf8-cp310-cp310-win_amd64.whl"
-  - mingw64 + winpty py searchf.py
+- Does not work on Windows
 
 ## Wish list
 

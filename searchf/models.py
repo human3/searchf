@@ -20,6 +20,9 @@ class Filter:
         '''Removes most recently added keyword from this filter'''
         self.keywords.popitem()
 
+def _digits_count(max_number):
+    return math.floor(math.log10(max(1, max_number))+1)
+
 class Model:
     '''Holds data associated with a file.'''
     def __init__(self):
@@ -33,7 +36,7 @@ class Model:
 
     def line_number_length(self):
         '''Number of digit required to display bigest line number'''
-        return math.floor(math.log10(len(self._lines))+1)
+        return _digits_count(len(self._lines))
 
     def set_lines(self, lines):
         '''Sets and stores the file content lines into the data model'''

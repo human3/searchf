@@ -78,35 +78,39 @@ def get_ch(scr):
 that we can overwrite it and inject keys while testing.'''
     return scr.getch()
 
+class EscapeException(Exception):
+    '''Signals that Escape key has been pressed'''
+
+def _validate(c):
+    if c == curses.ascii.DEL:
+        c = curses.KEY_BACKSPACE
+    elif c == curses.ascii.ESC:
+        raise EscapeException()
+    return c
+
 def _get_text(scr, y, x, prompt, handler):
     scr.addstr(y, x, prompt)
     x += len(prompt)
     editwin = curses.newwin(1, 30, y, x)
     scr.refresh()
     box = Textbox(editwin)
-    handler(box)
-    text = box.gather().strip()
+    text = ''
+    try:
+        handler(box)
+        text = box.gather().strip()
+    except EscapeException:
+        pass
+
     editwin.clear()
     editwin.refresh()
     clear(scr, y, 0, len(prompt))
     return text if text else ''
 
-def _box_edit(box):
-    def validate(c):
-        if c == curses.ascii.DEL:
-            c = curses.KEY_BACKSPACE
-        elif c == curses.ascii.ESC:
-            raise EscapeInterrupt()
-        return c
-
-    try:
-        box.edit(validate=validate)
-    except EscapeInterrupt:
-        pass
-
 def get_text(scr, y, x, prompt):
     '''Prompts user to enter some text.'''
-    return _get_text(scr, y, x, prompt, _box_edit)
+    def handle(box):
+        box.edit(validate=_validate)
+    return _get_text(scr, y, x, prompt, handle)
 
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
@@ -114,9 +118,6 @@ def clear(scr, y, x, length):
     blank = f'{" ":>{length}}'
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
-
-class EscapeInterrupt(Exception):
-    '''Signals that Escape key has been pressed'''
 
 class Filter:
     '''Represents a list of keywords ANDed together and matching properties'''

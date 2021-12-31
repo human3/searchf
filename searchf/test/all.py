@@ -79,6 +79,9 @@ def run_app_tests(stdscr):
              ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0'])
     run_test(stdscr, 'Test various display modes',
              ['l', 'l', 'k', 'k', '.', '.', '*', '*', 'q'], [])
+    run_test(stdscr, 'Test entering one letter keywords',
+             ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'c', 'c', 'F', '-', '-', '-', '+'],
+             ['a', 'b', 'c', 'd', ''])
     run_test(stdscr, 'Test entering keywords',
              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'c', 'c', 'F', '-', '-', '-', '+'],
              ['filter', 'keyword', 'for', 'python', ''])

@@ -5,9 +5,6 @@
 # - Don't Repeat Yourself (aka DRY)
 # - no-use-before-define
 
-# We want one letter variable name in simple functions.
-# pylint: disable=invalid-name
-
 from curses.textpad import Textbox
 from enum import Enum, auto
 import argparse
@@ -19,6 +16,9 @@ import sys
 
 import searchf
 from searchf import segments
+
+# We want one letter variable name in simple functions.
+# pylint: disable=invalid-name
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -126,9 +126,9 @@ class Filter:
     def __init__(self):
         self.keywords = {}
 
-    def add(self, kw):
+    def add(self, keyword):
         '''Adds given keyword to this filter'''
-        self.keywords[kw] = None
+        self.keywords[keyword] = None
 
     def pop(self):
         '''Removes most recently added keyword from this filter'''
@@ -611,13 +611,13 @@ line number and separator'''
             return '(END)' if direction > 0 else '(BEGIN)'
         return 'Next match' if direction > 0 else 'Previous match'
 
-    def search(self, kw):
+    def search(self, keyword):
         '''Searches for the given keyword. This function assumes the view
         currently has no filter.'''
         assert not self.has_filters()
-        if len(kw) > 0:
+        if len(keyword) > 0:
             self._config.only_matching = False
-            self.push_keyword(kw, True)
+            self.push_keyword(keyword, True)
             self._vscroll_to_match(True, 1)
 
     def _vscroll_to_next_match(self):
@@ -831,8 +831,8 @@ class Views:
         v = self._content[self._current]
 
         def new_keyword(new_filter):
-            kw = self._get_keyword()
-            return v.push_keyword(kw, new_filter)
+            keyword = self._get_keyword()
+            return v.push_keyword(keyword, new_filter)
 
         def goto_line():
             line_as_text = self.get_text('Enter line: ')

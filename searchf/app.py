@@ -5,6 +5,10 @@
 # - Don't Repeat Yourself (aka DRY)
 # - no-use-before-define
 
+# pylint: disable=invalid-name
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-arguments
+
 from curses.textpad import Textbox
 from enum import Enum, auto
 import argparse
@@ -16,9 +20,6 @@ import sys
 
 import searchf
 from searchf import segments
-
-# We want one letter variable name in simple functions.
-# pylint: disable=invalid-name
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -136,7 +137,6 @@ class Filter:
 
 class ViewConfig:
     '''Holds the configuration of a view'''
-    # pylint: disable=too-many-instance-attributes
     line_numbers: bool = False
     wrap: bool = True
     bullets: bool = False

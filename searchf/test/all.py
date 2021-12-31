@@ -112,18 +112,22 @@ def run_app_tests(stdscr):
     searchf.app.get_max_yx = original_get_max_yx
 
     print('Test searchf.app.get_text()')
-    def my_handler(_):
-        pass
+    def my_handler(_): pass
     reset_inputs(['dummy'])
     searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
+    def my_handler_throwing(_):
+        raise searchf.app.EscapeException
+    searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing)
 
-    print('Test searchf.app._box_edit()')
-    class MyBox:
-        def edit(self, validate):
-            assert validate('a') == 'a'
-            assert curses.KEY_BACKSPACE == validate(curses.ascii.DEL)
-            validate(curses.ascii.ESC)
-    searchf.app._box_edit(MyBox())
+    print('Test searchf.app._validate()')
+    assert searchf.app._validate('a') == 'a'
+    assert searchf.app._validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
+    actual = None
+    try:
+        searchf.app._validate(curses.ascii.ESC)
+    except searchf.app.EscapeException as e:
+        actual = e
+    assert actual
 
     print('Test searchf.app.main_loop()')
     searchf.app.get_ch = my_get_ch

@@ -39,7 +39,7 @@ def run_test(stdscr, description, keys, inputs):
     for key in keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
-        time.sleep(0.1)
+        time.sleep(0.01)
         handled = searchf.app.views.handle_key(ord(key))
         assert handled or key == 'q'
     searchf.app._get_text = original_get_text
@@ -132,9 +132,12 @@ def run_app_tests(stdscr):
     assert parser
 
 def run_unit_tests():
-    print('Test segments')
-    searchf.test.test_segments.test_iter_segments()
-    searchf.test.test_segments.test_sort_and_merge_segments()
+    print('Test segments.iterate()')
+    searchf.test.test_segments.test_iterate()
+    print('Test segments._sort_and_merge()')
+    searchf.test.test_segments.test_sort_and_merge()
+    print('Test segments.find_matching()')
+    searchf.test.test_segments.test_find_matching()
 
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''
@@ -159,6 +162,7 @@ def main():
     error = None
     try:
         curses.wrapper(run_app_tests)
+        run_unit_tests()
     except Exception as ex:
         error = ex
 
@@ -170,7 +174,6 @@ def main():
         print('== test failed ==')
         raise error
 
-    run_unit_tests()
     print('== test passed ==')
 
 if __name__ == '__main__':

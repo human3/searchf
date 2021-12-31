@@ -8,10 +8,6 @@
 # We want one letter variable name in simple functions.
 # pylint: disable=invalid-name
 
-# The no-member error fires on dynamically generated members of curses only, and
-# nothing offending in our code, so disabling it...
-# pylint: disable=no-member
-
 from curses.textpad import Textbox
 from enum import Enum, auto
 import argparse
@@ -22,7 +18,7 @@ import re
 import sys
 
 import searchf
-import searchf.segments as segments
+from searchf import segments
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -96,12 +92,12 @@ def _get_text(scr, y, x, prompt, handler):
     return text if text else ''
 
 def _box_edit(box):
-    def validate(ch):
-        if ch == curses.ascii.DEL:
-            ch = curses.KEY_BACKSPACE
-        elif ch == curses.ascii.ESC:
+    def validate(c):
+        if c == curses.ascii.DEL:
+            c = curses.KEY_BACKSPACE
+        elif c == curses.ascii.ESC:
             raise EscapeInterrupt()
-        return ch
+        return c
 
     try:
         box.edit(validate=validate)
@@ -140,12 +136,12 @@ class Filter:
 class ViewConfig:
     '''Holds the configuration of a view'''
     # pylint: disable=too-many-instance-attributes
-    line_numbers:  bool = False
-    wrap:          bool = True
-    bullets:       bool = False
+    line_numbers: bool = False
+    wrap: bool = True
+    bullets: bool = False
     only_matching: bool = True
-    show_spaces:   bool = False
-    whole_line:    bool = False
+    show_spaces: bool = False
+    whole_line: bool = False
     palette_index: int = 0
 
     def __init__(self):
@@ -177,28 +173,28 @@ class ViewConfig:
 
 class TextViewCommand(Enum):
     '''Simple commands accepted by TextView class, that do not take any argument.'''
-    GO_UP                 = auto()
-    GO_DOWN               = auto()
-    GO_LEFT               = auto()
-    GO_RIGHT              = auto()
-    GO_HOME               = auto()
-    GO_END                = auto()
-    GO_NPAGE              = auto()
-    GO_PPAGE              = auto()
-    GO_SLEFT              = auto()
-    GO_SRIGHT             = auto()
-    POP_FILTER            = auto()
-    POP_KEYWORD           = auto()
+    GO_UP = auto()
+    GO_DOWN = auto()
+    GO_LEFT = auto()
+    GO_RIGHT = auto()
+    GO_HOME = auto()
+    GO_END = auto()
+    GO_NPAGE = auto()
+    GO_PPAGE = auto()
+    GO_SLEFT = auto()
+    GO_SRIGHT = auto()
+    POP_FILTER = auto()
+    POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    TOGGLE_ONLY_MATCHING  = auto()
-    TOGGLE_LINE_NUMBERS   = auto()
-    TOGGLE_WRAP           = auto()
-    TOGGLE_BULLETS        = auto()
-    TOGGLE_SHOW_SPACES    = auto()
-    TOGGLE_WHOLE_LINE     = auto()
-    TOGGLE_IGNORE_CASE    = auto()
-    NEXT_PALETTE          = auto()
+    TOGGLE_ONLY_MATCHING = auto()
+    TOGGLE_LINE_NUMBERS = auto()
+    TOGGLE_WRAP = auto()
+    TOGGLE_BULLETS = auto()
+    TOGGLE_SHOW_SPACES = auto()
+    TOGGLE_WHOLE_LINE = auto()
+    TOGGLE_IGNORE_CASE = auto()
+    NEXT_PALETTE = auto()
 
 def bool_to_text(value):
     '''Converts a boolean value to text.'''
@@ -217,7 +213,7 @@ class TextView:
         self._scr = scr
         self._config = ViewConfig()
 
-        self._content_lines_count = 0
+        self._visible_lines_count = 0 # Number of lines available to display content
         self._h = 0
         self._w = 0
         self._win = None
@@ -260,6 +256,7 @@ line number and separator'''
         return number_length + len(sep), number_length, sep
 
     def _draw_bar(self, y):
+        '''Draws the status bar and the filter stack underneath'''
         style = curses.color_pair(BAR_COLOR_ID)
         self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
 
@@ -276,22 +273,27 @@ line number and separator'''
             self._win.addstr(y, x, text, style)
 
         # Print from right to left
+        def move_left_for(x, text):
+            return max(0, x - len(text) - 1)
+
         x = self._w
+
         text = f' {self._name} '
-        x = x - len(text) - 1
+        x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
 
-        x = x - 5 - 1 # voffest_desc at most 5 char long
+        text = ''.ljust(5) # voffest_desc is not always shown, but at most 5 char long
+        x = move_left_for(x, text)
         if len(self._voffset_desc) > 0:
             text = f' {self._voffset_desc:>3} '
             self._win.addstr(y, x, text, style)
 
         text = f' {len(self._lines)} lines '
-        x = x - len(text) - 1
+        x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
 
         text = f' {self._basename} '
-        x = x - len(text) - 1
+        x = move_left_for(x, text)
         self._win.addstr(y, x, text, style | curses.A_BOLD)
 
         assert len(self._hits) == len(self._config.filters)
@@ -306,6 +308,30 @@ line number and separator'''
             text = ' AND '.join(f.keywords)
             self._win.addstr(y + 1 + i, x, f'{self._hits[i]:>8} {text}', color)
 
+    def _draw_prefix(self, y, prefix_info, line_idx, color):
+        _, w_index, sep = prefix_info
+        if w_index <= 0:
+            self._win.addstr(y, 0, f'{sep}', color | curses.A_BOLD)
+        else:
+            self._win.addstr(y, 0, f'{line_idx:>{w_index}}{sep}', color | curses.A_BOLD)
+
+    def _draw_content(self, position, text, matching_segments, offset, color):
+        y, x = position
+        vend = offset + self._w_text
+        if self._config.show_spaces:
+            text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
+        if self._config.whole_line:
+            text = text[offset:vend]
+            text = f'{text:<{self._w_text}}'
+            self._win.addnstr(y, x, text, self._w, color)
+        else:
+            for match, start, end in segments.iterate(offset, vend, matching_segments):
+                assert start < end
+                c = color if match else 0
+                l = end - start
+                self._win.addnstr(y, x, text[start:end], l, c)
+                x += l
+
     def draw(self):
         '''Draws the view'''
         debug(f'{self._name} draw {self._voffset}')
@@ -313,38 +339,38 @@ line number and separator'''
 
         prefix_info = self._get_prefix_info()
 
-        # Only draw what we need: we are going to pull at most _h lines from the
-        # data model, possibly less if some content needs multiple line (wrapping)
+        # Only draw what we need: we are going to pull at most
+        # _visible_lines_count lines from the data model, possibly
+        # less if some content needs multiple lines (wrapping)
         iddata = self._voffset
         iddatamax = len(self._ddata)
 
-        # screen offset of content (to the right of line number and sep, if any)
-        for y in range(self._content_lines_count):
+        for y in range(self._visible_lines_count):
             if iddata >= iddatamax:
                 break
             idata, offset = self._ddata[iddata]
             iddata += 1
-
-            idx, fidx, text, s = self._data[idata]
-            color = 0 if fidx < 0 else self._config.get_color(fidx)
+            line_idx, filter_idx, text, matching_segments = self._data[idata]
+            color = 0 if filter_idx < 0 else self._config.get_color(filter_idx)
             color = curses.color_pair(color)
-
+            # If offset is not 0, this means the original content line
+            # is being wrapped on to multiple lines on the screen. We
+            # only draw the prefix on the first line, which has offset
+            # 0.
             if offset == 0:
-                self._draw_prefix((y, 0), prefix_info, idx, color)
+                self._draw_prefix(y, prefix_info, line_idx, color)
+            offset += self._hoffset
+            self._draw_content((y, prefix_info[0]), text, matching_segments, offset, color)
 
-            self._draw_content((y, prefix_info[0]),
-                               text, s, self._hoffset + offset, color)
-
-        try:
-            self._draw_bar(self._content_lines_count)
-        except curses.error:
-            pass
+        self._draw_bar(self._visible_lines_count)
 
         self._win.refresh()
 
     def _layout(self, redraw):
-        # Breaks content lines into displayable lines (self._ddata)
-        self._content_lines_count = max(0, self._h - 1 - len(self._config.filters))
+        '''Computes the view model, self_ddata, breaking the lines from the
+        data model into displayable lines taking into account the
+        available space on the screen.'''
+        self._visible_lines_count = max(0, self._h - 1 - len(self._config.filters))
 
         prefix_len, _, _ = self._get_prefix_info()
         w_text = self._w - prefix_len       # width for file content
@@ -378,66 +404,60 @@ line number and separator'''
         if redraw:
             self.draw()
 
-    def _sync_data(self, redraw):
-        # Recompute the model data (self._data) based on the file content and
-        # the selected filters. Layout and Draw() are done after model data has
-        # been computed.
+    def _sync_data(self):
+        # Recomputes the data model based on the file content, the
+        # current set of filters, and the view properties. This
+        # function does not address any screen constraints as layout
+        # and drawing are done *after* this step.
+        # Each line is associated with:
+        # - the index of the line in the original content (required
+        #   because we don't always show all lines of the original
+        #   file)
+        # - the index of the matching filter if any, or -1 otherwise
+        # - the text of the line
+        # - the segments matching keywords in the filter that will be
+        #   highlighted/colorized
 
-        # Returns a list of segments (ie pair of indices (start,end)) locating
-        # keywords in the given text
-        def find_matches(text, f):
-            keywords = f.keywords
-            flags = re.IGNORECASE if f.ignore_case else 0
-            s = set() # Use a set() as multiple matches are possible
-            for kw in keywords:
-                matching = False
-                for m in re.finditer(kw, text, flags):
-                    matching = True
-                    s.add((m.start(), m.end()))
-                if not matching:
-                    # Bail out early as soon as one keyword has no match
-                    return False, set()
-
-            # Sort all segments and then merge them as overlap can happen
-            return True, segments.sort_and_merge_segments(s)
+        filters = self._config.filters
+        show_all_lines = not self._config.only_matching or len(filters) <= 0
 
         data = []
-        filters = self._config.filters
-        only_matching = self._config.only_matching and len(filters) > 0
         hits = [0 for f in filters]
 
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
-
             matching = False
             for fidx, f in enumerate(filters):
-                matching, s = find_matches(line, f)
+                matching, matching_segments = \
+                    segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
-                    data.append([i, fidx, line, s])
+                    data.append([i, fidx, line, matching_segments])
                     break
-            if not matching and not only_matching:
+            if not matching and show_all_lines:
                 data.append([i, -1, line, set()])
+
         self._data = data
         self._hits = hits
 
-        # Trigger layout and potentially draw
+    def _sync(self, redraw):
+        self._sync_data()
         self._voffset = 0 # vertical offset in content: index of first visible line in ddata
         self._voffset_desc = ''
         self._hoffset = 0 # horizontal offset in content: index of first visible column
         self._layout(redraw)
 
     def set_lines(self, lines):
-        '''Sets the content of this view. Assumes view is offline, and does
+        '''Sets the content of this view. Assumes the view is offscreen and does
         not trigger a redraw.'''
         self._lines = lines
-        self._sync_data(False)
+        self._sync(False)
 
     def _pop_filter(self):
         if self._config.has_filters():
             self._config.filters.pop()
-            self._sync_data(True)
+            self._sync(True)
 
     def push_keyword(self, keyword, new_filter):
         '''Pushes a new keyword in current top level filter (if new_filter is
@@ -456,7 +476,7 @@ line number and separator'''
             self._config.push_filter(f)
 
         self._config.top_filter().add(keyword)
-        self._sync_data(True)
+        self._sync(True)
         return 'New filter created' if new_filter else 'Keyword added'
 
     def _pop_keyword(self):
@@ -468,7 +488,7 @@ line number and separator'''
             self._pop_filter()
         else:
             f.pop()
-            self._sync_data(True)
+            self._sync(True)
 
     def _toggle_line_numbers(self):
         self._config.line_numbers = not self._config.line_numbers
@@ -487,7 +507,7 @@ line number and separator'''
 
     def _toggle_only_matching(self):
         self._config.only_matching = not self._config.only_matching
-        self._sync_data(True)
+        self._sync(True)
         return f'Only matching lines {bool_to_text(self._config.only_matching)}'
 
     def _toggle_show_spaces(self):
@@ -505,38 +525,13 @@ line number and separator'''
             return 'Cannot change case sentitivity (no keyword)'
         f = self._config.top_filter()
         f.ignore_case = not f.ignore_case
-        self._sync_data(True)
+        self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
     def _next_palette(self):
         self._config.next_palette()
         self.draw()
         return f'Using color palette #{self._config.palette_index}'
-
-    def _draw_prefix(self, position, prefix_info, idx, color):
-        _, w_index, sep = prefix_info
-        y, x = position
-        if w_index <= 0:
-            self._win.addstr(y, x, f'{sep}', color | curses.A_BOLD)
-        else:
-            self._win.addstr(y, x, f'{idx:>{w_index}}{sep}', color | curses.A_BOLD)
-
-    def _draw_content(self, position, text, s, offset, color):
-        y, x = position
-        vend = offset + self._w_text
-        if self._config.show_spaces:
-            text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
-        if self._config.whole_line:
-            text = text[offset:vend]
-            text = f'{text:<{self._w_text}}'
-            self._win.addnstr(y, x, text, self._w, color)
-        else:
-            for match, start, end in segments.iter_segments(offset, vend, s):
-                assert start < end
-                c = color if match else 0
-                l = end - start
-                self._win.addnstr(y, x, text[start:end], l, c)
-                x += l
 
     def _set_h_offset(self, offset):
         offset = max(offset, 0)
@@ -546,8 +541,8 @@ line number and separator'''
 
     def set_v_offset(self, offset, redraw):
         '''Sets the vertical offset of the view.'''
-        assert self._content_lines_count >= 0
-        ymax = max(0, len(self._ddata) - self._content_lines_count)
+        assert self._visible_lines_count >= 0
+        ymax = max(0, len(self._ddata) - self._visible_lines_count)
         if offset >= ymax:
             offset = ymax
             desc = 'BOT'
@@ -607,7 +602,8 @@ line number and separator'''
                 iddata = self._firstdlines[idata]
                 break
             idata += direction
-        # Remember current offset to describe side-effect
+        # Remember current offset to be able to return a side-effect
+        # description
         prev_offset = self._voffset
         self.set_v_offset(iddata, True)
         if prev_offset == self._voffset:
@@ -630,7 +626,7 @@ line number and separator'''
         return self._vscroll_to_match(False, -1)
 
     def _vpagescroll(self, delta):
-        self._vscroll(delta * self._content_lines_count)
+        self._vscroll(delta * self._visible_lines_count)
 
     def execute(self, command):
         '''Executes the given command.'''
@@ -715,23 +711,25 @@ class DebugView:
         y, x = position
         self._win = curses.newwin(h, w, y, x)
 
-    def out(self, *argv):
-        '''Outputs the given arg to the debug view.'''
-        assert self._scr
-        h, w = self._size
-        self._lines.append(*argv)
-        if len(self._lines) > h:
-            self._lines.pop(0)
-
-        i = 0
-        for line in self._lines:
+    def draw(self):
+        '''Draws the debug view on the screen'''
+        _, w = self._size
+        for i, line in enumerate(self._lines):
             try:
                 self._win.addstr(i, 0, f'{line:<{w}}')
             except curses.error:
                 pass
-            i += 1
 
         self._win.refresh()
+
+    def out(self, *argv):
+        '''Outputs the given arg to the debug view.'''
+        assert self._scr
+        h, _ = self._size
+        self._lines.append(*argv)
+        if len(self._lines) > h:
+            self._lines.pop(0)
+        self.draw()
 
 class Views:
     '''Aggregates all views, controlling which ones are visible, handling
@@ -749,20 +747,20 @@ class Views:
         assert self._scr
         scr = self._scr
         maxh, maxw = get_max_yx(scr)
-
         view_lines_count = maxh - 1
         x = 0
         y = 0
 
         if USE_DEBUG:
-            padding = 3
-            x += padding # just adds something to expose layout issues
-            y += padding
-            view_lines_count = 20
-            maxw = maxw - 2 * padding
             dbg_size = (6, maxw)
             self.debug = DebugView(scr, dbg_size, (y, x))
-            y += dbg_size[0]
+            # Just add padding to expose layout issues in the app
+            padding = 3
+            maxh = max(0, maxh - (2 * padding + dbg_size[0]))
+            maxw = max(0, maxw - 2 * padding)
+            view_lines_count = maxh
+            x = padding
+            y = dbg_size[0] + padding
 
         for v in self._content:
             v.layout(view_lines_count, maxw, y, x)
@@ -841,40 +839,42 @@ class Views:
 
         # Map keys to simple text view commands that don't take any argument
         simple = {
-            ord('F'):          TextViewCommand.POP_FILTER,
-            ord('-'):          TextViewCommand.POP_KEYWORD,
-            ord('n'):          TextViewCommand.VSCROLL_TO_NEXT_MATCH,
-            ord('p'):          TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('m'):          TextViewCommand.TOGGLE_ONLY_MATCHING,
-            ord('l'):          TextViewCommand.TOGGLE_LINE_NUMBERS,
-            ord('k'):          TextViewCommand.TOGGLE_WRAP,
-            ord('*'):          TextViewCommand.TOGGLE_BULLETS,
-            ord('.'):          TextViewCommand.TOGGLE_SHOW_SPACES,
-            ord('c'):          TextViewCommand.NEXT_PALETTE,
-            ord('h'):          TextViewCommand.TOGGLE_WHOLE_LINE,
-            ord('i'):          TextViewCommand.TOGGLE_IGNORE_CASE,
-            curses.KEY_UP:     TextViewCommand.GO_UP,
-            ord('w'):          TextViewCommand.GO_UP,
-            curses.KEY_DOWN:   TextViewCommand.GO_DOWN,
-            ord('s'):          TextViewCommand.GO_DOWN,
-            curses.KEY_LEFT:   TextViewCommand.GO_LEFT,
-            ord('a'):          TextViewCommand.GO_LEFT,
-            curses.KEY_RIGHT:  TextViewCommand.GO_RIGHT,
-            ord('d'):          TextViewCommand.GO_RIGHT,
-            curses.KEY_HOME:   TextViewCommand.GO_HOME,
-            ord('g'):          TextViewCommand.GO_HOME,
-            ord('<'):          TextViewCommand.GO_HOME,
-            curses.KEY_END:    TextViewCommand.GO_END,
-            ord('G'):          TextViewCommand.GO_END,
-            ord('>'):          TextViewCommand.GO_END,
-            curses.KEY_NPAGE:  TextViewCommand.GO_NPAGE,
-            ord(' '):          TextViewCommand.GO_NPAGE,
-            curses.KEY_PPAGE:  TextViewCommand.GO_PPAGE,
-            ord('b'):          TextViewCommand.GO_PPAGE,
-            curses.KEY_SLEFT:  TextViewCommand.GO_SLEFT,
-            ord('A'):          TextViewCommand.GO_SLEFT,
-            curses.KEY_SRIGHT: TextViewCommand.GO_SRIGHT,
-            ord('D'):          TextViewCommand.GO_SRIGHT,
+            ord('F'):              TextViewCommand.POP_FILTER,
+            curses.KEY_BACKSPACE:  TextViewCommand.POP_FILTER,
+            ord('-'):              TextViewCommand.POP_KEYWORD,
+            ord('_'):              TextViewCommand.POP_KEYWORD,
+            ord('n'):              TextViewCommand.VSCROLL_TO_NEXT_MATCH,
+            ord('p'):              TextViewCommand.VSCROLL_TO_PREV_MATCH,
+            ord('m'):              TextViewCommand.TOGGLE_ONLY_MATCHING,
+            ord('l'):              TextViewCommand.TOGGLE_LINE_NUMBERS,
+            ord('k'):              TextViewCommand.TOGGLE_WRAP,
+            ord('*'):              TextViewCommand.TOGGLE_BULLETS,
+            ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
+            ord('c'):              TextViewCommand.NEXT_PALETTE,
+            ord('h'):              TextViewCommand.TOGGLE_WHOLE_LINE,
+            ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
+            curses.KEY_UP:         TextViewCommand.GO_UP,
+            ord('w'):              TextViewCommand.GO_UP,
+            curses.KEY_DOWN:       TextViewCommand.GO_DOWN,
+            ord('s'):              TextViewCommand.GO_DOWN,
+            curses.KEY_LEFT:       TextViewCommand.GO_LEFT,
+            ord('a'):              TextViewCommand.GO_LEFT,
+            curses.KEY_RIGHT:      TextViewCommand.GO_RIGHT,
+            ord('d'):              TextViewCommand.GO_RIGHT,
+            curses.KEY_HOME:       TextViewCommand.GO_HOME,
+            ord('g'):              TextViewCommand.GO_HOME,
+            ord('<'):              TextViewCommand.GO_HOME,
+            curses.KEY_END:        TextViewCommand.GO_END,
+            ord('G'):              TextViewCommand.GO_END,
+            ord('>'):              TextViewCommand.GO_END,
+            curses.KEY_NPAGE:      TextViewCommand.GO_NPAGE,
+            ord(' '):              TextViewCommand.GO_NPAGE,
+            curses.KEY_PPAGE:      TextViewCommand.GO_PPAGE,
+            ord('b'):              TextViewCommand.GO_PPAGE,
+            curses.KEY_SLEFT:      TextViewCommand.GO_SLEFT,
+            ord('A'):              TextViewCommand.GO_SLEFT,
+            curses.KEY_SRIGHT:     TextViewCommand.GO_SRIGHT,
+            ord('D'):              TextViewCommand.GO_SRIGHT,
         }
 
         # Map keys to other more complex commands taking arguments
@@ -966,8 +966,10 @@ def init_env():
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
 
-    parser = argparse.ArgumentParser(description='Console application to search into text files and highlight keywords.',
-                                     epilog='Press ? in the application for more information, or go to https://github.com/human3/searchf')
+    parser = argparse.ArgumentParser(
+        description='Console application to search into text files and highlight keywords.',
+        epilog='Press ? in the application for more information, or go to\
+        https://github.com/human3/searchf')
     parser.add_argument('file')
     return parser
 

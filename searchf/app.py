@@ -135,6 +135,63 @@ class Filter:
         '''Removes most recently added keyword from this filter'''
         self.keywords.popitem()
 
+class Model:
+    '''Holds data associated with a file.'''
+    def __init__(self):
+        self._lines = []
+        self.data = []
+        self.hits = []
+
+    def line_count(self):
+        '''Gets the number of lines in the original file'''
+        return len(self._lines)
+
+    def line_number_length(self):
+        '''Number of digit required to display bigest line number'''
+        return math.floor(math.log10(len(self._lines))+1)
+
+    def set_lines(self, lines):
+        '''Sets and stores the file content lines into the data model'''
+        self._lines = lines
+        self.data = []
+        self.hits = []
+
+    def hits_count(self):
+        '''Gets the current hits count'''
+        return sum(self.hits)
+
+    def sync(self, filters, only_matching):
+        '''Recomputes the data model by applying the given filters to the
+        current file content. Each line is associated with:
+        - the index of the line in the original content (required
+          because we don't always show all lines of the original file)
+        - the index of the matching filter if any, or -1 otherwise
+        - the text of the line
+        - the segments matching keywords in the filter that will be
+          highlighted/colorized
+        '''
+
+        show_all_lines = not only_matching or len(filters) <= 0
+        data = []
+        hits = [0 for f in filters]
+
+        for i, line in enumerate(self._lines):
+            # Replace tabs with 4 spaces (not clean!!!)
+            line = line.replace('\t', '    ')
+            matching = False
+            for fidx, f in enumerate(filters):
+                matching, matching_segments = \
+                    segments.find_matching(line, f.keywords, f.ignore_case)
+                if matching:
+                    hits[fidx] += 1
+                    data.append([i, fidx, line, matching_segments])
+                    break
+            if not matching and show_all_lines:
+                data.append([i, -1, line, set()])
+
+        self.data = data
+        self.hits = hits
+
 class ViewConfig:
     '''Holds the configuration of a view'''
     line_numbers: bool = False
@@ -208,12 +265,12 @@ class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
     def __init__(self, scr, name, path):
+        self._model = Model()
         self._name = name
         self._path = path
         self._basename = os.path.basename(path)
         self._scr = scr
         self._config = ViewConfig()
-
         self._visible_lines_count = 0 # Number of lines available to display content
         self._h = 0
         self._w = 0
@@ -221,12 +278,8 @@ class TextView:
         self._voffset = 0
         self._hoffset = 0
         self._voffset_desc = ''
-
-        self._lines = [] # Content lines
         self._firstdlines = []
-        self._data = []
         self._ddata = []
-        self._hits = []
         self._w_text = 0
 
     def name(self):
@@ -246,7 +299,7 @@ class TextView:
         '''Returns total length of prefix, the number of digits of the largest
 line number and separator'''
         if self._config.line_numbers:
-            number_length = math.floor(math.log10(len(self._lines))+1)
+            number_length = self._model.line_number_length()
             sep = ' │ '
         elif self._config.wrap:
             number_length = 0
@@ -270,7 +323,7 @@ line number and separator'''
             self._win.addstr(y, x, f'{text}', style)
 
             x = CASE_MODE_LEN + 1
-            text = f'{sum(self._hits):>8} hits '
+            text = f'{self._model.hits_count():>8} hits '
             self._win.addstr(y, x, text, style)
 
         # Print from right to left
@@ -289,7 +342,7 @@ line number and separator'''
             text = f' {self._voffset_desc:>3} '
             self._win.addstr(y, x, text, style)
 
-        text = f' {len(self._lines)} lines '
+        text = f' {self._model.line_count()} lines '
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
 
@@ -297,7 +350,7 @@ line number and separator'''
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style | curses.A_BOLD)
 
-        assert len(self._hits) == len(self._config.filters)
+        assert len(self._model.hits) == len(self._config.filters)
         for i, f in enumerate(self._config.filters):
             color = curses.color_pair(self._config.get_color(i))
 
@@ -307,7 +360,7 @@ line number and separator'''
 
             x += CASE_MODE_LEN + 1
             text = ' AND '.join(f.keywords)
-            self._win.addstr(y + 1 + i, x, f'{self._hits[i]:>8} {text}', color)
+            self._win.addstr(y + 1 + i, x, f'{self._model.hits[i]:>8} {text}', color)
 
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
@@ -351,7 +404,7 @@ line number and separator'''
                 break
             idata, offset = self._ddata[iddata]
             iddata += 1
-            line_idx, filter_idx, text, matching_segments = self._data[idata]
+            line_idx, filter_idx, text, matching_segments = self._model.data[idata]
             color = 0 if filter_idx < 0 else self._config.get_color(filter_idx)
             color = curses.color_pair(color)
             # If offset is not 0, this means the original content line
@@ -379,7 +432,7 @@ line number and separator'''
 
         ddata = [] # Display data (one entry per line on display)
         firstdlines = [] # First display line of each model lines
-        for idata, data in enumerate(self._data):
+        for idata, data in enumerate(self._model.data):
             firstdlines.append(len(ddata))
             if not self._config.wrap:
                 ddata.append([idata, 0])
@@ -405,45 +458,8 @@ line number and separator'''
         if redraw:
             self.draw()
 
-    def _sync_data(self):
-        # Recomputes the data model based on the file content, the
-        # current set of filters, and the view properties. This
-        # function does not address any screen constraints as layout
-        # and drawing are done *after* this step.
-        # Each line is associated with:
-        # - the index of the line in the original content (required
-        #   because we don't always show all lines of the original
-        #   file)
-        # - the index of the matching filter if any, or -1 otherwise
-        # - the text of the line
-        # - the segments matching keywords in the filter that will be
-        #   highlighted/colorized
-
-        filters = self._config.filters
-        show_all_lines = not self._config.only_matching or len(filters) <= 0
-
-        data = []
-        hits = [0 for f in filters]
-
-        for i, line in enumerate(self._lines):
-            # Replace tabs with 4 spaces (not clean!!!)
-            line = line.replace('\t', '    ')
-            matching = False
-            for fidx, f in enumerate(filters):
-                matching, matching_segments = \
-                    segments.find_matching(line, f.keywords, f.ignore_case)
-                if matching:
-                    hits[fidx] += 1
-                    data.append([i, fidx, line, matching_segments])
-                    break
-            if not matching and show_all_lines:
-                data.append([i, -1, line, set()])
-
-        self._data = data
-        self._hits = hits
-
     def _sync(self, redraw):
-        self._sync_data()
+        self._model.sync(self._config.filters, self._config.only_matching)
         self._voffset = 0 # vertical offset in content: index of first visible line in ddata
         self._voffset_desc = ''
         self._hoffset = 0 # horizontal offset in content: index of first visible column
@@ -452,7 +468,7 @@ line number and separator'''
     def set_lines(self, lines):
         '''Sets the content of this view. Assumes the view is offscreen and does
         not trigger a redraw.'''
-        self._lines = lines
+        self._model.set_lines(lines)
         self._sync(False)
 
     def _pop_filter(self):
@@ -580,7 +596,7 @@ line number and separator'''
         else:
             voffset = 0
             for idata, _ in self._ddata:
-                i, _, _, _ = self._data[idata]
+                i, _, _, _ = self._model.data[idata]
                 if i >= line:
                     self.set_v_offset(voffset, True)
                     break
@@ -593,12 +609,12 @@ line number and separator'''
 
     def _vscroll_to_match(self, starting, direction):
         iddata = self._voffset
-        idatamax = len(self._data)
+        idatamax = len(self._model.data)
         idata, _ = self._ddata[iddata]
         if not starting:
             idata += direction
         while 0 <= idata < idatamax:
-            _, fidx, _, _ = self._data[idata]
+            _, fidx, _, _ = self._model.data[idata]
             if fidx >= 0:
                 iddata = self._firstdlines[idata]
                 break

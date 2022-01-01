@@ -2,7 +2,7 @@
 
 Utility program to interactively search and colorize keywords in text files, select relevant lines, remove noise and help you discover the things you should care about. Works in terminals and uses stack-based interactions to minimize the number of key presses (think HP calculators).
 
-https://user-images.githubusercontent.com/15265841/147842416-cc2184a1-b6af-444e-9426-9ee96a52231b.mp4
+![Peek 2021-12-31 20-57](https://user-images.githubusercontent.com/15265841/147842541-f591215d-fb7f-4495-b9ef-2dc43dddb5f1.gif)
 
 The above screenshot shows how the content of a text file can be filtered. In this example, 3 filters have been defined and are displayed in the filter stack, at the bottom and right below the blue bar:
 - `def AND init` reveals 6 lines in red

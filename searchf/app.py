@@ -13,13 +13,13 @@ from curses.textpad import Textbox
 from enum import Enum, auto
 import argparse
 import curses
-import math
 import os
 import re
 import sys
 
 import searchf
 from searchf import segments
+from searchf import models
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -120,80 +120,14 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
-class Filter:
-    '''Represents a list of keywords ANDed together and matching properties'''
-    ignore_case: bool = False
-
-    def __init__(self):
-        self.keywords = {}
-
-    def add(self, keyword):
-        '''Adds given keyword to this filter'''
-        self.keywords[keyword] = None
-
-    def pop(self):
-        '''Removes most recently added keyword from this filter'''
-        self.keywords.popitem()
-
-class Model:
-    '''Holds data associated with a file.'''
-    def __init__(self):
-        self._lines = []
-        self.data = []
-        self.hits = []
-
-    def line_count(self):
-        '''Gets the number of lines in the original file'''
-        return len(self._lines)
-
-    def line_number_length(self):
-        '''Number of digit required to display bigest line number'''
-        return math.floor(math.log10(len(self._lines))+1)
-
-    def set_lines(self, lines):
-        '''Sets and stores the file content lines into the data model'''
-        self._lines = lines
-        self.data = []
-        self.hits = []
-
-    def hits_count(self):
-        '''Gets the current hits count'''
-        return sum(self.hits)
-
-    def sync(self, filters, only_matching):
-        '''Recomputes the data model by applying the given filters to the
-        current file content. Each line is associated with:
-        - the index of the line in the original content (required
-          because we don't always show all lines of the original file)
-        - the index of the matching filter if any, or -1 otherwise
-        - the text of the line
-        - the segments matching keywords in the filter that will be
-          highlighted/colorized
-        '''
-
-        show_all_lines = not only_matching or len(filters) <= 0
-        data = []
-        hits = [0 for f in filters]
-
-        for i, line in enumerate(self._lines):
-            # Replace tabs with 4 spaces (not clean!!!)
-            line = line.replace('\t', '    ')
-            matching = False
-            for fidx, f in enumerate(filters):
-                matching, matching_segments = \
-                    segments.find_matching(line, f.keywords, f.ignore_case)
-                if matching:
-                    hits[fidx] += 1
-                    data.append([i, fidx, line, matching_segments])
-                    break
-            if not matching and show_all_lines:
-                data.append([i, -1, line, set()])
-
-        self.data = data
-        self.hits = hits
-
 class ViewConfig:
-    '''Holds the configuration of a view'''
+    '''Holds the configuration of a view, like filters to use or the
+display modes, typically changed by end users to match their
+need. Does not contain any data related to file content. Should be
+serialized at some point to persist somewhere and get re-used accross
+session.
+
+    '''
     line_numbers: bool = False
     wrap: bool = True
     bullets: bool = False
@@ -265,22 +199,15 @@ class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
     def __init__(self, scr, name, path):
-        self._model = Model()
-        self._name = name
-        self._path = path
-        self._basename = os.path.basename(path)
-        self._scr = scr
+        self._model = models.Model()
+        self._vm = models.ViewModel()
         self._config = ViewConfig()
-        self._visible_lines_count = 0 # Number of lines available to display content
-        self._h = 0
-        self._w = 0
+        self._scr = scr
+        self._name = name
+        self._basename = os.path.basename(path)
+        self._max_visible_lines_count = 0
         self._win = None
-        self._voffset = 0
-        self._hoffset = 0
-        self._voffset_desc = ''
-        self._firstdlines = []
-        self._ddata = []
-        self._w_text = 0
+        self._size = (0, 0)
 
     def name(self):
         '''Gets the name of the view.'''
@@ -290,9 +217,8 @@ class TextView:
         '''Sets dimension of the view. Must be call before everything and
         only once (no dynamic layout supported)'''
 
-        # _w and _h now store number of cols and lines available to draw content
-        self._h = h
-        self._w = w
+        # _size stores number of lines and columns available to draw content
+        self._size = (h, w)
         self._win = curses.newwin(h, w, y, x)
 
     def _get_prefix_info(self):
@@ -311,8 +237,10 @@ line number and separator'''
 
     def _draw_bar(self, y):
         '''Draws the status bar and the filter stack underneath'''
+
+        _, w = self._size
         style = curses.color_pair(BAR_COLOR_ID)
-        self._win.hline(y, 0, curses.ACS_HLINE, self._w, style)
+        self._win.hline(y, 0, curses.ACS_HLINE, w, style)
 
         x = 1
         if not self._config.has_filters():
@@ -329,8 +257,7 @@ line number and separator'''
         # Print from right to left
         def move_left_for(x, text):
             return max(0, x - len(text) - 1)
-
-        x = self._w
+        x = w
 
         text = f' {self._name} '
         x = move_left_for(x, text)
@@ -338,8 +265,8 @@ line number and separator'''
 
         text = ''.ljust(5) # voffest_desc is not always shown, but at most 5 char long
         x = move_left_for(x, text)
-        if len(self._voffset_desc) > 0:
-            text = f' {self._voffset_desc:>3} '
+        if len(self._vm.voffset_desc) > 0:
+            text = f' {self._vm.voffset_desc:>3} '
             self._win.addstr(y, x, text, style)
 
         text = f' {self._model.line_count()} lines '
@@ -371,13 +298,13 @@ line number and separator'''
 
     def _draw_content(self, position, text, matching_segments, offset, color):
         y, x = position
-        vend = offset + self._w_text
+        vend = offset + self._vm.size[1]
         if self._config.show_spaces:
             text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
         if self._config.whole_line:
             text = text[offset:vend]
-            text = f'{text:<{self._w_text}}'
-            self._win.addnstr(y, x, text, self._w, color)
+            text = f'{text:<{self._vm.size[1]}}'
+            self._win.addnstr(y, x, text, self._size[1], color)
         else:
             for match, start, end in segments.iterate(offset, vend, matching_segments):
                 assert start < end
@@ -388,21 +315,21 @@ line number and separator'''
 
     def draw(self):
         '''Draws the view'''
-        debug(f'{self._name} draw {self._voffset}')
+        debug(f'{self._name} draw {self._vm.voffset}')
         self._win.clear()
 
         prefix_info = self._get_prefix_info()
 
         # Only draw what we need: we are going to pull at most
-        # _visible_lines_count lines from the data model, possibly
+        # _max_visible_lines_count lines from the data model, possibly
         # less if some content needs multiple lines (wrapping)
-        iddata = self._voffset
-        iddatamax = len(self._ddata)
+        iddata = self._vm.voffset
+        iddatamax = self._vm.lines_count()
 
-        for y in range(self._visible_lines_count):
+        for y in range(self._max_visible_lines_count):
             if iddata >= iddatamax:
                 break
-            idata, offset = self._ddata[iddata]
+            idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
             color = 0 if filter_idx < 0 else self._config.get_color(filter_idx)
@@ -413,56 +340,40 @@ line number and separator'''
             # 0.
             if offset == 0:
                 self._draw_prefix(y, prefix_info, line_idx, color)
-            offset += self._hoffset
+            offset += self._vm.hoffset
             self._draw_content((y, prefix_info[0]), text, matching_segments, offset, color)
 
-        self._draw_bar(self._visible_lines_count)
+        self._draw_bar(self._max_visible_lines_count)
 
         self._win.refresh()
 
     def _layout(self, redraw):
-        '''Computes the view model, self_ddata, breaking the lines from the
-        data model into displayable lines taking into account the
-        available space on the screen.'''
-        self._visible_lines_count = max(0, self._h - 1 - len(self._config.filters))
+        '''Propagate layout changes: evaluates the available space and calls
+layout of the view model.
 
+        '''
+
+        # Compute space available for file content
+        h, w = self._size
         prefix_len, _, _ = self._get_prefix_info()
-        w_text = self._w - prefix_len       # width for file content
-        assert w_text > 0
+        h = max(0, h - 1 - len(self._config.filters))
+        w = max(0, w - prefix_len)
 
-        ddata = [] # Display data (one entry per line on display)
-        firstdlines = [] # First display line of each model lines
-        for idata, data in enumerate(self._model.data):
-            firstdlines.append(len(ddata))
-            if not self._config.wrap:
-                ddata.append([idata, 0])
-            else:
-                _, _, text, _ = data
-                offset = 0
-                left = len(text)
-                while left >= 0:
-                    ddata.append([idata, offset])
-                    offset += w_text
-                    left -= w_text
+        self._vm.layout(h, w, self._model.data, self._config.wrap)
+        self._max_visible_lines_count = h
 
-        self._firstdlines = firstdlines
-        self._ddata = ddata
-        self._w_text = w_text
-        # debug(f'layout: {len(ddata)} w:{self._config.wrap}')
+        # Try preserve current voffset, but make sure we comply with
+        # constraints which might just have changed.
+        self.set_v_offset(self._vm.voffset, False)
 
-        # Try preserve current voffset, but make sure we comply with constraints
-        self.set_v_offset(self._voffset, False)
-
-        assert self._voffset == 0 or self._voffset < len(ddata), f'{self._voffset}'
+        assert self._vm.voffset == 0 or self._vm.voffset < self._vm.lines_count()
 
         if redraw:
             self.draw()
 
     def _sync(self, redraw):
         self._model.sync(self._config.filters, self._config.only_matching)
-        self._voffset = 0 # vertical offset in content: index of first visible line in ddata
-        self._voffset_desc = ''
-        self._hoffset = 0 # horizontal offset in content: index of first visible column
+        self._vm.reset_offsets()
         self._layout(redraw)
 
     def set_lines(self, lines):
@@ -488,7 +399,7 @@ line number and separator'''
         if not self._config.has_filters():
             new_filter = True # Force a new filter since we have none
         if new_filter:
-            f = Filter()
+            f = models.Filter()
             f.ignore_case = keyword.lower() == keyword
             self._config.push_filter(f)
 
@@ -551,35 +462,19 @@ line number and separator'''
         return f'Using color palette #{self._config.palette_index}'
 
     def _set_h_offset(self, offset):
-        offset = max(offset, 0)
-        if self._hoffset != offset:
-            self._hoffset = offset
+        if self._vm.set_h_offset(offset):
             self.draw()
 
     def set_v_offset(self, offset, redraw):
         '''Sets the vertical offset of the view.'''
-        assert self._visible_lines_count >= 0
-        ymax = max(0, len(self._ddata) - self._visible_lines_count)
-        if offset >= ymax:
-            offset = ymax
-            desc = 'BOT'
-        elif offset <= 0:
-            offset = 0
-            desc = 'TOP'
-        else:
-            p = int(offset * 100 / ymax)
-            desc = f'{p}%'
-        if self._voffset != offset:
-            self._voffset = offset
-            self._voffset_desc = desc
-            if redraw:
-                self.draw()
+        if self._vm.set_v_offset(offset) and redraw:
+            self.draw()
 
     def _hscroll(self, delta):
-        self._set_h_offset(self._hoffset + delta)
+        self._set_h_offset(self._vm.hoffset + delta)
 
     def _vscroll(self, delta):
-        self.set_v_offset(self._voffset + delta, True)
+        self.set_v_offset(self._vm.voffset + delta, True)
 
     def goto_line(self, line):
         '''Makes sure the given line is visible, making it the first line on
@@ -591,11 +486,11 @@ line number and separator'''
             return 'Not a number'
         if line <= 0:
             self.set_v_offset(0, True)
-        elif line >= len(self._ddata):
+        elif line >= self._vm.lines_count():
             self.set_v_offset(sys.maxsize, True)
         else:
             voffset = 0
-            for idata, _ in self._ddata:
+            for idata, _ in self._vm.data:
                 i, _, _, _ = self._model.data[idata]
                 if i >= line:
                     self.set_v_offset(voffset, True)
@@ -608,22 +503,22 @@ line number and separator'''
         return self._config.has_filters()
 
     def _vscroll_to_match(self, starting, direction):
-        iddata = self._voffset
+        iddata = self._vm.voffset
         idatamax = len(self._model.data)
-        idata, _ = self._ddata[iddata]
+        idata, _ = self._vm.data[iddata]
         if not starting:
             idata += direction
         while 0 <= idata < idatamax:
             _, fidx, _, _ = self._model.data[idata]
             if fidx >= 0:
-                iddata = self._firstdlines[idata]
+                iddata = self._vm.firstdlines[idata]
                 break
             idata += direction
         # Remember current offset to be able to return a side-effect
         # description
-        prev_offset = self._voffset
+        prev_offset = self._vm.voffset
         self.set_v_offset(iddata, True)
-        if prev_offset == self._voffset:
+        if prev_offset == self._vm.voffset:
             return '(END)' if direction > 0 else '(BEGIN)'
         return 'Next match' if direction > 0 else 'Previous match'
 
@@ -643,7 +538,7 @@ line number and separator'''
         return self._vscroll_to_match(False, -1)
 
     def _vpagescroll(self, delta):
-        self._vscroll(delta * self._visible_lines_count)
+        self._vscroll(delta * self._max_visible_lines_count)
 
     def execute(self, command):
         '''Executes the given command.'''

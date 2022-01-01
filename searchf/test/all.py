@@ -13,6 +13,7 @@ import time
 import searchf
 import searchf.app
 import searchf.test.test_segments
+import searchf.test.test_models
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 if len(sys.argv) > 1:
@@ -75,7 +76,7 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test keywords that are invalid regex',
               ['f', 'q'], ['?'])
     _run_test(stdscr, 'Test that help can get displayed',
-              ['?', 'd', 'a', 's', 'w', 'q'], [])
+              ['?', 'd', 'a', 'a', 's', 'w', 'q'], [])
     _run_test(stdscr, 'Test view switching',
               ['r', 't', '1', '2', '3'], [])
     _run_test(stdscr, 'Test scrolling around',
@@ -151,6 +152,14 @@ def _run_unit_tests():
     searchf.test.test_segments.test_sort_and_merge()
     print('Test segments.find_matching()')
     searchf.test.test_segments.test_find_matching()
+    print('Test models.test_filter()')
+    searchf.test.test_models.test_filter()
+    print('Test models.test_digit_count()')
+    searchf.test.test_models.test_digit_count()
+    print('Test models.test_model()')
+    searchf.test.test_models.test_model()
+    print('Test models.test_view_model()')
+    searchf.test.test_models.test_view_model()
 
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''

@@ -24,50 +24,71 @@ from searchf import models
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
 
-BAR_COLOR_ID = 1 # Huge hack!! Must not match any index of any palette below
-BAR_COLOR = 39 # 249
-
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 PALETTES = [
     # Palettes working with dark background
     [
-        197, # Red
-        209, # Orange
-        191, # Yellow
-        47,  # Green
-        34,  # Blue
-        202, # Purple
-        220, # Pink
+        196, # Red
+        208, # Orange
+        190, # Yellow
+        46,  # Green
+        33,  # Blue
+        201, # Purple
+        219, # Pink
     ],
     [
-        202, # Purple
-        34,  # Blue
-        209, # Orange
-        47,  # Green
-        191, # Yellow
-        197, # Red
-        220, # Pink
+        201, # Purple
+        33,  # Blue
+        208, # Orange
+        46,  # Green
+        190, # Yellow
+        196, # Red
+        219, # Pink
     ],
     # Palettes working with light/clear backgrounds
     [
-        2,   # Red
-        209, # Orange
-        4,   # Dark Yellow
-        23,  # Green
-        21,  # Blue
-        130, # Purple
-        7,   # Cyan?
+        1,   # Red
+        208, # Orange
+        3,   # Dark Yellow
+        22,  # Green
+        20,  # Blue
+        129, # Purple
+        6,   # Cyan?
     ],
     [
-        130, # Purple
-        21,  # Blue
-        2,   # Red
-        23,  # Green
-        209, # Orange
-        4,   # Dark Yellow
-        7,   # Cyan?
+        129, # Purple
+        20,  # Blue
+        1,   # Red
+        22,  # Green
+        208, # Orange
+        3,   # Dark Yellow
+        6,   # Cyan?
     ],
 ]
+
+BAR_COLOR_PAIR_ID = 1
+BAR_COLOR_BG = 39 # 249
+
+FIRST_FILTER_COLOR_PAIR_ID = BAR_COLOR_PAIR_ID + 1
+
+def palette_apply(pal, reverse):
+    '''Apply given palette to curses.'''
+    for i, color in enumerate(pal):
+        pair_id = FIRST_FILTER_COLOR_PAIR_ID + i
+        if reverse:
+            curses.init_pair(pair_id, 0, color)
+        else:
+            curses.init_pair(pair_id, color, -1)
+        debug(f'pal {i}:{pair_id} {color}')
+
+def init_colors():
+    '''Initializes color support.'''
+    assert curses.has_colors()
+    assert curses.COLORS == 256, 'Try setting TERM env var to screen-256color'
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)
+    #palette_apply(PALETTES[0], False)
 
 def get_max_yx(scr):
     '''This function is a test artifact that wraps getmaxyx() from curses
@@ -153,15 +174,18 @@ session.
         '''Pushes the given filter'''
         self.filters.append(f)
 
-    def get_color(self, fidx):
-        '''Returns color associated with given filter index'''
+    def get_color_pair_id(self, fidx):
+        '''Returns the id of the color pair associated with given filter index'''
         palette = PALETTES[self.palette_index]
-        fidx = fidx % len(palette)
-        return palette[fidx]
+        pair_id = FIRST_FILTER_COLOR_PAIR_ID + (fidx % len(palette))
+        f, b = curses.pair_content(pair_id)
+        debug(f'{fidx} {pair_id} {f} {b}')
+        return pair_id
 
     def next_palette(self):
         '''Select the "next" palette'''
         self.palette_index = (self.palette_index + 1) % len(PALETTES)
+        return self.palette_index
 
 class TextViewCommand(Enum):
     '''Simple commands accepted by TextView class, that do not take any argument.'''
@@ -239,7 +263,7 @@ line number and separator'''
         '''Draws the status bar and the filter stack underneath'''
 
         _, w = self._size
-        style = curses.color_pair(BAR_COLOR_ID)
+        style = curses.color_pair(BAR_COLOR_PAIR_ID)
         self._win.hline(y, 0, curses.ACS_HLINE, w, style)
 
         x = 1
@@ -279,7 +303,7 @@ line number and separator'''
 
         assert len(self._model.hits) == len(self._config.filters)
         for i, f in enumerate(self._config.filters):
-            color = curses.color_pair(self._config.get_color(i))
+            color = curses.color_pair(self._config.get_color_pair_id(i))
 
             x = 0
             text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
@@ -315,7 +339,7 @@ line number and separator'''
 
     def draw(self):
         '''Draws the view'''
-        debug(f'{self._name} draw {self._vm.voffset}')
+        # debug(f'{self._name} draw {self._vm.voffset}')
         self._win.clear()
 
         prefix_info = self._get_prefix_info()
@@ -332,7 +356,7 @@ line number and separator'''
             idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
-            color = 0 if filter_idx < 0 else self._config.get_color(filter_idx)
+            color = 0 if filter_idx < 0 else self._config.get_color_pair_id(filter_idx)
             color = curses.color_pair(color)
             # If offset is not 0, this means the original content line
             # is being wrapped on to multiple lines on the screen. We
@@ -346,6 +370,11 @@ line number and separator'''
         self._draw_bar(self._max_visible_lines_count)
 
         self._win.refresh()
+
+    def show(self):
+        '''Shows the view, after it was hidden by another one'''
+        self._sync_palette()
+        self.draw()
 
     def _layout(self, redraw):
         '''Propagate layout changes: evaluates the available space and calls
@@ -456,10 +485,14 @@ layout of the view model.
         self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
+    def _sync_palette(self):
+        palette_apply(PALETTES[self._config.palette_index], False)
+
     def _next_palette(self):
-        self._config.next_palette()
+        idx = self._config.next_palette()
+        self._sync_palette()
         self.draw()
-        return f'Using color palette #{self._config.palette_index}'
+        return f'Using color palette #{idx}'
 
     def _set_h_offset(self, offset):
         if self._vm.set_h_offset(offset):
@@ -664,7 +697,7 @@ class Views:
         y = 0
 
         if USE_DEBUG:
-            dbg_size = (6, maxw)
+            dbg_size = (10, maxw)
             self.debug = DebugView(scr, dbg_size, (y, x))
             # Just add padding to expose layout issues in the app
             padding = 3
@@ -684,7 +717,7 @@ class Views:
         assert 0 <= idx < len(self._content)
         if self._current != idx:
             self._current = idx
-            self._content[idx].draw()
+            self._content[idx].show()
         return self._content[idx].name()
 
     def _reload(self, scroll_to):
@@ -830,18 +863,6 @@ def debug(*argv):
     if views.debug:
         views.debug.out(*argv)
 
-def init_colors():
-    '''Initializes color support.'''
-    assert curses.has_colors()
-    assert curses.COLORS == 256, 'Try setting TERM env var to screen-256color'
-
-    curses.start_color()
-    curses.use_default_colors()
-    for i in range(0, curses.COLORS-1):
-        curses.init_pair(i + 1, i, -1)
-    # HACK for color of bar with background
-    curses.init_pair(BAR_COLOR_ID, 0, BAR_COLOR)
-
 def main_loop(scr, path):
     '''Main curses entry point.'''
     init_colors()
@@ -861,7 +882,7 @@ def main_loop(scr, path):
             key = get_ch(scr)
         except KeyboardInterrupt:
             break
-        debug(f'Key {key}')
+        # debug(f'Key {key}')
         if key == curses.KEY_RESIZE:
             raise Exception('Sorry, resizing is not supported')
 

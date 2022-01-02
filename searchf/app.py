@@ -71,7 +71,7 @@ BAR_COLOR_BG = 39 # 249
 
 FIRST_FILTER_COLOR_PAIR_ID = BAR_COLOR_PAIR_ID + 1
 
-def palette_apply(pal, reverse):
+def apply_palette(pal, reverse):
     '''Apply given palette to curses.'''
     for i, color in enumerate(pal):
         pair_id = FIRST_FILTER_COLOR_PAIR_ID + i
@@ -88,7 +88,6 @@ def init_colors():
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)
-    #palette_apply(PALETTES[0], False)
 
 def get_max_yx(scr):
     '''This function is a test artifact that wraps getmaxyx() from curses
@@ -141,6 +140,8 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
+COLORIZE_MODES = [ 'Keyword', 'Keyword highlight', 'Line' ]
+
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
 display modes, typically changed by end users to match their
@@ -154,7 +155,7 @@ session.
     bullets: bool = False
     only_matching: bool = True
     show_spaces: bool = False
-    whole_line: bool = False
+    colorize_mode: int = 0
     palette_index: int = 0
 
     def __init__(self):
@@ -163,6 +164,22 @@ session.
     def has_filters(self):
         '''Returns whether or not there is any filter'''
         return len(self.filters) > 0
+
+    def highlights_whole_line(self):
+        '''Returns whether or not whole line should be hightlighted'''
+        return self.colorize_mode == 2
+
+    def uses_reverse_palette(self):
+        '''Returns whether or not palette color should be reversed'''
+        return self.colorize_mode == 1
+
+    def colorize_mode_text(self):
+        '''Returns a text reprentation of the current colorize mode'''
+        return COLORIZE_MODES[self.colorize_mode]
+
+    def next_colorize_mode(self):
+        '''Selects the next colorization modes, cycling through all of them'''
+        self.colorize_mode = (self.colorize_mode + 1 ) % len(COLORIZE_MODES)
 
     def top_filter(self):
         '''Returns top level filter (most recently added)'''
@@ -208,7 +225,7 @@ class TextViewCommand(Enum):
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
-    TOGGLE_WHOLE_LINE = auto()
+    NEXT_COLORIZE_MODE = auto()
     TOGGLE_IGNORE_CASE = auto()
     NEXT_PALETTE = auto()
 
@@ -325,7 +342,7 @@ line number and separator'''
         vend = offset + self._vm.size[1]
         if self._config.show_spaces:
             text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
-        if self._config.whole_line:
+        if self._config.highlights_whole_line():
             text = text[offset:vend]
             text = f'{text:<{self._vm.size[1]}}'
             self._win.addnstr(y, x, text, self._size[1], color)
@@ -370,11 +387,6 @@ line number and separator'''
         self._draw_bar(self._max_visible_lines_count)
 
         self._win.refresh()
-
-    def show(self):
-        '''Shows the view, after it was hidden by another one'''
-        self._sync_palette()
-        self.draw()
 
     def _layout(self, redraw):
         '''Propagate layout changes: evaluates the available space and calls
@@ -472,10 +484,10 @@ layout of the view model.
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
-    def _toggle_whole_line(self):
-        self._config.whole_line = not self._config.whole_line
-        self.draw()
-        return f'Whole line highliting {bool_to_text(self._config.whole_line)}'
+    def _next_colorize_mode(self):
+        self._config.next_colorize_mode()
+        self.show()
+        return f'Colorize mode: {self._config.colorize_mode_text()}'
 
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
@@ -485,13 +497,18 @@ layout of the view model.
         self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
-    def _sync_palette(self):
-        palette_apply(PALETTES[self._config.palette_index], False)
+    def _apply_palette_and_draw(self):
+        apply_palette(PALETTES[self._config.palette_index],
+                      self._config.uses_reverse_palette())
+        self.draw()
+
+    def show(self):
+        '''Shows the view, after it was hidden by another one'''
+        self._apply_palette_and_draw()
 
     def _next_palette(self):
         idx = self._config.next_palette()
-        self._sync_palette()
-        self.draw()
+        self._apply_palette_and_draw()
         return f'Using color palette #{idx}'
 
     def _set_h_offset(self, offset):
@@ -595,7 +612,7 @@ layout of the view model.
             TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
             TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:    self._toggle_show_spaces,
-            TextViewCommand.TOGGLE_WHOLE_LINE:     self._toggle_whole_line,
+            TextViewCommand.NEXT_COLORIZE_MODE:    self._next_colorize_mode,
             TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
             TextViewCommand.NEXT_PALETTE:          self._next_palette,
         }
@@ -620,7 +637,7 @@ HELP = f'''  ~ Searchf Help ~
     f ENTER    Enter first keyword of a new filter
     F          Pop top level filter
     + =        Add a new keyword to current filter
-    -          Remove last keyword from filter
+    - _        Remove last keyword from filter
 
   Display mode:
     m          Show/hide only matching lines
@@ -629,7 +646,7 @@ HELP = f'''  ~ Searchf Help ~
     *          Show/hide diamonds at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
     c          Cycle/change color palette
-    h          Cycle/change highlight mode
+    h          Cycle/change keyword colorization mode
     i          Toggle whether or not current filter ignores case
 
   Navigation:
@@ -796,7 +813,7 @@ class Views:
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,
             ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
             ord('c'):              TextViewCommand.NEXT_PALETTE,
-            ord('h'):              TextViewCommand.TOGGLE_WHOLE_LINE,
+            ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
             ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
             curses.KEY_UP:         TextViewCommand.GO_UP,
             ord('w'):              TextViewCommand.GO_UP,

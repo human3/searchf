@@ -47,11 +47,11 @@ def main(scr):
     scr.getch()
 
     for i, pal in enumerate(searchf.app.PALETTES):
-        searchf.app.palette_apply(pal, False)
+        searchf.app.apply_palette(pal, False)
         _show_all(scr)
         scr.getch()
 
-        searchf.app.palette_apply(pal, True)
+        searchf.app.apply_palette(pal, True)
         _show_all(scr)
         scr.getch()
 

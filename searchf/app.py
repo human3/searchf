@@ -24,50 +24,70 @@ from searchf import models
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
 
-BAR_COLOR_ID = 1 # Huge hack!! Must not match any index of any palette below
-BAR_COLOR = 39 # 249
-
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 PALETTES = [
     # Palettes working with dark background
     [
-        197, # Red
-        209, # Orange
-        191, # Yellow
-        47,  # Green
-        34,  # Blue
-        202, # Purple
-        220, # Pink
+        196, # Red
+        208, # Orange
+        190, # Yellow
+        46,  # Green
+        33,  # Blue
+        201, # Purple
+        219, # Pink
     ],
     [
-        202, # Purple
-        34,  # Blue
-        209, # Orange
-        47,  # Green
-        191, # Yellow
-        197, # Red
-        220, # Pink
+        201, # Purple
+        33,  # Blue
+        208, # Orange
+        46,  # Green
+        190, # Yellow
+        196, # Red
+        219, # Pink
     ],
     # Palettes working with light/clear backgrounds
     [
-        2,   # Red
-        209, # Orange
-        4,   # Dark Yellow
-        23,  # Green
-        21,  # Blue
-        130, # Purple
-        7,   # Cyan?
+        1,   # Red
+        208, # Orange
+        3,   # Dark Yellow
+        22,  # Green
+        20,  # Blue
+        129, # Purple
+        6,   # Cyan?
     ],
     [
-        130, # Purple
-        21,  # Blue
-        2,   # Red
-        23,  # Green
-        209, # Orange
-        4,   # Dark Yellow
-        7,   # Cyan?
+        129, # Purple
+        20,  # Blue
+        1,   # Red
+        22,  # Green
+        208, # Orange
+        3,   # Dark Yellow
+        6,   # Cyan?
     ],
 ]
+
+BAR_COLOR_PAIR_ID = 1
+BAR_COLOR_BG = 39 # 249
+
+FIRST_FILTER_COLOR_PAIR_ID = BAR_COLOR_PAIR_ID + 1
+
+def apply_palette(pal, reverse):
+    '''Apply given palette to curses.'''
+    for i, color in enumerate(pal):
+        pair_id = FIRST_FILTER_COLOR_PAIR_ID + i
+        if reverse:
+            curses.init_pair(pair_id, 0, color)
+        else:
+            curses.init_pair(pair_id, color, -1)
+        debug(f'pal {i}:{pair_id} {color}')
+
+def init_colors():
+    '''Initializes color support.'''
+    assert curses.has_colors()
+    assert curses.COLORS == 256, 'Try setting TERM env var to screen-256color'
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)
 
 def get_max_yx(scr):
     '''This function is a test artifact that wraps getmaxyx() from curses
@@ -120,6 +140,8 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
+COLORIZE_MODES = [ 'Keyword', 'Keyword highlight', 'Line' ]
+
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
 display modes, typically changed by end users to match their
@@ -133,7 +155,7 @@ session.
     bullets: bool = False
     only_matching: bool = True
     show_spaces: bool = False
-    whole_line: bool = False
+    colorize_mode: int = 0
     palette_index: int = 0
 
     def __init__(self):
@@ -142,6 +164,22 @@ session.
     def has_filters(self):
         '''Returns whether or not there is any filter'''
         return len(self.filters) > 0
+
+    def highlights_whole_line(self):
+        '''Returns whether or not whole line should be hightlighted'''
+        return self.colorize_mode == 2
+
+    def uses_reverse_palette(self):
+        '''Returns whether or not palette color should be reversed'''
+        return self.colorize_mode == 1
+
+    def colorize_mode_text(self):
+        '''Returns a text reprentation of the current colorize mode'''
+        return COLORIZE_MODES[self.colorize_mode]
+
+    def next_colorize_mode(self):
+        '''Selects the next colorization modes, cycling through all of them'''
+        self.colorize_mode = (self.colorize_mode + 1 ) % len(COLORIZE_MODES)
 
     def top_filter(self):
         '''Returns top level filter (most recently added)'''
@@ -153,15 +191,18 @@ session.
         '''Pushes the given filter'''
         self.filters.append(f)
 
-    def get_color(self, fidx):
-        '''Returns color associated with given filter index'''
+    def get_color_pair_id(self, fidx):
+        '''Returns the id of the color pair associated with given filter index'''
         palette = PALETTES[self.palette_index]
-        fidx = fidx % len(palette)
-        return palette[fidx]
+        pair_id = FIRST_FILTER_COLOR_PAIR_ID + (fidx % len(palette))
+        f, b = curses.pair_content(pair_id)
+        debug(f'{fidx} {pair_id} {f} {b}')
+        return pair_id
 
     def next_palette(self):
         '''Select the "next" palette'''
         self.palette_index = (self.palette_index + 1) % len(PALETTES)
+        return self.palette_index
 
 class TextViewCommand(Enum):
     '''Simple commands accepted by TextView class, that do not take any argument.'''
@@ -184,7 +225,7 @@ class TextViewCommand(Enum):
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
-    TOGGLE_WHOLE_LINE = auto()
+    NEXT_COLORIZE_MODE = auto()
     TOGGLE_IGNORE_CASE = auto()
     NEXT_PALETTE = auto()
 
@@ -239,7 +280,7 @@ line number and separator'''
         '''Draws the status bar and the filter stack underneath'''
 
         _, w = self._size
-        style = curses.color_pair(BAR_COLOR_ID)
+        style = curses.color_pair(BAR_COLOR_PAIR_ID)
         self._win.hline(y, 0, curses.ACS_HLINE, w, style)
 
         x = 1
@@ -279,7 +320,7 @@ line number and separator'''
 
         assert len(self._model.hits) == len(self._config.filters)
         for i, f in enumerate(self._config.filters):
-            color = curses.color_pair(self._config.get_color(i))
+            color = curses.color_pair(self._config.get_color_pair_id(i))
 
             x = 0
             text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
@@ -301,7 +342,7 @@ line number and separator'''
         vend = offset + self._vm.size[1]
         if self._config.show_spaces:
             text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
-        if self._config.whole_line:
+        if self._config.highlights_whole_line():
             text = text[offset:vend]
             text = f'{text:<{self._vm.size[1]}}'
             self._win.addnstr(y, x, text, self._size[1], color)
@@ -315,7 +356,7 @@ line number and separator'''
 
     def draw(self):
         '''Draws the view'''
-        debug(f'{self._name} draw {self._vm.voffset}')
+        # debug(f'{self._name} draw {self._vm.voffset}')
         self._win.clear()
 
         prefix_info = self._get_prefix_info()
@@ -332,7 +373,7 @@ line number and separator'''
             idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
-            color = 0 if filter_idx < 0 else self._config.get_color(filter_idx)
+            color = 0 if filter_idx < 0 else self._config.get_color_pair_id(filter_idx)
             color = curses.color_pair(color)
             # If offset is not 0, this means the original content line
             # is being wrapped on to multiple lines on the screen. We
@@ -443,10 +484,10 @@ layout of the view model.
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
-    def _toggle_whole_line(self):
-        self._config.whole_line = not self._config.whole_line
-        self.draw()
-        return f'Whole line highliting {bool_to_text(self._config.whole_line)}'
+    def _next_colorize_mode(self):
+        self._config.next_colorize_mode()
+        self.show()
+        return f'Colorize mode: {self._config.colorize_mode_text()}'
 
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
@@ -456,10 +497,19 @@ layout of the view model.
         self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
-    def _next_palette(self):
-        self._config.next_palette()
+    def _apply_palette_and_draw(self):
+        apply_palette(PALETTES[self._config.palette_index],
+                      self._config.uses_reverse_palette())
         self.draw()
-        return f'Using color palette #{self._config.palette_index}'
+
+    def show(self):
+        '''Shows the view, after it was hidden by another one'''
+        self._apply_palette_and_draw()
+
+    def _next_palette(self):
+        idx = self._config.next_palette()
+        self._apply_palette_and_draw()
+        return f'Using color palette #{idx}'
 
     def _set_h_offset(self, offset):
         if self._vm.set_h_offset(offset):
@@ -562,7 +612,7 @@ layout of the view model.
             TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
             TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:    self._toggle_show_spaces,
-            TextViewCommand.TOGGLE_WHOLE_LINE:     self._toggle_whole_line,
+            TextViewCommand.NEXT_COLORIZE_MODE:    self._next_colorize_mode,
             TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
             TextViewCommand.NEXT_PALETTE:          self._next_palette,
         }
@@ -587,7 +637,7 @@ HELP = f'''  ~ Searchf Help ~
     f ENTER    Enter first keyword of a new filter
     F          Pop top level filter
     + =        Add a new keyword to current filter
-    -          Remove last keyword from filter
+    - _        Remove last keyword from filter
 
   Display mode:
     m          Show/hide only matching lines
@@ -596,7 +646,7 @@ HELP = f'''  ~ Searchf Help ~
     *          Show/hide diamonds at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
     c          Cycle/change color palette
-    h          Cycle/change highlight mode
+    h          Cycle/change keyword colorization mode
     i          Toggle whether or not current filter ignores case
 
   Navigation:
@@ -664,7 +714,7 @@ class Views:
         y = 0
 
         if USE_DEBUG:
-            dbg_size = (6, maxw)
+            dbg_size = (10, maxw)
             self.debug = DebugView(scr, dbg_size, (y, x))
             # Just add padding to expose layout issues in the app
             padding = 3
@@ -684,7 +734,7 @@ class Views:
         assert 0 <= idx < len(self._content)
         if self._current != idx:
             self._current = idx
-            self._content[idx].draw()
+            self._content[idx].show()
         return self._content[idx].name()
 
     def _reload(self, scroll_to):
@@ -763,7 +813,7 @@ class Views:
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,
             ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
             ord('c'):              TextViewCommand.NEXT_PALETTE,
-            ord('h'):              TextViewCommand.TOGGLE_WHOLE_LINE,
+            ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
             ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
             curses.KEY_UP:         TextViewCommand.GO_UP,
             ord('w'):              TextViewCommand.GO_UP,
@@ -830,18 +880,6 @@ def debug(*argv):
     if views.debug:
         views.debug.out(*argv)
 
-def init_colors():
-    '''Initializes color support.'''
-    assert curses.has_colors()
-    assert curses.COLORS == 256, 'Try setting TERM env var to screen-256color'
-
-    curses.start_color()
-    curses.use_default_colors()
-    for i in range(0, curses.COLORS-1):
-        curses.init_pair(i + 1, i, -1)
-    # HACK for color of bar with background
-    curses.init_pair(BAR_COLOR_ID, 0, BAR_COLOR)
-
 def main_loop(scr, path):
     '''Main curses entry point.'''
     init_colors()
@@ -861,7 +899,7 @@ def main_loop(scr, path):
             key = get_ch(scr)
         except KeyboardInterrupt:
             break
-        debug(f'Key {key}')
+        # debug(f'Key {key}')
         if key == curses.KEY_RESIZE:
             raise Exception('Sorry, resizing is not supported')
 

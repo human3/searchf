@@ -26,7 +26,7 @@ USE_DEBUG = False
 
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 PALETTES = [
-    # Palettes working with dark background
+    # Dark theme, "error" first
     [
         196, # Red
         208, # Orange
@@ -36,33 +36,55 @@ PALETTES = [
         201, # Purple
         219, # Pink
     ],
+    # Light theme, "error" first
     [
-        201, # Purple
-        33,  # Blue
+        1,   # Red
         208, # Orange
+        3,   # Yellow
+        22,  # Green
+        20,  # Blue
+        129, # Purple
+        201, # Pink
+    ],
+    # Dark theme, "ok" first
+    [
         46,  # Green
         190, # Yellow
+        208, # Orange
         196, # Red
+        33,  # Blue
+        201, # Purple
         219, # Pink
     ],
-    # Palettes working with light/clear backgrounds
+    # Light theme, "ok" first
     [
-        1,   # Red
-        208, # Orange
-        3,   # Dark Yellow
         22,  # Green
+        3,   # Yellow
+        208, # Orange
+        1,   # Red
         20,  # Blue
         129, # Purple
-        6,   # Cyan?
+        201, # Pink
     ],
+    # Dark theme, "neutral"
     [
-        129, # Purple
+        33,  # Blue
+        201, # Purple
+        219, # Pink
+        190, # Yellow
+        46,  # Green
+        208, # Orange
+        196, # Red
+    ],
+    # Light theme, "neutral"
+    [
         20,  # Blue
-        1,   # Red
+        129, # Purple
+        201, # Pink
+        3,   # Yellow
         22,  # Green
         208, # Orange
-        3,   # Dark Yellow
-        6,   # Cyan?
+        1,   # Red
     ],
 ]
 

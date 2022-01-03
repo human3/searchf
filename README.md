@@ -37,7 +37,7 @@ to run builtin application tests and verify your installation. Please note that 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
  
-![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/147424944-cbb41951-9911-4577-bd3a-857293802f0a.png)
+ ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/147901733-f2714f76-22d1-4dc9-8ef0-133f5157f2d8.png)
 
 When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
 
@@ -59,32 +59,49 @@ If working from the sources (ie not an installed package), the application can b
 
 `python3 -m searchf.app <FILE>`
 
-To run all tests:
+### How to run the test?
 
-`python3 -m searchf.test.all`
+- `pytest` runs unit test
+- `python3 -m searchf.test.all` runs the application tests
 
-Some unit tests can get triggerred through `pytest`.
+### What about coverage?
 
-To get coverage report (requires coverage package):
+Unit test coverage is relatively poor at 25% as `pytest --cov=searchf` returns:
 
-`coverage run -m searchf.test.all`, then
-`coverage html`
+```
+Name                            Stmts   Miss  Cover
+---------------------------------------------------
+searchf/__init__.py                 1      0   100%
+searchf/app.py                    534    534     0%
+searchf/models.py                 101      0   100%
+searchf/segments.py                46      0   100%
+searchf/test/__init__.py            0      0   100%
+searchf/test/all.py               134    134     0%
+searchf/test/color.py              49     49     0%
+searchf/test/test_models.py        48      0   100%
+searchf/test/test_segments.py      47      0   100%
+---------------------------------------------------
+TOTAL                             960    717    25%
 
-As of version 1.2:
+```
 
-![Screenshot searchf coverage](https://user-images.githubusercontent.com/15265841/147427412-9ac304b6-c0d1-40fe-bc8a-b8539af7f5c4.png)
+Application test coverage is better at 98%. Indeed, `coverage run -m searchf.test.all` then `coverage report` shows:
+
+```
+Name                            Stmts   Miss  Cover
+---------------------------------------------------
+searchf/__init__.py                 1      0   100%
+searchf/app.py                    534      9    98%
+searchf/models.py                 101      0   100%
+searchf/segments.py                46      0   100%
+searchf/test/__init__.py            0      0   100%
+searchf/test/all.py               134      5    96%
+searchf/test/test_models.py        48      0   100%
+searchf/test/test_segments.py      47      0   100%
+---------------------------------------------------
+TOTAL                             911     14    98%
+```
 
 ## Known Issues
 
 - Does not work on Windows
-
-## Wish list
-
-- More palettes (and move them into separate module)
-- Ability to save/load filters
-- Ability to pass current filters to another view
-- Tail function that automatically reload (instead of having to press `t`)
-- Screen dynamic resizing
-- Bookmarks
-- Ability to save filtered file
-- Cleanup: remove COLOR_BAR hack in source (inner beauty's sake)

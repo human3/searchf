@@ -3,12 +3,9 @@
 # pylint: disable=invalid-name
 
 import curses
-import searchf
-import searchf.app
-
+from .. import app
 
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
-
 
 default_palette = range(16)
 
@@ -40,18 +37,18 @@ def main(scr):
     assert curses.has_colors()
     assert curses.can_change_color()
 
-    searchf.app.init_colors()
+    app.init_colors()
     _reset()
 
     _show_all(scr)
     scr.getch()
 
-    for i, pal in enumerate(searchf.app.PALETTES):
-        searchf.app.apply_palette(pal, False)
+    for i, pal in enumerate(app.PALETTES):
+        app.apply_palette(pal, False)
         _show_all(scr)
         scr.getch()
 
-        searchf.app.apply_palette(pal, True)
+        app.apply_palette(pal, True)
         _show_all(scr)
         scr.getch()
 
@@ -63,7 +60,7 @@ def main(scr):
         scr.addstr(f' {i:<3}')
     scr.addstr('\n')
 
-    for i, pal in enumerate(searchf.app.PALETTES):
+    for i, pal in enumerate(app.PALETTES):
         _show_palette(scr, f'{i}', pal)
 
     _show_palette(scr, 'default', default_palette)

@@ -17,9 +17,9 @@ import os
 import re
 import sys
 
-import searchf
-from searchf import segments
-from searchf import models
+from . import __version__
+from . import models
+from . import segments
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -642,7 +642,7 @@ layout of the view model.
 
 HELP = f'''  ~ Searchf Help ~
 
-  Version: {searchf.__VERSION__}
+  Version: {__version__}
   More info: https://github.com/human3/searchf
 
   Utility to interactively search into line-oriented text files.

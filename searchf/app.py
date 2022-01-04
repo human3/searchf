@@ -131,12 +131,14 @@ def _validate(c):
         raise EscapeException()
     return c
 
-def _get_text(scr, y, x, prompt, handler):
+def _get_text(scr, y, x, prompt, handler, text):
     scr.addstr(y, x, prompt)
     x += len(prompt)
     editwin = curses.newwin(1, 30, y, x)
     scr.refresh()
     box = Textbox(editwin)
+    for c in text:
+        box.do_command(ord(c))
     text = ''
     try:
         handler(box)
@@ -149,11 +151,11 @@ def _get_text(scr, y, x, prompt, handler):
     clear(scr, y, 0, len(prompt))
     return text if text else ''
 
-def get_text(scr, y, x, prompt):
+def get_text(scr, y, x, prompt, text):
     '''Prompts user to enter some text.'''
     def handle(box):
         box.edit(validate=_validate)
-    return _get_text(scr, y, x, prompt, handle)
+    return _get_text(scr, y, x, prompt, handle, text)
 
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
@@ -448,6 +450,8 @@ layout of the view model.
         if self._config.has_filters():
             self._config.filters.pop()
             self._sync(True)
+            return 'Filter removed'
+        return 'No filter to remove'
 
     def push_keyword(self, keyword, new_filter):
         '''Pushes a new keyword in current top level filter (if new_filter is
@@ -471,14 +475,21 @@ layout of the view model.
 
     def _pop_keyword(self):
         if not self._config.has_filters():
-            return
+            return 'No keyword to remove'
         f = self._config.top_filter()
         k_count = len(f.keywords)
         if k_count <= 1:
-            self._pop_filter()
-        else:
-            f.pop()
-            self._sync(True)
+            return self._pop_filter()
+        f.pop()
+        self._sync(True)
+        return 'Keyword removed'
+
+    def get_last_keyword(self):
+        '''Returns the keyword that was last entered by user.'''
+        if not self._config.has_filters():
+            return False, ''
+        f = self._config.top_filter()
+        return True, f.get_last()
 
     def _toggle_line_numbers(self):
         self._config.line_numbers = not self._config.line_numbers
@@ -659,6 +670,7 @@ HELP = f'''  ~ Searchf Help ~
     F          Pop top level filter
     + =        Add a new keyword to current filter
     - _        Remove last keyword from filter
+    e          Edit last keyword
 
   Display mode:
     m          Show/hide only matching lines
@@ -783,12 +795,12 @@ class Views:
         self._reload(0)
         self._set_view(0)
 
-    def get_text(self, prompt):
-        '''Prompts user to enter some text.'''
-        return get_text(self._scr, self._y_get_text, 0, prompt)
+    def get_text(self, prompt, text):
+        '''Prompts user to enter or edit some text.'''
+        return get_text(self._scr, self._y_get_text, 0, prompt, text)
 
     def _get_keyword(self):
-        return self.get_text('Keyword: ')
+        return self.get_text('Keyword: ', '')
 
     def try_start_search(self):
         '''Tries to initiate a less like search.'''
@@ -817,8 +829,19 @@ class Views:
             return v.push_keyword(keyword, new_filter)
 
         def goto_line():
-            line_as_text = self.get_text('Enter line: ')
+            line_as_text = self.get_text('Enter line: ', '')
             return v.goto_line(line_as_text)
+
+        def edit_keyword():
+            ok, keyword = v.get_last_keyword()
+            if not ok:
+                return 'No keyword to edit'
+            keyword = self.get_text('Edit: ', keyword)
+            if len(keyword) <= 0:
+                return 'No change made'
+            v.execute(TextViewCommand.POP_KEYWORD)
+            v.push_keyword(keyword, False)
+            return 'Keyword updated'
 
         # Map keys to simple text view commands that don't take any argument
         simple = {
@@ -866,6 +889,7 @@ class Views:
             ord('2'):          lambda: self._set_view(1),
             ord('3'):          lambda: self._set_view(2),
             ord('?'):          help_view_push,
+            ord('e'):          edit_keyword,
             ord('f'):          lambda: new_keyword(True),
             ord('\n'):         lambda: new_keyword(True),
             ord('r'):          lambda: self._reload(0),

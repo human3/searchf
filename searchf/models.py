@@ -30,7 +30,9 @@ def _digits_count(max_number):
     return math.floor(math.log10(max(1, max_number))+1)
 
 class Model:
-    '''Holds data associated with a file.'''
+    '''Holds data associated with the content of a file. and all the
+    segments that matches filters.
+    '''
     def __init__(self):
         self._lines = []
         self.data = []

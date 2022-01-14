@@ -1,4 +1,4 @@
-'''Provides model classes for searchf application.'''
+'''Provides model classes for application.'''
 
 # pylint: disable=invalid-name
 

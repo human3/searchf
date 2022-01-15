@@ -18,7 +18,13 @@ class Filter:
 
     def pop(self):
         '''Removes most recently added keyword from this filter'''
-        self.keywords.popitem()
+        return self.keywords.popitem()
+
+    def get_last(self):
+        '''Returns last entered keyword'''
+        keyword, _ = self.pop()
+        self.add(keyword)
+        return keyword
 
 def _digits_count(max_number):
     return math.floor(math.log10(max(1, max_number))+1)

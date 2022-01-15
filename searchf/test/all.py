@@ -26,7 +26,7 @@ def _reset_inputs(inputs):
     INPUTS = inputs
     INPUT_IDX = 0
 
-def _my_get_text(_1, _2, _3, _4, _5):
+def _my_get_text(_1, _2, _3, _4, _5, _6):
     global INPUT_IDX
     assert INPUT_IDX < len(INPUTS), f'{INPUT_IDX} {INPUTS}'
     text = INPUTS[INPUT_IDX]
@@ -93,6 +93,9 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test entering empty keywords, poping non existent keywords',
               ['+', 'f', '-', 'F'],
               ['', ''])
+    _run_test(stdscr, 'Test editing keywords',
+              ['e', '+', 'e', 'e'],
+              ['something', 'good', ''])
     _run_test(stdscr, 'Test keyword search',
               ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p'],
               ['filter'])
@@ -120,10 +123,10 @@ def _run_app_tests(stdscr):
     def my_handler(_):
         pass
     _reset_inputs(['dummy'])
-    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
+    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler, '')
     def my_handler_throwing(_):
         raise app.EscapeException
-    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing)
+    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing, '')
 
     print('Test app._validate()')
     assert app._validate('a') == 'a'

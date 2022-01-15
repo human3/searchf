@@ -1,9 +1,9 @@
-'''Unit tests for searchf.segments'''
+'''Unit tests for segments'''
 
-import searchf.segments
+from .. import segments
 
-def _iterate(start, end, segments, expected_segments):
-    actual_segments = list(searchf.segments.iterate(start, end, segments))
+def _iterate(start, end, test_segments, expected_segments):
+    actual_segments = list(segments.iterate(start, end, test_segments))
     assert len(actual_segments) == len(expected_segments)
     for actual, expected in zip(actual_segments, expected_segments):
         _, start, end = actual
@@ -11,49 +11,49 @@ def _iterate(start, end, segments, expected_segments):
         assert actual == expected, f'{actual} != {expected}'
 
 def test_iterate():
-    '''Test searchf.segments.iterate()'''
-    segments = {(5, 15), (25, 35)}
+    '''Test segments.iterate()'''
+    seg = {(5, 15), (25, 35)}
     _iterate(0, 20, {(11, 12), (20, 21)},
              [(False, 0, 11), (True, 11, 12), (False, 12, 20)])
-    _iterate(0, 50, segments,
+    _iterate(0, 50, seg,
              [(False, 0, 5), (True, 5, 15), (False, 15, 25), (True, 25, 35), (False, 35, 50)])
-    _iterate(10, 20, segments,
+    _iterate(10, 20, seg,
              [(True, 10, 15), (False, 15, 20)])
-    _iterate(0, 4, segments,
+    _iterate(0, 4, seg,
              [(False, 0, 4)])
-    _iterate(7, 12, segments,
+    _iterate(7, 12, seg,
              [(True, 7, 12)])
-    _iterate(17, 20, segments,
+    _iterate(17, 20, seg,
              [(False, 17, 20)])
-    _iterate(10, 50, segments,
+    _iterate(10, 50, seg,
              [(True, 10, 15), (False, 15, 25), (True, 25, 35), (False, 35, 50)])
     _iterate(0, 10, {(5, 15)},
              [(False, 0, 5), (True, 5, 10)])
 
-def _sort_and_merge(segments, expected_segments):
+def _sort_and_merge(test_segments, expected_segments):
     count = 0
     # pylint: disable=protected-access
-    for actual, expected in zip(searchf.segments._sort_and_merge(segments), expected_segments):
+    for actual, expected in zip(segments._sort_and_merge(test_segments), expected_segments):
         assert actual[0] < actual[1]
         assert actual == expected, f'{actual} != {expected}'
         count += 1
     assert count == len(expected_segments)
 
 def test_sort_and_merge():
-    '''Test searchf.segments._sort_and_merge()'''
-    segments = {(0,1), (2,3)}
-    _sort_and_merge(segments, segments)
+    '''Test segments._sort_and_merge()'''
+    seg = {(0,1), (2,3)}
+    _sort_and_merge(seg, seg)
     _sort_and_merge({(2,3),(0,1)}, {(0,1),(2,3)})
     _sort_and_merge({(0,1),(1,2)}, {(0,2)})
     _sort_and_merge({(0,3),(1,5)}, {(0,5)})
 
 def _find_matching(text, keywords, ignore_case, expected):
-    actual = searchf.segments.find_matching(text, keywords, ignore_case)
+    actual = segments.find_matching(text, keywords, ignore_case)
     assert actual[0] == expected[0]
     assert actual[1] == expected[1]
 
 def test_find_matching():
-    '''Test searchf.segments.find_matching()'''
+    '''Test segments.find_matching()'''
     # Basic non matching cases
     _find_matching('Some text', {'Not matching'}, False, (False, set()))
     _find_matching('abcde', {'cdefgh'}, False, (False, set()))

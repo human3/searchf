@@ -3,7 +3,7 @@
 # pylint: disable=invalid-name
 
 import math
-from searchf import segments
+from . import segments
 
 class Filter:
     '''Represents a list of keywords ANDed together and matching properties'''

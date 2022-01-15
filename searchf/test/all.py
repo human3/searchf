@@ -10,10 +10,9 @@ import os
 import sys
 import time
 
-import searchf
-import searchf.app
-import searchf.test.test_segments
-import searchf.test.test_models
+from .. import app
+from . import test_segments
+from . import test_models
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 if len(sys.argv) > 1:
@@ -38,17 +37,17 @@ def _run_test(stdscr, description, keys, inputs):
     print(description)
     stdscr.clear()
     _reset_inputs(inputs)
-    searchf.app.init_colors()
-    searchf.app.views.create(stdscr, TEST_FILE)
-    original_get_text = searchf.app._get_text
-    searchf.app._get_text = _my_get_text
+    app.init_colors()
+    app.views.create(stdscr, TEST_FILE)
+    original_get_text = app._get_text
+    app._get_text = _my_get_text
     for key in keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.01)
-        handled = searchf.app.views.handle_key(ord(key))
+        handled = app.views.handle_key(ord(key))
         assert handled or key == 'q'
-    searchf.app._get_text = original_get_text
+    app._get_text = original_get_text
 
 KEYS = [' ', '>', '<']
 KEY_IDX = 0
@@ -101,65 +100,65 @@ def _run_app_tests(stdscr):
               ['i', '/', 'i', 'i'],
               ['Show'])
 
-    searchf.app.USE_DEBUG = True
+    app.USE_DEBUG = True
     _run_test(stdscr, 'Test special debug mode',
              ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
-    searchf.app.USE_DEBUG = False
+    app.USE_DEBUG = False
 
     def get_max_yx(_):
         return 20, 20
 
-    original_get_max_yx = searchf.app.get_max_yx
-    searchf.app.get_max_yx = get_max_yx
+    original_get_max_yx = app.get_max_yx
+    app.get_max_yx = get_max_yx
     _run_test(stdscr, 'Test with specific layout (scenario #1)',
               ['?', ' ', 'b', 's', 'w'], [])
     _run_test(stdscr, 'Test with specific layout (scenario #2)',
               ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], [])
-    searchf.app.get_max_yx = original_get_max_yx
+    app.get_max_yx = original_get_max_yx
 
-    print('Test searchf.app.get_text()')
+    print('Test app.get_text()')
     def my_handler(_):
         pass
     _reset_inputs(['dummy'])
-    searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
+    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler)
     def my_handler_throwing(_):
-        raise searchf.app.EscapeException
-    searchf.app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing)
+        raise app.EscapeException
+    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing)
 
-    print('Test searchf.app._validate()')
-    assert searchf.app._validate('a') == 'a'
-    assert searchf.app._validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
+    print('Test app._validate()')
+    assert app._validate('a') == 'a'
+    assert app._validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
     actual = None
     try:
-        searchf.app._validate(curses.ascii.ESC)
-    except searchf.app.EscapeException as e:
+        app._validate(curses.ascii.ESC)
+    except app.EscapeException as e:
         actual = e
     assert actual
 
-    print('Test searchf.app.main_loop()')
-    searchf.app.get_ch = _my_get_ch
-    searchf.app.main_loop(stdscr, TEST_FILE)
-    searchf.app.get_ch = stdscr.getch
+    print('Test app.main_loop()')
+    app.get_ch = _my_get_ch
+    app.main_loop(stdscr, TEST_FILE)
+    app.get_ch = stdscr.getch
 
-    print('Test searchf.app.init_env()')
-    parser = searchf.app.init_env()
+    print('Test app.init_env()')
+    parser = app.init_env()
     assert parser
 
 def _run_unit_tests():
     print('Test segments.iterate()')
-    searchf.test.test_segments.test_iterate()
+    test_segments.test_iterate()
     print('Test segments._sort_and_merge()')
-    searchf.test.test_segments.test_sort_and_merge()
+    test_segments.test_sort_and_merge()
     print('Test segments.find_matching()')
-    searchf.test.test_segments.test_find_matching()
+    test_segments.test_find_matching()
     print('Test models.test_filter()')
-    searchf.test.test_models.test_filter()
+    test_models.test_filter()
     print('Test models.test_digit_count()')
-    searchf.test.test_models.test_digit_count()
+    test_models.test_digit_count()
     print('Test models.test_model()')
-    searchf.test.test_models.test_model()
+    test_models.test_model()
     print('Test models.test_view_model()')
-    searchf.test.test_models.test_view_model()
+    test_models.test_view_model()
 
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''

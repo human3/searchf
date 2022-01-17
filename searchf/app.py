@@ -780,6 +780,7 @@ class Views:
                     v.set_lines(lines)
                     v.set_v_offset(scroll_to, False)
         self._content[self._current].draw()
+        return 'File reloaded'
 
     def create(self, scr, path):
         '''Creates all views in the given screen, and loads the content from

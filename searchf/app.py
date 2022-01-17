@@ -16,6 +16,7 @@ import curses
 import os
 import re
 import sys
+import copy
 
 from . import __version__
 from . import models
@@ -274,6 +275,10 @@ class TextView:
         self._win = None
         self._size = (0, 0)
 
+    def get_config(self):
+        '''Gets the config'''
+        return self._config
+
     def name(self):
         '''Gets the name of the view.'''
         return self._name
@@ -439,6 +444,11 @@ layout of the view model.
         self._model.sync(self._config.filters, self._config.only_matching)
         self._vm.reset_offsets()
         self._layout(redraw)
+
+    def set_config(self, config):
+        '''Sets the configuration.'''
+        self._config = config
+        self._sync(False)
 
     def set_lines(self, lines):
         '''Sets the content of this view. Assumes the view is offscreen and does
@@ -662,6 +672,7 @@ HELP = f'''  ~ Searchf Help ~
     q          Quit program, or close this help view
     ?          Show this help
     1 2 3      Switch to view #1, #2 or #3
+    ! @ #      Switch to view #1, #2 or #3 with current filters
     r          Reload file
     t          Reload file and scroll to end (tail)
 
@@ -763,12 +774,15 @@ class Views:
         y += view_lines_count
         self._y_get_text = y
 
-    def _set_view(self, idx):
+    def _set_view(self, idx, propagate_config):
         assert 0 <= idx < len(self._content)
         if self._current != idx:
+            config = self._content[self._current].get_config()
             self._current = idx
+            if propagate_config:
+                self._content[idx].set_config(copy.deepcopy(config))
             self._content[idx].show()
-        return self._content[idx].name()
+        return f'Switched to {self._content[idx].name()}'
 
     def _reload(self, scroll_to):
         with open(self._path, encoding='utf-8') as f:
@@ -794,7 +808,7 @@ class Views:
         self._content.append(TextView(scr, 'Help', 'Help'))
         self._layout()
         self._reload(0)
-        self._set_view(0)
+        self._set_view(0, False)
 
     def get_text(self, prompt, text):
         '''Prompts user to enter or edit some text.'''
@@ -815,12 +829,12 @@ class Views:
 
         def help_view_push():
             self._hidden_view = self._current
-            return self._set_view(3)
+            return self._set_view(3, False)
 
         def help_view_pop():
             idx = self._hidden_view
             self._hidden_view = -1
-            return self._set_view(idx)
+            return self._set_view(idx, False)
 
         # Local functions redirecting to current view v
         v = self._content[self._current]
@@ -886,9 +900,12 @@ class Views:
 
         # Map keys to other more complex commands taking arguments
         dispatch = {
-            ord('1'):          lambda: self._set_view(0),
-            ord('2'):          lambda: self._set_view(1),
-            ord('3'):          lambda: self._set_view(2),
+            ord('1'):          lambda: self._set_view(0, False),
+            ord('2'):          lambda: self._set_view(1, False),
+            ord('3'):          lambda: self._set_view(2, False),
+            ord('!'):          lambda: self._set_view(0, True),
+            ord('@'):          lambda: self._set_view(1, True),
+            ord('#'):          lambda: self._set_view(2, True),
             ord('?'):          help_view_push,
             ord('e'):          edit_keyword,
             ord('f'):          lambda: new_keyword(True),

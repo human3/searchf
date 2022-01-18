@@ -5,6 +5,20 @@
 
 from .. import models
 
+def test_matching_mode():
+    '''Test models.MatchingMode'''
+    assert models.MatchingMode.ALL_LINES.get_next() == models.MatchingMode.ONLY_MATCHING_LINES
+    assert models.MatchingMode.ALL_LINES == models.MatchingMode.ONLY_MATCHING_LINES.get_prev()
+    assert models.MatchingMode.ONLY_NOT_MATCHING.get_next() == models.MatchingMode.ALL_LINES
+    assert models.MatchingMode.ONLY_NOT_MATCHING == models.MatchingMode.ALL_LINES.get_prev()
+
+    actual = None
+    try:
+        models.MatchingMode._from_int(12)
+    except ValueError as ex:
+        actual = ex
+    assert actual
+
 def test_filter():
     '''Test models.Filter'''
     f = models.Filter()

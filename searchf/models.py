@@ -3,6 +3,7 @@
 # pylint: disable=invalid-name
 
 import math
+from enum import Enum
 from . import segments
 
 class Filter:
@@ -28,6 +29,45 @@ class Filter:
 
 def _digits_count(max_number):
     return math.floor(math.log10(max(1, max_number))+1)
+
+class AutoEnum(Enum):
+    '''Base class for auto enum that can get iterated over.'''
+    def __new__(cls, description):
+        value = len(cls.__members__)
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj._description = description
+        return obj
+
+    def __str__(self):
+        return f'{self._description}'
+
+    @classmethod
+    def _from_int(cls, i):
+        for e in cls:
+            if e.value == i:
+                return e
+        raise ValueError('Unsupported enum value')
+
+    @classmethod
+    def get(cls, i):
+        '''Returns enumeration matching given int value'''
+        i = (i ) % len(cls.__members__)
+        return cls._from_int(i)
+
+    def get_next(self):
+        '''Returns the next enumeration.'''
+        return self.__class__.get(self.value + 1)
+
+    def get_prev(self):
+        '''Returns the previous enumeraion.'''
+        return self.__class__.get(self.value - 1)
+
+class MatchingMode(AutoEnum):
+    '''Matching modes.'''
+    ALL_LINES = ('all lines')
+    ONLY_MATCHING_LINES = ('only matching lines')
+    ONLY_NOT_MATCHING = ('only not matching lines')
 
 class Model:
     '''Holds data associated with the content of a file. and all the
@@ -56,7 +96,7 @@ class Model:
         '''Gets the current hits count'''
         return sum(self.hits)
 
-    def sync(self, filters, only_matching):
+    def sync(self, filters, mode):
         '''Recomputes the data model by applying the given filters to the
         current file content. Each line is associated with:
         - the index of the line in the original content (required
@@ -67,7 +107,13 @@ class Model:
           highlighted/colorized
         '''
 
-        show_all_lines = not only_matching or len(filters) <= 0
+        show_matching = mode in (
+            MatchingMode.ALL_LINES,
+            MatchingMode.ONLY_MATCHING_LINES)
+        show_not_matching = len(filters) <= 0 or mode in (
+            MatchingMode.ALL_LINES,
+            MatchingMode.ONLY_NOT_MATCHING)
+
         data = []
         hits = [0 for f in filters]
 
@@ -80,9 +126,10 @@ class Model:
                     segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
-                    data.append([i, fidx, line, matching_segments])
+                    if show_matching:
+                        data.append([i, fidx, line, matching_segments])
                     break
-            if not matching and show_all_lines:
+            if not matching and show_not_matching:
                 data.append([i, -1, line, set()])
 
         self.data = data

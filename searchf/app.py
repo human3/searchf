@@ -8,6 +8,7 @@
 # pylint: disable=invalid-name
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
+# pylint: disable=too-many-lines
 
 from curses.textpad import Textbox
 from enum import Enum, auto
@@ -178,7 +179,7 @@ session.
     line_numbers: bool = False
     wrap: bool = True
     bullets: bool = False
-    only_matching: bool = True
+    matching_mode: models.MatchingMode = models.MatchingMode.ALL_LINES
     show_spaces: bool = False
     colorize_mode: int = 0
     palette_index: int = 0
@@ -245,7 +246,8 @@ class TextViewCommand(Enum):
     POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    TOGGLE_ONLY_MATCHING = auto()
+    NEXT_MATCHING_MODE = auto()
+    PREV_MATCHING_MODE = auto()
     TOGGLE_LINE_NUMBERS = auto()
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
@@ -357,6 +359,7 @@ line number and separator'''
 
             x += CASE_MODE_LEN + 1
             text = ' AND '.join(f.keywords)
+            color = curses.color_pair(self._config.get_color_pair_id(i))
             self._win.addstr(y + 1 + i, x, f'{self._model.hits[i]:>8} {text}', color)
 
     def _draw_prefix(self, y, prefix_info, line_idx, color):
@@ -441,7 +444,7 @@ layout of the view model.
             self.draw()
 
     def _sync(self, redraw):
-        self._model.sync(self._config.filters, self._config.only_matching)
+        self._model.sync(self._config.filters, self._config.matching_mode)
         self._vm.reset_offsets()
         self._layout(redraw)
 
@@ -516,10 +519,17 @@ layout of the view model.
         self._layout(True)
         return f'Bullets {bool_to_text(self._config.bullets)}'
 
-    def _toggle_only_matching(self):
-        self._config.only_matching = not self._config.only_matching
+    def _cycle_matching_mode(self, forward):
+        f = models.MatchingMode.get_next if forward else models.MatchingMode.get_prev
+        self._config.matching_mode = f(self._config.matching_mode)
         self._sync(True)
-        return f'Only matching lines {bool_to_text(self._config.only_matching)}'
+        return f'Displaying {self._config.matching_mode}'
+
+    def _next_matching_mode(self):
+        return self._cycle_matching_mode(True)
+
+    def _prev_matching_mode(self):
+        return self._cycle_matching_mode(False)
 
     def _toggle_show_spaces(self):
         self._config.show_spaces = not self._config.show_spaces
@@ -619,7 +629,7 @@ layout of the view model.
         currently has no filter.'''
         assert not self.has_filters()
         if len(keyword) > 0:
-            self._config.only_matching = False
+            self._config.matching_mode = models.MatchingMode.ALL_LINES
             self.push_keyword(keyword, True)
             self._vscroll_to_match(True, 1)
 
@@ -649,7 +659,8 @@ layout of the view model.
             TextViewCommand.POP_KEYWORD:           self._pop_keyword,
             TextViewCommand.VSCROLL_TO_NEXT_MATCH: self._vscroll_to_next_match,
             TextViewCommand.VSCROLL_TO_PREV_MATCH: self._vscroll_to_prev_match,
-            TextViewCommand.TOGGLE_ONLY_MATCHING:  self._toggle_only_matching,
+            TextViewCommand.NEXT_MATCHING_MODE:    self._next_matching_mode,
+            TextViewCommand.PREV_MATCHING_MODE:    self._prev_matching_mode,
             TextViewCommand.TOGGLE_LINE_NUMBERS:   self._toggle_line_numbers,
             TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
             TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
@@ -684,7 +695,8 @@ HELP = f'''  ~ Searchf Help ~
     e          Edit last keyword
 
   Display mode:
-    m          Show/hide only matching lines
+    m          Next matching mode
+    M          Previous matching mode
     l          Show/hide line numbers
     k          Enable/disables line wrapping
     *          Show/hide diamonds at line starts (when wrapping)
@@ -866,7 +878,8 @@ class Views:
             ord('_'):              TextViewCommand.POP_KEYWORD,
             ord('n'):              TextViewCommand.VSCROLL_TO_NEXT_MATCH,
             ord('p'):              TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('m'):              TextViewCommand.TOGGLE_ONLY_MATCHING,
+            ord('m'):              TextViewCommand.NEXT_MATCHING_MODE,
+            ord('M'):              TextViewCommand.PREV_MATCHING_MODE,
             ord('l'):              TextViewCommand.TOGGLE_LINE_NUMBERS,
             ord('k'):              TextViewCommand.TOGGLE_WRAP,
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,

@@ -166,7 +166,7 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
-COLORIZE_MODES = [ 'Keyword', 'Keyword highlight', 'Line' ]
+COLORIZE_MODES = [ 'Keyword highlight', 'Keyword', 'Line' ]
 
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
@@ -197,7 +197,7 @@ session.
 
     def uses_reverse_palette(self):
         '''Returns whether or not palette color should be reversed'''
-        return self.colorize_mode == 1
+        return self.colorize_mode == 0
 
     def colorize_mode_text(self):
         '''Returns a text reprentation of the current colorize mode'''

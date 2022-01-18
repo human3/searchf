@@ -77,7 +77,7 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test that help can get displayed',
               ['?', 'd', 'a', 'a', 's', 'w', 'q'], [])
     _run_test(stdscr, 'Test view switching',
-              ['r', 't', '1', '2', '3'], [])
+              ['r', 't', '1', '2', '3', '!', '@', '#'], [])
     _run_test(stdscr, 'Test scrolling around',
               ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], [])
     _run_test(stdscr, 'Test goto lines',
@@ -85,7 +85,7 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test various display modes',
               ['l', 'l', 'k', 'k', '.', '.', '*', '*', 'q'], [])
     _run_test(stdscr, 'Test entering one letter keywords',
-              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'c', 'c', 'F', '-', '-', '-', '+'],
+              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'm', 'M', 'c', 'c', 'F', '-', '-', '-', '+'],
               ['a', 'b', 'c', 'd', ''])
     _run_test(stdscr, 'Test entering keywords',
               ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'c', 'c', 'F', '-', '-', '-', '+'],
@@ -154,6 +154,8 @@ def _run_unit_tests():
     test_segments.test_sort_and_merge()
     print('Test segments.find_matching()')
     test_segments.test_find_matching()
+    print('Test models.test_matching_mode()')
+    test_models.test_matching_mode()
     print('Test models.test_filter()')
     test_models.test_filter()
     print('Test models.test_digit_count()')

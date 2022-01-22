@@ -693,7 +693,7 @@ HELP = f'''  ~ Searchf Help ~
   Version: {__version__}
   More info: https://github.com/human3/searchf
 
-  Utility to interactively search into line-oriented text files.
+  Utility to interactively search for keywords in text files.
 
   General keys:
     q          Quit program, or close this help view
@@ -711,7 +711,7 @@ HELP = f'''  ~ Searchf Help ~
     e          Edit last keyword
 
   Display modes:
-    m          Show/hide non-matching lines (only used when some
+    m          Show/hide non-matching lines (only when some
                filters are defined and reverse matching is disabled)
     M          Enable/disable reverse matching to hide matching lines
     l          Toggles line numbers visibility
@@ -719,7 +719,7 @@ HELP = f'''  ~ Searchf Help ~
     *          Toggles diamonds visibility at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
     c/C        Next/previous color palette
-    h/H        Next/previous keyword colorization mode
+    h/H        Next/previous highlight and colorization mode
     i          Toggle whether or not current filter ignores case
 
   Navigation:

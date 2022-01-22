@@ -6,15 +6,18 @@ Press `ENTER` to define the first keyword of a filter and reveal only the lines 
 
 ![Peek 2021-12-31 21-05](https://user-images.githubusercontent.com/15265841/147842653-46e2fc0f-fdac-424e-9e5a-2e806d86440e.gif)
 
-
-A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning lines are shown in the color of the first filter they match.
+A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning keywords and lines are shown using the color of the first filter they match.
 
 ## Features
 
-- Multiple views (press `1`, `2`, `3` to switch)
-- Multiple highlight modes (press `h` to cycle) and color palettes (press `c` to cycle)
-- Various display modes (`l` toggles line numbers, `m` toggles visibility of non-matching line, `k` toggles line wrapping, ...)
+- Can filter out non matching lines or display everything (you choose with `m`)
+- Supports "reverse matching" mode to hide matching lines (try `M`)
+- Multiple highlight and colorization modes (press `h` to cycle through all modes)
+- Color palettes (press `c` to cycle through all palettes)
+- Various other display modes (`l` toggles line numbers visibility, `k` toggles line wrapping, ...)
+- Multiple views (press `1`, `2`, `3` to switch) with possibility to pass filters of one view to another view (try `!`, `@`, `#`)
 - Common search key bindings (`/`, then `n` for next, `p` for previous)
+- Common key bindings to scroll up/down pages or goto line
 
 ## Installation
 
@@ -33,7 +36,7 @@ to run builtin application tests and verify your installation. Please note that 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
 
- ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150623586-d26c6901-8486-4c1b-b8c5-70630d26baa5.png)
+![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150648104-c99aed3b-1030-46ca-a0d2-50635e32e2d5.png)
 
 When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
 
@@ -68,16 +71,16 @@ Unit tests don't cover much as `pytest --cov=searchf` returns:
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    578    578     0%
-searchf/models.py                 135      5    96%
+searchf/app.py                    586    586     0%
+searchf/models.py                 131      5    96%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136    136     0%
 searchf/test/color.py              48     48     0%
-searchf/test/test_models.py        57      0   100%
+searchf/test/test_models.py        56      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                            1048    767    27%
+TOTAL                            1051    775    26%
 ```
 
 Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.test.all` then `coverage report` shows:
@@ -86,15 +89,15 @@ Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.te
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    578     10    98%
-searchf/models.py                 135      0   100%
+searchf/app.py                    586     10    98%
+searchf/models.py                 131      0   100%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136      5    96%
-searchf/test/test_models.py        57      0   100%
+searchf/test/test_models.py        56      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                            1000     15    98%
+TOTAL                            1003     15    99%
 ```
 
 ## Known Issues

@@ -166,7 +166,11 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
-COLORIZE_MODES = [ 'Keyword highlight', 'Keyword', 'Line' ]
+class ColorizeMode(models.AutoEnum):
+    '''Keyword colorize modes.'''
+    KEYWORD_HIGHLIGHT = ('Keyword highlight')
+    KEYWORD = ('Keyword')
+    LINE = ('Line')
 
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
@@ -181,7 +185,7 @@ session.
     bullets: bool = False
     visibility_mode: models.VisibilityMode = models.VisibilityMode.ONLY_MATCHING_LINES
     show_spaces: bool = False
-    colorize_mode: int = 0
+    colorize_mode: ColorizeMode = ColorizeMode.KEYWORD_HIGHLIGHT
     palette_index: int = 0
 
     def __init__(self):
@@ -190,22 +194,6 @@ session.
     def has_filters(self):
         '''Returns whether or not there is any filter'''
         return len(self.filters) > 0
-
-    def highlights_whole_line(self):
-        '''Returns whether or not whole line should be hightlighted'''
-        return self.colorize_mode == 2
-
-    def uses_reverse_palette(self):
-        '''Returns whether or not palette color should be reversed'''
-        return self.colorize_mode == 0
-
-    def colorize_mode_text(self):
-        '''Returns a text reprentation of the current colorize mode'''
-        return COLORIZE_MODES[self.colorize_mode]
-
-    def next_colorize_mode(self):
-        '''Selects the next colorization modes, cycling through all of them'''
-        self.colorize_mode = (self.colorize_mode + 1 ) % len(COLORIZE_MODES)
 
     def top_filter(self):
         '''Returns top level filter (most recently added)'''
@@ -253,6 +241,7 @@ class TextViewCommand(Enum):
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
     NEXT_COLORIZE_MODE = auto()
+    PREV_COLORIZE_MODE = auto()
     TOGGLE_IGNORE_CASE = auto()
     NEXT_PALETTE = auto()
 
@@ -373,7 +362,7 @@ line number and separator'''
         vend = offset + self._vm.size[1]
         if self._config.show_spaces:
             text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
-        if self._config.highlights_whole_line():
+        if self._config.colorize_mode == ColorizeMode.LINE:
             text = text[offset:vend]
             text = f'{text:<{self._vm.size[1]}}'
             self._win.addnstr(y, x, text, self._size[1], color)
@@ -536,10 +525,17 @@ layout of the view model.
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
-    def _next_colorize_mode(self):
-        self._config.next_colorize_mode()
+    def _cycle_colorize_mode(self, forward):
+        f = ColorizeMode.get_next if forward else ColorizeMode.get_prev
+        self._config.colorize_mode = f(self._config.colorize_mode)
         self.show()
-        return f'Colorize mode: {self._config.colorize_mode_text()}'
+        return f'Colorize mode: {self._config.colorize_mode}'
+
+    def _next_colorize_mode(self):
+        return self._cycle_colorize_mode(True)
+
+    def _prev_colorize_mode(self):
+        return self._cycle_colorize_mode(False)
 
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
@@ -551,7 +547,7 @@ layout of the view model.
 
     def _apply_palette_and_draw(self):
         apply_palette(PALETTES[self._config.palette_index],
-                      self._config.uses_reverse_palette())
+                      self._config.colorize_mode == ColorizeMode.KEYWORD_HIGHLIGHT)
         self.draw()
 
     def show(self):
@@ -666,6 +662,7 @@ layout of the view model.
             TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:    self._toggle_show_spaces,
             TextViewCommand.NEXT_COLORIZE_MODE:    self._next_colorize_mode,
+            TextViewCommand.PREV_COLORIZE_MODE:    self._prev_colorize_mode,
             TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
             TextViewCommand.NEXT_PALETTE:          self._next_palette,
         }
@@ -701,7 +698,7 @@ HELP = f'''  ~ Searchf Help ~
     *          Toggles diamonds visibility at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
     c          Cycle/change color palette
-    h          Cycle/change keyword colorization mode
+    h/H        Next/previous keyword colorization mode
     i          Toggle whether or not current filter ignores case
 
   Navigation:
@@ -885,6 +882,7 @@ class Views:
             ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
             ord('c'):              TextViewCommand.NEXT_PALETTE,
             ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
+            ord('H'):              TextViewCommand.PREV_COLORIZE_MODE,
             ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
             curses.KEY_UP:         TextViewCommand.GO_UP,
             ord('w'):              TextViewCommand.GO_UP,

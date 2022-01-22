@@ -68,16 +68,16 @@ Unit tests don't cover much as `pytest --cov=searchf` returns:
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    571    571     0%
+searchf/app.py                    578    578     0%
 searchf/models.py                 135      5    96%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136    136     0%
 searchf/test/color.py              48     48     0%
-searchf/test/test_models.py        59      0   100%
+searchf/test/test_models.py        57      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                            1043    760    27%
+TOTAL                            1048    767    27%
 ```
 
 Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.test.all` then `coverage report` shows:
@@ -86,15 +86,15 @@ Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.te
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    571     11    98%
+searchf/app.py                    578     10    98%
 searchf/models.py                 135      0   100%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136      5    96%
-searchf/test/test_models.py        59      0   100%
+searchf/test/test_models.py        57      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                             995     16    98%
+TOTAL                            1000     15    98%
 ```
 
 ## Known Issues

@@ -179,7 +179,7 @@ session.
     line_numbers: bool = False
     wrap: bool = True
     bullets: bool = False
-    matching_mode: models.MatchingMode = models.MatchingMode.ALL_LINES
+    visibility_mode: models.VisibilityMode = models.VisibilityMode.ONLY_MATCHING_LINES
     show_spaces: bool = False
     colorize_mode: int = 0
     palette_index: int = 0
@@ -246,8 +246,8 @@ class TextViewCommand(Enum):
     POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    NEXT_MATCHING_MODE = auto()
-    PREV_MATCHING_MODE = auto()
+    NEXT_VISIBILITY_MODE = auto()
+    PREV_VISIBILITY_MODE = auto()
     TOGGLE_LINE_NUMBERS = auto()
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
@@ -444,7 +444,7 @@ layout of the view model.
             self.draw()
 
     def _sync(self, redraw):
-        self._model.sync(self._config.filters, self._config.matching_mode)
+        self._model.sync(self._config.filters, self._config.visibility_mode)
         self._vm.reset_offsets()
         self._layout(redraw)
 
@@ -519,17 +519,17 @@ layout of the view model.
         self._layout(True)
         return f'Bullets {bool_to_text(self._config.bullets)}'
 
-    def _cycle_matching_mode(self, forward):
-        f = models.MatchingMode.get_next if forward else models.MatchingMode.get_prev
-        self._config.matching_mode = f(self._config.matching_mode)
+    def _cycle_visibility_mode(self, forward):
+        f = models.VisibilityMode.get_next if forward else models.VisibilityMode.get_prev
+        self._config.visibility_mode = f(self._config.visibility_mode)
         self._sync(True)
-        return f'Displaying {self._config.matching_mode}'
+        return f'{self._config.visibility_mode}'
 
-    def _next_matching_mode(self):
-        return self._cycle_matching_mode(True)
+    def _next_visibility_mode(self):
+        return self._cycle_visibility_mode(True)
 
-    def _prev_matching_mode(self):
-        return self._cycle_matching_mode(False)
+    def _prev_visibility_mode(self):
+        return self._cycle_visibility_mode(False)
 
     def _toggle_show_spaces(self):
         self._config.show_spaces = not self._config.show_spaces
@@ -629,7 +629,7 @@ layout of the view model.
         currently has no filter.'''
         assert not self.has_filters()
         if len(keyword) > 0:
-            self._config.matching_mode = models.MatchingMode.ALL_LINES
+            self._config.visibility_mode = models.VisibilityMode.ALL_LINES
             self.push_keyword(keyword, True)
             self._vscroll_to_match(True, 1)
 
@@ -659,8 +659,8 @@ layout of the view model.
             TextViewCommand.POP_KEYWORD:           self._pop_keyword,
             TextViewCommand.VSCROLL_TO_NEXT_MATCH: self._vscroll_to_next_match,
             TextViewCommand.VSCROLL_TO_PREV_MATCH: self._vscroll_to_prev_match,
-            TextViewCommand.NEXT_MATCHING_MODE:    self._next_matching_mode,
-            TextViewCommand.PREV_MATCHING_MODE:    self._prev_matching_mode,
+            TextViewCommand.NEXT_VISIBILITY_MODE:  self._next_visibility_mode,
+            TextViewCommand.PREV_VISIBILITY_MODE:  self._prev_visibility_mode,
             TextViewCommand.TOGGLE_LINE_NUMBERS:   self._toggle_line_numbers,
             TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
             TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
@@ -695,11 +695,10 @@ HELP = f'''  ~ Searchf Help ~
     e          Edit last keyword
 
   Display mode:
-    m          Next matching mode
-    M          Previous matching mode
-    l          Show/hide line numbers
-    k          Enable/disables line wrapping
-    *          Show/hide diamonds at line starts (when wrapping)
+    v/V        Next/previous line visibility mode
+    l          Toggles line number visibility
+    k          Toggles line wrapping
+    *          Toggles diamonds visibility at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
     c          Cycle/change color palette
     h          Cycle/change keyword colorization mode
@@ -878,8 +877,8 @@ class Views:
             ord('_'):              TextViewCommand.POP_KEYWORD,
             ord('n'):              TextViewCommand.VSCROLL_TO_NEXT_MATCH,
             ord('p'):              TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('m'):              TextViewCommand.NEXT_MATCHING_MODE,
-            ord('M'):              TextViewCommand.PREV_MATCHING_MODE,
+            ord('v'):              TextViewCommand.NEXT_VISIBILITY_MODE,
+            ord('V'):              TextViewCommand.PREV_VISIBILITY_MODE,
             ord('l'):              TextViewCommand.TOGGLE_LINE_NUMBERS,
             ord('k'):              TextViewCommand.TOGGLE_WRAP,
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,

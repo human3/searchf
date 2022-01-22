@@ -48,6 +48,8 @@ empty set otherwise.
     for k in keywords:
         matching = False
         for m in re.finditer(k, text, flags):
+            if m.start() >= m.end():
+                continue
             matching = True
             s.add((m.start(), m.end()))
         if not matching:

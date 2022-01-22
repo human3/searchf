@@ -32,8 +32,8 @@ to run builtin application tests and verify your installation. Please note that 
 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
- 
-![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150170489-c9553bab-5657-4c6c-8f8a-c809c74c3056.png)
+
+ ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150623586-d26c6901-8486-4c1b-b8c5-70630d26baa5.png)
 
 When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
 

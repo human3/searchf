@@ -54,6 +54,11 @@ def _find_matching(text, keywords, ignore_case, expected):
 
 def test_find_matching():
     '''Test segments.find_matching()'''
+    # Checking matching empty line works
+    _find_matching('\n', ['^\n'], False, (True, [(0,1)]))
+    # Checking matching null string does not crash program
+    _find_matching('012345', ['^'], False, (False, set()))
+    _find_matching('012345', ['$'], False, (False, set()))
     # Basic non matching cases
     _find_matching('Some text', {'Not matching'}, False, (False, set()))
     _find_matching('abcde', {'cdefgh'}, False, (False, set()))

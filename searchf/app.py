@@ -213,9 +213,10 @@ session.
         debug(f'{fidx} {pair_id} {f} {b}')
         return pair_id
 
-    def next_palette(self):
-        '''Select the "next" palette'''
-        self.palette_index = (self.palette_index + 1) % len(PALETTES)
+    def cycle_palette(self, forward):
+        '''Select the next palette in the given direction'''
+        incr = 1 if forward else -1
+        self.palette_index = (self.palette_index + incr) % len(PALETTES)
         return self.palette_index
 
 class TextViewCommand(Enum):
@@ -244,6 +245,7 @@ class TextViewCommand(Enum):
     PREV_COLORIZE_MODE = auto()
     TOGGLE_IGNORE_CASE = auto()
     NEXT_PALETTE = auto()
+    PREV_PALETTE = auto()
 
 def bool_to_text(value):
     '''Converts a boolean value to text.'''
@@ -554,10 +556,16 @@ layout of the view model.
         '''Shows the view, after it was hidden by another one'''
         self._apply_palette_and_draw()
 
-    def _next_palette(self):
-        idx = self._config.next_palette()
+    def _cycle_palette(self, forward):
+        idx = self._config.cycle_palette(forward)
         self._apply_palette_and_draw()
         return f'Using color palette #{idx}'
+
+    def _next_palette(self):
+        return self._cycle_palette(True)
+
+    def _prev_palette(self):
+        return self._cycle_palette(False)
 
     def _set_h_offset(self, offset):
         if self._vm.set_h_offset(offset):
@@ -665,6 +673,7 @@ layout of the view model.
             TextViewCommand.PREV_COLORIZE_MODE:    self._prev_colorize_mode,
             TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
             TextViewCommand.NEXT_PALETTE:          self._next_palette,
+            TextViewCommand.PREV_PALETTE:          self._prev_palette,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -697,7 +706,7 @@ HELP = f'''  ~ Searchf Help ~
     k          Toggles line wrapping
     *          Toggles diamonds visibility at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
-    c          Cycle/change color palette
+    c/C        Next/previous color palette
     h/H        Next/previous keyword colorization mode
     i          Toggle whether or not current filter ignores case
 
@@ -881,6 +890,7 @@ class Views:
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,
             ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
             ord('c'):              TextViewCommand.NEXT_PALETTE,
+            ord('C'):              TextViewCommand.PREV_PALETTE,
             ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
             ord('H'):              TextViewCommand.PREV_COLORIZE_MODE,
             ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,

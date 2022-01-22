@@ -6,15 +6,15 @@
 from .. import models
 
 def test_visibility_mode():
-    '''Test models.VisibilityMode'''
-    assert models.VisibilityMode.ONLY_NOT_MATCHING.get_next() \
-        == models.VisibilityMode.ONLY_MATCHING_LINES
-    assert models.VisibilityMode.ONLY_NOT_MATCHING \
-        == models.VisibilityMode.ONLY_MATCHING_LINES.get_prev()
+    '''Test models.LineVisibilityMode'''
+    assert models.LineVisibilityMode.HIDE_MATCHING.get_next() \
+        == models.LineVisibilityMode.ONLY_MATCHING
+    assert models.LineVisibilityMode.HIDE_MATCHING \
+        == models.LineVisibilityMode.ONLY_MATCHING.get_prev()
 
     actual = None
     try:
-        models.VisibilityMode._from_int(12)
+        models.LineVisibilityMode._from_int(12)
     except ValueError as ex:
         actual = ex
     assert actual

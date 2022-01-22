@@ -183,7 +183,8 @@ session.
     line_numbers: bool = True
     wrap: bool = True
     bullets: bool = False
-    visibility_mode: models.VisibilityMode = models.VisibilityMode.ONLY_MATCHING_LINES
+    reverse_matching: bool = False
+    show_all_lines: bool = False
     show_spaces: bool = False
     colorize_mode: ColorizeMode = ColorizeMode.KEYWORD_HIGHLIGHT
     palette_index: int = 0
@@ -200,6 +201,15 @@ session.
         count = len(self.filters)
         assert count > 0
         return self.filters[count-1]
+
+    def get_line_visibility(self):
+        '''Returns the current line visibility mode. When matching line are hidden,
+        the value of show_all_lines is ignored.'''
+        if self.reverse_matching:
+            return models.LineVisibilityMode.HIDE_MATCHING
+        if self.show_all_lines:
+            return models.LineVisibilityMode.ALL
+        return models.LineVisibilityMode.ONLY_MATCHING
 
     def push_filter(self, f):
         '''Pushes the given filter'''
@@ -235,8 +245,8 @@ class TextViewCommand(Enum):
     POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    NEXT_VISIBILITY_MODE = auto()
-    PREV_VISIBILITY_MODE = auto()
+    TOGGLE_SHOW_ALL_LINES = auto()
+    TOGGLE_REVERSE_MATCHING = auto()
     TOGGLE_LINE_NUMBERS = auto()
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
@@ -435,7 +445,7 @@ layout of the view model.
             self.draw()
 
     def _sync(self, redraw):
-        self._model.sync(self._config.filters, self._config.visibility_mode)
+        self._model.sync(self._config.filters, self._config.get_line_visibility())
         self._vm.reset_offsets()
         self._layout(redraw)
 
@@ -510,17 +520,17 @@ layout of the view model.
         self._layout(True)
         return f'Bullets {bool_to_text(self._config.bullets)}'
 
-    def _cycle_visibility_mode(self, forward):
-        f = models.VisibilityMode.get_next if forward else models.VisibilityMode.get_prev
-        self._config.visibility_mode = f(self._config.visibility_mode)
+    def _toggle_show_all_lines(self):
+        if self._config.reverse_matching:
+            return 'Cannot change setting (reverse matching is enabled)'
+        self._config.show_all_lines = not self._config.show_all_lines
         self._sync(True)
-        return f'{self._config.visibility_mode}'
+        return f'{self._config.get_line_visibility()}'
 
-    def _next_visibility_mode(self):
-        return self._cycle_visibility_mode(True)
-
-    def _prev_visibility_mode(self):
-        return self._cycle_visibility_mode(False)
+    def _toggle_reverse_matching(self):
+        self._config.reverse_matching = not self._config.reverse_matching
+        self._sync(True)
+        return f'{self._config.get_line_visibility()}'
 
     def _toggle_show_spaces(self):
         self._config.show_spaces = not self._config.show_spaces
@@ -633,7 +643,8 @@ layout of the view model.
         currently has no filter.'''
         assert not self.has_filters()
         if len(keyword) > 0:
-            self._config.visibility_mode = models.VisibilityMode.ALL_LINES
+            self._config.reverse_matching = False
+            self._config.show_all_lines = True
             self.push_keyword(keyword, True)
             self._vscroll_to_match(True, 1)
 
@@ -649,31 +660,31 @@ layout of the view model.
     def execute(self, command):
         '''Executes the given command.'''
         dispatch = {
-            TextViewCommand.GO_UP:                 lambda: self._vscroll(-1),
-            TextViewCommand.GO_DOWN:               lambda: self._vscroll(1),
-            TextViewCommand.GO_LEFT:               lambda: self._hscroll(-1),
-            TextViewCommand.GO_RIGHT:              lambda: self._hscroll(1),
-            TextViewCommand.GO_HOME:               lambda: self.set_v_offset(0, True),
-            TextViewCommand.GO_END:                lambda: self.set_v_offset(sys.maxsize, True),
-            TextViewCommand.GO_NPAGE:              lambda: self._vpagescroll(1),
-            TextViewCommand.GO_PPAGE:              lambda: self._vpagescroll(-1),
-            TextViewCommand.GO_SLEFT:              lambda: self._hscroll(-20),
-            TextViewCommand.GO_SRIGHT:             lambda: self._hscroll(20),
-            TextViewCommand.POP_FILTER:            self._pop_filter,
-            TextViewCommand.POP_KEYWORD:           self._pop_keyword,
-            TextViewCommand.VSCROLL_TO_NEXT_MATCH: self._vscroll_to_next_match,
-            TextViewCommand.VSCROLL_TO_PREV_MATCH: self._vscroll_to_prev_match,
-            TextViewCommand.NEXT_VISIBILITY_MODE:  self._next_visibility_mode,
-            TextViewCommand.PREV_VISIBILITY_MODE:  self._prev_visibility_mode,
-            TextViewCommand.TOGGLE_LINE_NUMBERS:   self._toggle_line_numbers,
-            TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
-            TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
-            TextViewCommand.TOGGLE_SHOW_SPACES:    self._toggle_show_spaces,
-            TextViewCommand.NEXT_COLORIZE_MODE:    self._next_colorize_mode,
-            TextViewCommand.PREV_COLORIZE_MODE:    self._prev_colorize_mode,
-            TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
-            TextViewCommand.NEXT_PALETTE:          self._next_palette,
-            TextViewCommand.PREV_PALETTE:          self._prev_palette,
+            TextViewCommand.GO_UP:                   lambda: self._vscroll(-1),
+            TextViewCommand.GO_DOWN:                 lambda: self._vscroll(1),
+            TextViewCommand.GO_LEFT:                 lambda: self._hscroll(-1),
+            TextViewCommand.GO_RIGHT:                lambda: self._hscroll(1),
+            TextViewCommand.GO_HOME:                 lambda: self.set_v_offset(0, True),
+            TextViewCommand.GO_END:                  lambda: self.set_v_offset(sys.maxsize, True),
+            TextViewCommand.GO_NPAGE:                lambda: self._vpagescroll(1),
+            TextViewCommand.GO_PPAGE:                lambda: self._vpagescroll(-1),
+            TextViewCommand.GO_SLEFT:                lambda: self._hscroll(-20),
+            TextViewCommand.GO_SRIGHT:               lambda: self._hscroll(20),
+            TextViewCommand.POP_FILTER:              self._pop_filter,
+            TextViewCommand.POP_KEYWORD:             self._pop_keyword,
+            TextViewCommand.VSCROLL_TO_NEXT_MATCH:   self._vscroll_to_next_match,
+            TextViewCommand.VSCROLL_TO_PREV_MATCH:   self._vscroll_to_prev_match,
+            TextViewCommand.TOGGLE_SHOW_ALL_LINES:   self._toggle_show_all_lines,
+            TextViewCommand.TOGGLE_REVERSE_MATCHING: self._toggle_reverse_matching,
+            TextViewCommand.TOGGLE_LINE_NUMBERS:     self._toggle_line_numbers,
+            TextViewCommand.TOGGLE_WRAP:             self._toggle_wrap,
+            TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
+            TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
+            TextViewCommand.NEXT_COLORIZE_MODE:      self._next_colorize_mode,
+            TextViewCommand.PREV_COLORIZE_MODE:      self._prev_colorize_mode,
+            TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
+            TextViewCommand.NEXT_PALETTE:            self._next_palette,
+            TextViewCommand.PREV_PALETTE:            self._prev_palette,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -700,9 +711,11 @@ HELP = f'''  ~ Searchf Help ~
     - _        Remove last keyword from filter
     e          Edit last keyword
 
-  Display mode:
-    v/V        Next/previous line visibility mode
-    l          Toggles line number visibility
+  Display modes:
+    m          Show/hide non-matching lines (only used when some
+               filters are defined and reverse matching is disabled)
+    M          Enable/disable reverse matching to hide matching lines
+    l          Toggles line numbers visibility
     k          Toggles line wrapping
     *          Toggles diamonds visibility at line starts (when wrapping)
     .          Enable/disable space displaying as bullets
@@ -883,8 +896,8 @@ class Views:
             ord('_'):              TextViewCommand.POP_KEYWORD,
             ord('n'):              TextViewCommand.VSCROLL_TO_NEXT_MATCH,
             ord('p'):              TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('v'):              TextViewCommand.NEXT_VISIBILITY_MODE,
-            ord('V'):              TextViewCommand.PREV_VISIBILITY_MODE,
+            ord('m'):              TextViewCommand.TOGGLE_SHOW_ALL_LINES,
+            ord('M'):              TextViewCommand.TOGGLE_REVERSE_MATCHING,
             ord('l'):              TextViewCommand.TOGGLE_LINE_NUMBERS,
             ord('k'):              TextViewCommand.TOGGLE_WRAP,
             ord('*'):              TextViewCommand.TOGGLE_BULLETS,

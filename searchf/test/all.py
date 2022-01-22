@@ -83,7 +83,7 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test goto lines',
               ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0'])
     _run_test(stdscr, 'Test various display modes',
-              ['l', 'k', 'k', '.', '.', '*', '*', 'q'], [])
+              ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm', 'q'], [])
     _run_test(stdscr, 'Test entering one letter keywords',
               ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-', '-', '+'],
               ['a', 'b', 'c', 'd', ''])

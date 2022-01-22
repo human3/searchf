@@ -498,11 +498,12 @@ layout of the view model.
         return 'Keyword removed'
 
     def get_last_keyword(self):
-        '''Returns the keyword that was last entered by user.'''
+        '''Returns total number of keywords in top level filter (0 if none),
+        and the keyword that was last entered by user.'''
         if not self._config.has_filters():
-            return False, ''
+            return 0, ''
         f = self._config.top_filter()
-        return True, f.get_last()
+        return f.get_count_and_last_keyword()
 
     def _toggle_line_numbers(self):
         self._config.line_numbers = not self._config.line_numbers
@@ -877,14 +878,14 @@ class Views:
             return v.goto_line(line_as_text)
 
         def edit_keyword():
-            ok, keyword = v.get_last_keyword()
-            if not ok:
+            count, keyword = v.get_last_keyword()
+            if count <= 0:
                 return 'No keyword to edit'
             keyword = self.get_text('Edit: ', keyword)
             if len(keyword) <= 0:
                 return 'No change made'
             v.execute(TextViewCommand.POP_KEYWORD)
-            v.push_keyword(keyword, False)
+            v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
 
         # Map keys to simple text view commands that don't take any argument

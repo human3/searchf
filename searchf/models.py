@@ -21,11 +21,15 @@ class Filter:
         '''Removes most recently added keyword from this filter'''
         return self.keywords.popitem()
 
-    def get_last(self):
-        '''Returns last entered keyword'''
+    def get_count_and_last_keyword(self):
+        '''Returns the number of keywords and the last keyword.'''
+        count = len(self.keywords)
+        if count <= 0:
+            return 0, None
+        # No peek API, so we need to pop and add back...
         keyword, _ = self.pop()
         self.add(keyword)
-        return keyword
+        return count, keyword
 
 def _digits_count(max_number):
     return math.floor(math.log10(max(1, max_number))+1)

@@ -23,7 +23,15 @@ def test_filter():
     '''Test models.Filter'''
     f = models.Filter()
     f.add('Keyword')
+
+    count, keyword = f.get_count_and_last_keyword()
+    assert count == 1
+    assert keyword == 'Keyword'
+
     f.pop()
+    count, keyword = f.get_count_and_last_keyword()
+    assert count == 0
+    assert not keyword
 
 def test_digit_count():
     '''Test models._digit_count()'''

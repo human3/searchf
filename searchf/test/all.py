@@ -83,12 +83,12 @@ def _run_app_tests(stdscr):
     _run_test(stdscr, 'Test goto lines',
               ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0'])
     _run_test(stdscr, 'Test various display modes',
-              ['l', 'l', 'k', 'k', '.', '.', '*', '*', 'q'], [])
+              ['l', 'k', 'k', '.', '.', '*', '*', 'q'], [])
     _run_test(stdscr, 'Test entering one letter keywords',
-              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'm', 'M', 'c', 'c', 'F', '-', '-', '-', '+'],
+              ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-', '-', '+'],
               ['a', 'b', 'c', 'd', ''])
     _run_test(stdscr, 'Test entering keywords',
-              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'm', 'c', 'c', 'F', '-', '-', '-', '+'],
+              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'H', 'm', 'c', 'C', 'F', '-', '-', '-', '+'],
               ['filter', 'keyword', 'for', 'python', ''])
     _run_test(stdscr, 'Test entering empty keywords, poping non existent keywords',
               ['+', 'f', '-', 'F'],

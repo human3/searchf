@@ -63,11 +63,11 @@ class AutoEnum(Enum):
         '''Returns the previous enumeraion.'''
         return self.__class__.get(self.value - 1)
 
-class VisibilityMode(AutoEnum):
-    '''Matching modes.'''
-    ONLY_MATCHING_LINES = ('Showing only matching lines')
-    ALL_LINES = ('Showing all lines')
-    ONLY_NOT_MATCHING = ('Hiding matching lines')
+class LineVisibilityMode(AutoEnum):
+    '''Line visibility modes.'''
+    ONLY_MATCHING = ('Showing only matching lines')
+    ALL = ('Showing all lines')
+    HIDE_MATCHING = ('Hiding matching lines')
 
 class Model:
     '''Holds data associated with the content of a file. and all the
@@ -108,11 +108,11 @@ class Model:
         '''
 
         show_matching = mode in (
-            VisibilityMode.ALL_LINES,
-            VisibilityMode.ONLY_MATCHING_LINES)
+            LineVisibilityMode.ALL,
+            LineVisibilityMode.ONLY_MATCHING)
         show_not_matching = len(filters) <= 0 or mode in (
-            VisibilityMode.ALL_LINES,
-            VisibilityMode.ONLY_NOT_MATCHING)
+            LineVisibilityMode.ALL,
+            LineVisibilityMode.HIDE_MATCHING)
 
         data = []
         hits = [0 for f in filters]

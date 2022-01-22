@@ -446,7 +446,6 @@ layout of the view model.
 
     def _sync(self, redraw):
         self._model.sync(self._config.filters, self._config.get_line_visibility())
-        self._vm.reset_offsets()
         self._layout(redraw)
 
     def set_config(self, config):

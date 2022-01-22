@@ -145,12 +145,6 @@ class ViewModel:
         self.data = [] # Display line data (index in model and horizontal offset)
         self.size = (0, 0) # Number of lines and columns available to display file content
 
-    def reset_offsets(self):
-        '''Reset all the content offsets.'''
-        self.hoffset = 0
-        self.voffset = 0
-        self.voffset_desc = ''
-
     def lines_count(self):
         '''Gets the number of lines required to display the whole content
 without clipping any of it.'''

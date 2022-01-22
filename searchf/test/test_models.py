@@ -75,7 +75,6 @@ def test_view_model():
     vm.layout(1, 1, m.data, True)
     vm.layout(1, 1, m.data, False)
 
-    vm.reset_offsets()
     vm.set_h_offset(0)
     vm.set_h_offset(100)
     vm.set_v_offset(0)

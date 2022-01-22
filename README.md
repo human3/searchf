@@ -32,8 +32,8 @@ to run builtin application tests and verify your installation. Please note that 
 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
- 
-![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150170489-c9553bab-5657-4c6c-8f8a-c809c74c3056.png)
+
+ ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/150623586-d26c6901-8486-4c1b-b8c5-70630d26baa5.png)
 
 When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
 
@@ -68,16 +68,16 @@ Unit tests don't cover much as `pytest --cov=searchf` returns:
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    571    571     0%
+searchf/app.py                    578    578     0%
 searchf/models.py                 135      5    96%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136    136     0%
 searchf/test/color.py              48     48     0%
-searchf/test/test_models.py        59      0   100%
+searchf/test/test_models.py        57      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                            1043    760    27%
+TOTAL                            1048    767    27%
 ```
 
 Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.test.all` then `coverage report` shows:
@@ -86,15 +86,15 @@ Application tests coverage is better at 98%. Indeed, `coverage run -m searchf.te
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    571     11    98%
+searchf/app.py                    578     10    98%
 searchf/models.py                 135      0   100%
 searchf/segments.py                46      0   100%
 searchf/test/__init__.py            0      0   100%
 searchf/test/all.py               136      5    96%
-searchf/test/test_models.py        59      0   100%
+searchf/test/test_models.py        57      0   100%
 searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
-TOTAL                             995     16    98%
+TOTAL                            1000     15    98%
 ```
 
 ## Known Issues

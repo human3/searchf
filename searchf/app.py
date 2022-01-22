@@ -180,7 +180,7 @@ serialized at some point to persist somewhere and get re-used accross
 session.
 
     '''
-    line_numbers: bool = False
+    line_numbers: bool = True
     wrap: bool = True
     bullets: bool = False
     visibility_mode: models.VisibilityMode = models.VisibilityMode.ONLY_MATCHING_LINES

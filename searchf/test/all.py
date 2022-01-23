@@ -9,10 +9,15 @@ import curses
 import os
 import sys
 import time
+import cProfile
+import pstats
+import io
 
 from .. import app
 from . import test_segments
 from . import test_models
+
+PROFILING = True
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 if len(sys.argv) > 1:
@@ -205,5 +210,16 @@ def main():
 
     print('== test passed ==')
 
+
 if __name__ == '__main__':
-    main()
+    if PROFILING:
+        prof = 'profile.dat'
+        cProfile.run('main()', prof)
+        pstats.Stats('profile.dat')
+        sortby = pstats.SortKey.CUMULATIVE # TIME # CUMULATIVE
+        s = io.StringIO()
+        ps = pstats.Stats(prof, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+    else:
+        main()

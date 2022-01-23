@@ -9,15 +9,17 @@ from .. import colors
 
 default_palette = range(16)
 
+
 def _reset():
     for i in range(curses.COLORS-1):
         curses.init_pair(i, i, -1)
 
+
 def _show_all(scr):
-    scr.move(0,0)
+    scr.move(0, 0)
     scr.addstr('Flat list of color:\n')
     for i in range(8):
-        fg, bg  = curses.pair_content(i)
+        fg, bg = curses.pair_content(i)
         scr.addstr(f'{i} {fg} {bg} ', curses.color_pair(i))
     scr.addstr('\n')
     for i in range(curses.COLORS-1):
@@ -25,12 +27,14 @@ def _show_all(scr):
     scr.addstr('\n')
     scr.refresh()
 
+
 def _show_palette(scr, name, pal):
     '''Draw sample text on screen using the given palette'''
     scr.addstr(f'{name:12}')
     for i, color in enumerate(pal):
         scr.addstr(f' {pal[i]:<3}', curses.color_pair(color))
     scr.addstr('\n')
+
 
 def main(scr):
     '''Module entry point'''
@@ -67,5 +71,6 @@ def main(scr):
 
     scr.refresh()
     scr.getch()
+
 
 curses.wrapper(main)

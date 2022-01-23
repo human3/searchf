@@ -22,10 +22,12 @@ if len(sys.argv) > 1:
 INPUTS = []
 INPUT_IDX = 0
 
+
 def _reset_inputs(inputs):
     global INPUTS, INPUT_IDX
     INPUTS = inputs
     INPUT_IDX = 0
+
 
 def _my_get_text(_1, _2, _3, _4, _5, _6):
     global INPUT_IDX
@@ -33,6 +35,7 @@ def _my_get_text(_1, _2, _3, _4, _5, _6):
     text = INPUTS[INPUT_IDX]
     INPUT_IDX += 1
     return text
+
 
 def _run_test(stdscr, description, keys, inputs):
     print(description)
@@ -50,8 +53,10 @@ def _run_test(stdscr, description, keys, inputs):
         assert handled or key == 'q'
     app._get_text = original_get_text
 
+
 KEYS = [' ', '>', '<']
 KEY_IDX = 0
+
 
 def _my_get_ch(_):
     global KEY_IDX
@@ -60,6 +65,7 @@ def _my_get_ch(_):
     key = ord(KEYS[KEY_IDX])
     KEY_IDX += 1
     return key
+
 
 # This is poor man's testing, as we don't validate much other than
 # just making sure things don't blow up when executing common commands
@@ -108,13 +114,15 @@ def _run_app_tests(stdscr):
     # and spitting out a few dummy debug lines per key press
     app.USE_DEBUG = True
     original_handle_key = app.views.handle_key
+
     def my_handle_key(key):
         for i in range(20):
             app.debug(f'Test {i} dbg {key}')
         return original_handle_key(key)
+
     app.views.handle_key = my_handle_key
     _run_test(stdscr, 'Test special debug mode',
-             ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
+              ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
     app.views.handle_key = original_handle_key
     app.USE_DEBUG = False
 
@@ -130,12 +138,16 @@ def _run_app_tests(stdscr):
     app.get_max_yx = original_get_max_yx
 
     print('Test app.get_text()')
+
     def my_handler(_):
         pass
+
     _reset_inputs(['dummy'])
     app._get_text(stdscr, 0, 0, "Testing prompt", my_handler, '')
+
     def my_handler_throwing(_):
         raise app.EscapeException
+
     app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing, '')
 
     print('Test app._validate()')
@@ -157,6 +169,7 @@ def _run_app_tests(stdscr):
     parser = app.init_env()
     assert parser
 
+
 def _run_unit_tests():
     print('Test segments.iterate()')
     test_segments.test_iterate()
@@ -175,6 +188,7 @@ def _run_unit_tests():
     print('Test models.test_view_model()')
     test_models.test_view_model()
 
+
 class StdoutWrapper:
     '''Helper class to store stdout while curses is running and testing the app'''
     def __init__(self):
@@ -187,6 +201,7 @@ class StdoutWrapper:
     def get(self):
         '''Get all the lines that were written'''
         return ''.join(self._lines)
+
 
 def main():
     '''Test entry point'''
@@ -214,6 +229,7 @@ def main():
         raise error
 
     print('== test passed ==')
+
 
 if __name__ == '__main__':
     main()

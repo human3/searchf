@@ -2,6 +2,7 @@
 
 from .. import segments
 
+
 def _iterate(start, end, test_segments, expected_segments):
     actual_segments = list(segments.iterate(start, end, test_segments))
     assert len(actual_segments) == len(expected_segments)
@@ -9,6 +10,7 @@ def _iterate(start, end, test_segments, expected_segments):
         _, start, end = actual
         assert start < end, f'{start} {end} not a segment!'
         assert actual == expected, f'{actual} != {expected}'
+
 
 def test_iterate():
     '''Test segments.iterate()'''
@@ -30,6 +32,7 @@ def test_iterate():
     _iterate(0, 10, {(5, 15)},
              [(False, 0, 5), (True, 5, 10)])
 
+
 def _sort_and_merge(test_segments, expected_segments):
     count = 0
     # pylint: disable=protected-access
@@ -39,23 +42,26 @@ def _sort_and_merge(test_segments, expected_segments):
         count += 1
     assert count == len(expected_segments)
 
+
 def test_sort_and_merge():
     '''Test segments._sort_and_merge()'''
-    seg = {(0,1), (2,3)}
+    seg = {(0, 1), (2, 3)}
     _sort_and_merge(seg, seg)
-    _sort_and_merge({(2,3),(0,1)}, {(0,1),(2,3)})
-    _sort_and_merge({(0,1),(1,2)}, {(0,2)})
-    _sort_and_merge({(0,3),(1,5)}, {(0,5)})
+    _sort_and_merge({(2, 3), (0, 1)}, {(0, 1), (2, 3)})
+    _sort_and_merge({(0, 1), (1, 2)}, {(0, 2)})
+    _sort_and_merge({(0, 3), (1, 5)}, {(0, 5)})
+
 
 def _find_matching(text, keywords, ignore_case, expected):
     actual = segments.find_matching(text, keywords, ignore_case)
     assert actual[0] == expected[0]
     assert actual[1] == expected[1]
 
+
 def test_find_matching():
     '''Test segments.find_matching()'''
     # Checking matching empty line works
-    _find_matching('\n', ['^\n'], False, (True, [(0,1)]))
+    _find_matching('\n', ['^\n'], False, (True, [(0, 1)]))
     # Checking matching null string does not crash program
     _find_matching('012345', ['^'], False, (False, set()))
     _find_matching('012345', ['$'], False, (False, set()))
@@ -64,13 +70,13 @@ def test_find_matching():
     _find_matching('abcde', {'cdefgh'}, False, (False, set()))
     _find_matching('abcde', {'0123abc'}, False, (False, set()))
     # Checking case sensitive matching
-    _find_matching('a', ['a'], False, (True, [(0,1)]))
-    _find_matching('a', ['A'], True, (True, [(0,1)]))
+    _find_matching('a', ['a'], False, (True, [(0, 1)]))
+    _find_matching('a', ['A'], True, (True, [(0, 1)]))
     _find_matching('a', ['A'], False, (False, set()))
     # Basic matching
-    _find_matching('abcde', {'abcde'}, False, (True, [(0,5)]))
-    _find_matching('abcde', {'bcd'}, False, (True, [(1,4)]))
-    _find_matching('abcde', {'a', 'c', 'e'}, False, (True, [(0,1), (2,3), (4,5)]))
-    _find_matching('abcde', {'b', 'd'}, False, (True, [(1,2), (3,4)]))
+    _find_matching('abcde', {'abcde'}, False, (True, [(0, 5)]))
+    _find_matching('abcde', {'bcd'}, False, (True, [(1, 4)]))
+    _find_matching('abcde', {'a', 'c', 'e'}, False, (True, [(0, 1), (2, 3), (4, 5)]))
+    _find_matching('abcde', {'b', 'd'}, False, (True, [(1, 2), (3, 4)]))
     # Overlapping matches
-    _find_matching('abcdef', {'bcd', 'cde'}, False, (True, [(1,5)]))
+    _find_matching('abcdef', {'bcd', 'cde'}, False, (True, [(1, 5)]))

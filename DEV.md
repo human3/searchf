@@ -11,6 +11,7 @@ If working from the sources (ie not an installed package), the application can b
 - First install dependencies with `pip install pytest pytest-cov` (once)
 - Then just type `pytest` to run the unit tests
 - `python3 -m searchf.test.all` runs the application tests
+- `python3 -m searchf.test.color` shows current palettes definition, and bridges gaps in colors unit tests which do not evaluate side-effects
 
 ## What about coverage?
 

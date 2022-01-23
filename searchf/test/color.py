@@ -3,7 +3,7 @@
 # pylint: disable=invalid-name
 
 import curses
-from .. import app
+from .. import colors
 
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 
@@ -37,18 +37,18 @@ def main(scr):
     assert curses.has_colors()
     assert curses.can_change_color()
 
-    app.init_colors()
+    colors.init()
     _reset()
 
     _show_all(scr)
     scr.getch()
 
-    for i, pal in enumerate(app.PALETTES):
-        app.apply_palette(pal, False)
+    for i, pal in enumerate(colors.PALETTES):
+        colors.apply_palette(i, False)
         _show_all(scr)
         scr.getch()
 
-        app.apply_palette(pal, True)
+        colors.apply_palette(i, True)
         _show_all(scr)
         scr.getch()
 
@@ -60,7 +60,7 @@ def main(scr):
         scr.addstr(f' {i:<3}')
     scr.addstr('\n')
 
-    for i, pal in enumerate(app.PALETTES):
+    for i, pal in enumerate(colors.PALETTES):
         _show_palette(scr, f'{i}', pal)
 
     _show_palette(scr, 'default', default_palette)

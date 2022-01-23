@@ -99,7 +99,3 @@ searchf/test/test_segments.py      47      0   100%
 ---------------------------------------------------
 TOTAL                            1003     15    99%
 ```
-
-## Known Issues
-
-- Does not work on Windows

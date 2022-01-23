@@ -5,6 +5,7 @@
 
 from .. import models
 
+
 def test_visibility_mode():
     '''Test models.LineVisibilityMode'''
     assert models.LineVisibilityMode.HIDE_MATCHING.get_next() \
@@ -18,6 +19,7 @@ def test_visibility_mode():
     except ValueError as ex:
         actual = ex
     assert actual
+
 
 def test_filter():
     '''Test models.Filter'''
@@ -33,6 +35,7 @@ def test_filter():
     assert count == 0
     assert not keyword
 
+
 def test_digit_count():
     '''Test models._digit_count()'''
     assert 1 == models._digits_count(0)
@@ -40,6 +43,7 @@ def test_digit_count():
     assert 2 == models._digits_count(10)
     assert 2 == models._digits_count(99)
     assert 6 == models._digits_count(123456)
+
 
 def test_model():
     '''Test models.Model'''
@@ -71,6 +75,7 @@ def test_model():
     assert 3 == m.line_count()
     m.sync([f], True)
     assert 2 == m.hits_count()
+
 
 def test_view_model():
     '''Test models.ViewModel'''

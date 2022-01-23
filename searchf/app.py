@@ -30,18 +30,22 @@ USE_DEBUG = False
 # Do not use curses.A_BOLD on Windows as it just renders horribly when highlighting
 USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
 
+
 def get_max_yx(scr):
     '''This function is a test artifact that wraps getmaxyx() from curses
 so that we can overwrite it and test specific dimensions.'''
     return scr.getmaxyx()
+
 
 def get_ch(scr):
     '''This function is a test artifact that wraps getch() from curses so
 that we can overwrite it and inject keys while testing.'''
     return scr.getch()
 
+
 class EscapeException(Exception):
     '''Signals that Escape key has been pressed'''
+
 
 def _validate(c):
     if c == curses.ascii.DEL:
@@ -49,6 +53,7 @@ def _validate(c):
     elif c == curses.ascii.ESC:
         raise EscapeException()
     return c
+
 
 def _get_text(scr, y, x, prompt, handler, text):
     scr.addstr(y, x, prompt)
@@ -70,11 +75,13 @@ def _get_text(scr, y, x, prompt, handler, text):
     clear(scr, y, 0, len(prompt))
     return text if text else ''
 
+
 def get_text(scr, y, x, prompt, text):
     '''Prompts user to enter some text.'''
     def handle(box):
         box.edit(validate=_validate)
     return _get_text(scr, y, x, prompt, handle, text)
+
 
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
@@ -83,11 +90,13 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
+
 class ColorizeMode(models.AutoEnum):
     '''Keyword colorize modes.'''
     KEYWORD_HIGHLIGHT = ('Keyword highlight')
     KEYWORD = ('Keyword')
     LINE = ('Line')
+
 
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
@@ -145,6 +154,7 @@ session.
         self.palette_index = colors.cycle_palette_index(self.palette_index, forward)
         return self.palette_index
 
+
 class TextViewCommand(Enum):
     '''Simple commands accepted by TextView class, that do not take any argument.'''
     GO_UP = auto()
@@ -173,12 +183,15 @@ class TextViewCommand(Enum):
     NEXT_PALETTE = auto()
     PREV_PALETTE = auto()
 
+
 def bool_to_text(value):
     '''Converts a boolean value to text.'''
     return 'enabled' if value else 'disabled'
 
+
 CASE_MODE_TEXT = ['ignored', 'sensitive']
 CASE_MODE_LEN = len(max(CASE_MODE_TEXT, key=len))
+
 
 class TextView:
     '''Display selected content of a file, using filters and keyword to
@@ -218,7 +231,7 @@ line number and separator'''
             sep = ' │ '
         elif self._config.wrap:
             number_length = 0
-            sep = '◆ ' if self._config.bullets else '' # curses.ACS_DIAMOND
+            sep = '◆ ' if self._config.bullets else ''  # curses.ACS_DIAMOND
         else:
             number_length = 0
             sep = ''
@@ -252,7 +265,7 @@ line number and separator'''
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
 
-        text = ''.ljust(5) # voffest_desc is not always shown, but at most 5 char long
+        text = ''.ljust(5)  # voffest_desc is not always shown, but at most 5 char long
         x = move_left_for(x, text)
         if len(self._vm.voffset_desc) > 0:
             text = f' {self._vm.voffset_desc:>3} '
@@ -288,7 +301,7 @@ line number and separator'''
         y, x = position
         vend = offset + self._vm.size[1]
         if self._config.show_spaces:
-            text = text.replace(' ', '·') # Note: this is curses.ACS_BULLET
+            text = text.replace(' ', '·')  # Note: this is curses.ACS_BULLET
         if self._config.colorize_mode == ColorizeMode.LINE:
             text = text[offset:vend]
             text = f'{text:<{self._vm.size[1]}}'
@@ -297,9 +310,9 @@ line number and separator'''
             for match, start, end in segments.iterate(offset, vend, matching_segments):
                 assert start < end
                 c = color if match else 0
-                l = end - start
-                self._win.addnstr(y, x, text[start:end], l, c)
-                x += l
+                length = end - start
+                self._win.addnstr(y, x, text[start:end], length, c)
+                x += length
 
     def draw(self):
         '''Draws the view'''
@@ -390,7 +403,7 @@ layout of the view model.
         except re.error:
             return 'Invalid python regex pattern'
         if not self._config.has_filters():
-            new_filter = True # Force a new filter since we have none
+            new_filter = True  # Force a new filter since we have none
         if new_filter:
             f = models.Filter()
             f.ignore_case = keyword.lower() == keyword
@@ -585,6 +598,7 @@ layout of the view model.
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
 
+
 HELP = f'''  ~ Searchf Help ~
 
   Version: {__version__}
@@ -633,6 +647,7 @@ HELP = f'''  ~ Searchf Help ~
 
 Type 'q' to close this help'''
 
+
 class DebugView:
     '''Displays few debug lines, convenient to debug layout while curses running.'''
     def __init__(self, scr, size, position):
@@ -662,6 +677,7 @@ class DebugView:
         if len(self._lines) > h:
             self._lines.pop(0)
         self.draw()
+
 
 class Views:
     '''Aggregates all views, controlling which ones are visible, handling
@@ -865,23 +881,26 @@ class Views:
 
         return True, status
 
+
 views = Views()
+
 
 def debug(*argv):
     '''Function to output a debug string onto the curses managed screen.'''
     if views.debug:
         views.debug.out(*argv)
 
+
 def main_loop(scr, path):
     '''Main curses entry point.'''
     colors.init()
-    scr.refresh() # Must be call once on empty screen?
+    scr.refresh()  # Must be call once on empty screen?
     views.create(scr, path)
 
     max_y, max_x = get_max_yx(scr)
 
     status = ''
-    status_x = max(0, min(10, max_x - 50)) # allow for 50 char of status
+    status_x = max(0, min(10, max_x - 50))  # allow for 50 char of status
     status_y = max_y - 1
 
     while True:
@@ -903,6 +922,7 @@ def main_loop(scr, path):
             status = ''
         scr.addstr(status_y, status_x, status[:max_x-1])
 
+
 def init_env():
     '''Initialize environment and return argument parser'''
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
@@ -915,11 +935,13 @@ def init_env():
     parser.add_argument('file')
     return parser
 
+
 def main():
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
     curses.wrapper(main_loop, args.file)
+
 
 if __name__ == '__main__':
     main()

@@ -10,15 +10,17 @@ from .. import colors
 
 TERM = os.environ.get('TERM', None)
 
+
 def _setup():
     print(f'TERM={TERM}')
-    if not TERM is not None:
+    if TERM is None:
         return False
     curses.initscr()
     # curses will not have COLORS attribute when running within pytest,
     # so we artificially provide one
     curses.COLORS = 256
     return True
+
 
 def test_init():
     '''Test colors.init()'''
@@ -28,6 +30,7 @@ def test_init():
     # we are not validating
     colors.init()
 
+
 def test_cycle_palette_index():
     '''Test colors.cycle_palette_index()'''
     max_index = len(colors.PALETTES) - 1
@@ -35,6 +38,7 @@ def test_cycle_palette_index():
     assert colors.cycle_palette_index(0, False) == max_index
     assert colors.cycle_palette_index(max_index, True) == 0
     assert colors.cycle_palette_index(max_index, False) == max_index - 1
+
 
 def test_apply_palette():
     '''Tests colors.apply_palette()'''
@@ -45,6 +49,7 @@ def test_apply_palette():
     for index in range(len(colors.PALETTES)):
         colors.apply_palette(index, False)
         colors.apply_palette(index, True)
+
 
 def test_get_color_pair():
     '''Tests colors.get_color_pair()'''

@@ -6,6 +6,7 @@ import math
 from enum import Enum
 from . import segments
 
+
 class Filter:
     '''Represents a list of keywords ANDed together and matching properties'''
     ignore_case: bool = False
@@ -31,8 +32,10 @@ class Filter:
         self.add(keyword)
         return count, keyword
 
+
 def _digits_count(max_number):
     return math.floor(math.log10(max(1, max_number))+1)
+
 
 class AutoEnum(Enum):
     '''Base class for auto enum that can get iterated over.'''
@@ -56,7 +59,7 @@ class AutoEnum(Enum):
     @classmethod
     def get(cls, i):
         '''Returns enumeration matching given int value'''
-        i = (i ) % len(cls.__members__)
+        i = i % len(cls.__members__)
         return cls._from_int(i)
 
     def get_next(self):
@@ -67,11 +70,13 @@ class AutoEnum(Enum):
         '''Returns the previous enumeraion.'''
         return self.__class__.get(self.value - 1)
 
+
 class LineVisibilityMode(AutoEnum):
     '''Line visibility modes.'''
     ONLY_MATCHING = ('Showing only matching lines')
     ALL = ('Showing all lines')
     HIDE_MATCHING = ('Hiding matching lines')
+
 
 class Model:
     '''Holds data associated with the content of a file. and all the
@@ -139,15 +144,16 @@ class Model:
         self.data = data
         self.hits = hits
 
+
 class ViewModel:
     '''ViewModel data.'''
     def __init__(self):
-        self.hoffset = 0 # horizontal offset in content: index of first visible column
-        self.voffset = 0 # vertical offset in content: index of first visible line in data
+        self.hoffset = 0  # horizontal offset in content: index of first visible column
+        self.voffset = 0  # vertical offset in content: index of first visible line in data
         self.voffset_desc = ''
-        self.firstdlines = [] # First display line of each model lines
-        self.data = [] # Display line data (index in model and horizontal offset)
-        self.size = (0, 0) # Number of lines and columns available to display file content
+        self.firstdlines = []  # First display line of each model lines
+        self.data = []  # Display line data (index in model and horizontal offset)
+        self.size = (0, 0)  # Number of lines and columns available to display file content
 
     def lines_count(self):
         '''Gets the number of lines required to display the whole content

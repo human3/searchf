@@ -546,12 +546,6 @@ layout of the view model.
         self.show()
         return f'Colorize mode: {self._config.colorize_mode}'
 
-    def _next_colorize_mode(self):
-        return self._cycle_colorize_mode(True)
-
-    def _prev_colorize_mode(self):
-        return self._cycle_colorize_mode(False)
-
     def _toggle_ignore_case(self):
         if not self._config.has_filters():
             return 'Cannot change case sentitivity (no keyword)'
@@ -573,12 +567,6 @@ layout of the view model.
         idx = self._config.cycle_palette(forward)
         self._apply_palette_and_draw()
         return f'Using color palette #{idx}'
-
-    def _next_palette(self):
-        return self._cycle_palette(True)
-
-    def _prev_palette(self):
-        return self._cycle_palette(False)
 
     def _set_h_offset(self, offset):
         if self._vm.set_h_offset(offset):
@@ -651,12 +639,6 @@ layout of the view model.
             self.push_keyword(keyword, True)
             self._vscroll_to_match(True, 1)
 
-    def _vscroll_to_next_match(self):
-        return self._vscroll_to_match(False, 1)
-
-    def _vscroll_to_prev_match(self):
-        return self._vscroll_to_match(False, -1)
-
     def _vpagescroll(self, delta):
         self._vscroll(delta * self._max_visible_lines_count)
 
@@ -673,21 +655,21 @@ layout of the view model.
             TextViewCommand.GO_PPAGE:                lambda: self._vpagescroll(-1),
             TextViewCommand.GO_SLEFT:                lambda: self._hscroll(-20),
             TextViewCommand.GO_SRIGHT:               lambda: self._hscroll(20),
+            TextViewCommand.VSCROLL_TO_NEXT_MATCH:   lambda: self._vscroll_to_match(False, 1),
+            TextViewCommand.VSCROLL_TO_PREV_MATCH:   lambda: self._vscroll_to_match(False, -1),
+            TextViewCommand.NEXT_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(True),
+            TextViewCommand.PREV_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(False),
+            TextViewCommand.NEXT_PALETTE:            lambda: self._cycle_palette(True),
+            TextViewCommand.PREV_PALETTE:            lambda: self._cycle_palette(False),
             TextViewCommand.POP_FILTER:              self._pop_filter,
             TextViewCommand.POP_KEYWORD:             self._pop_keyword,
-            TextViewCommand.VSCROLL_TO_NEXT_MATCH:   self._vscroll_to_next_match,
-            TextViewCommand.VSCROLL_TO_PREV_MATCH:   self._vscroll_to_prev_match,
             TextViewCommand.TOGGLE_SHOW_ALL_LINES:   self._toggle_show_all_lines,
             TextViewCommand.TOGGLE_REVERSE_MATCHING: self._toggle_reverse_matching,
             TextViewCommand.TOGGLE_LINE_NUMBERS:     self._toggle_line_numbers,
             TextViewCommand.TOGGLE_WRAP:             self._toggle_wrap,
             TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
-            TextViewCommand.NEXT_COLORIZE_MODE:      self._next_colorize_mode,
-            TextViewCommand.PREV_COLORIZE_MODE:      self._prev_colorize_mode,
             TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
-            TextViewCommand.NEXT_PALETTE:            self._next_palette,
-            TextViewCommand.PREV_PALETTE:            self._prev_palette,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()

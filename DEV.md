@@ -8,12 +8,13 @@ If working from the sources (ie not an installed package), the application can b
 
 ## How to run test?
 
-- `pytest` runs unit test
+- First install dependencies with `pip install pytest pytest-cov` (once)
+- Then just type `pytest` to run the unit tests
 - `python3 -m searchf.test.all` runs the application tests
 
 ## What about coverage?
 
-Note: numbers below are as of version `1.4.2`.
+The numbers below are as of version `1.4.2`.
 
 Unit tests don't cover much as `pytest --cov=searchf` returns:
 

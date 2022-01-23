@@ -26,6 +26,9 @@ from . import segments
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
 
+# Do not use curses.A_BOLD on Windows as it just renders horribly when highlighting
+USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
+
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 PALETTES = [
     # Dark theme, "error" first
@@ -348,7 +351,7 @@ line number and separator'''
 
         text = f' {self._basename} '
         x = move_left_for(x, text)
-        self._win.addstr(y, x, text, style | curses.A_BOLD)
+        self._win.addstr(y, x, text, style | USE_BOLD)
 
         assert len(self._model.hits) == len(self._config.filters)
         for i, f in enumerate(self._config.filters):
@@ -366,7 +369,7 @@ line number and separator'''
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
         if w_index > 0:
-            self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | curses.A_BOLD)
+            self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
     def _draw_content(self, position, text, matching_segments, offset, color):

@@ -11,6 +11,7 @@ import sys
 import time
 
 from .. import app
+from .. import colors
 from . import test_segments
 from . import test_models
 
@@ -37,7 +38,7 @@ def _run_test(stdscr, description, keys, inputs):
     print(description)
     stdscr.clear()
     _reset_inputs(inputs)
-    app.init_colors()
+    colors.init()
     app.views.create(stdscr, TEST_FILE)
     original_get_text = app._get_text
     app._get_text = _my_get_text
@@ -103,9 +104,18 @@ def _run_app_tests(stdscr):
               ['i', '/', 'i', 'i'],
               ['Show'])
 
+    # Test debug mode in a very hacky way by hijacking handle_key function
+    # and spitting out a few dummy debug lines per key press
     app.USE_DEBUG = True
+    original_handle_key = app.views.handle_key
+    def my_handle_key(key):
+        for i in range(20):
+            app.debug(f'Test {i} dbg {key}')
+        return original_handle_key(key)
+    app.views.handle_key = my_handle_key
     _run_test(stdscr, 'Test special debug mode',
              ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
+    app.views.handle_key = original_handle_key
     app.USE_DEBUG = False
 
     def get_max_yx(_):

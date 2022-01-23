@@ -22,99 +22,13 @@ import copy
 from . import __version__
 from . import models
 from . import segments
+from . import colors
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
 
 # Do not use curses.A_BOLD on Windows as it just renders horribly when highlighting
 USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
-
-# https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
-PALETTES = [
-    # Dark theme, "error" first
-    [
-        196, # Red
-        208, # Orange
-        190, # Yellow
-        46,  # Green
-        33,  # Blue
-        201, # Purple
-        219, # Pink
-    ],
-    # Light theme, "error" first
-    [
-        1,   # Red
-        208, # Orange
-        3,   # Yellow
-        22,  # Green
-        20,  # Blue
-        129, # Purple
-        201, # Pink
-    ],
-    # Dark theme, "ok" first
-    [
-        46,  # Green
-        190, # Yellow
-        208, # Orange
-        196, # Red
-        33,  # Blue
-        201, # Purple
-        219, # Pink
-    ],
-    # Light theme, "ok" first
-    [
-        22,  # Green
-        3,   # Yellow
-        208, # Orange
-        1,   # Red
-        20,  # Blue
-        129, # Purple
-        201, # Pink
-    ],
-    # Dark theme, "neutral"
-    [
-        33,  # Blue
-        201, # Purple
-        219, # Pink
-        190, # Yellow
-        46,  # Green
-        208, # Orange
-        196, # Red
-    ],
-    # Light theme, "neutral"
-    [
-        20,  # Blue
-        129, # Purple
-        201, # Pink
-        3,   # Yellow
-        22,  # Green
-        208, # Orange
-        1,   # Red
-    ],
-]
-
-BAR_COLOR_PAIR_ID = 1
-BAR_COLOR_BG = 39 # 249
-
-FIRST_FILTER_COLOR_PAIR_ID = BAR_COLOR_PAIR_ID + 1
-
-def apply_palette(pal, reverse):
-    '''Apply given palette to curses.'''
-    for i, color in enumerate(pal):
-        pair_id = FIRST_FILTER_COLOR_PAIR_ID + i
-        if reverse:
-            curses.init_pair(pair_id, 0, color)
-        else:
-            curses.init_pair(pair_id, color, -1)
-        debug(f'pal {i}:{pair_id} {color}')
-
-def init_colors():
-    '''Initializes color support.'''
-    assert curses.has_colors()
-    assert curses.COLORS >= 256, f'Screen has {curses.COLORS} colors (try TERM=screen-256color)'
-    curses.start_color()
-    curses.use_default_colors()
-    curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)
 
 def get_max_yx(scr):
     '''This function is a test artifact that wraps getmaxyx() from curses
@@ -195,6 +109,10 @@ session.
     def __init__(self):
         self.filters = []
 
+    def get_filters_count(self):
+        '''Returns the number of filters currently defined'''
+        return len(self.filters)
+
     def has_filters(self):
         '''Returns whether or not there is any filter'''
         return len(self.filters) > 0
@@ -218,18 +136,13 @@ session.
         '''Pushes the given filter'''
         self.filters.append(f)
 
-    def get_color_pair_id(self, fidx):
+    def get_color_pair(self, filter_index):
         '''Returns the id of the color pair associated with given filter index'''
-        palette = PALETTES[self.palette_index]
-        pair_id = FIRST_FILTER_COLOR_PAIR_ID + (fidx % len(palette))
-        f, b = curses.pair_content(pair_id)
-        debug(f'{fidx} {pair_id} {f} {b}')
-        return pair_id
+        return colors.get_color_pair(self.palette_index, filter_index)
 
     def cycle_palette(self, forward):
         '''Select the next palette in the given direction'''
-        incr = 1 if forward else -1
-        self.palette_index = (self.palette_index + incr) % len(PALETTES)
+        self.palette_index = colors.cycle_palette_index(self.palette_index, forward)
         return self.palette_index
 
 class TextViewCommand(Enum):
@@ -315,7 +228,7 @@ line number and separator'''
         '''Draws the status bar and the filter stack underneath'''
 
         _, w = self._size
-        style = curses.color_pair(BAR_COLOR_PAIR_ID)
+        style = curses.color_pair(colors.BAR_COLOR_PAIR_ID)
         self._win.hline(y, 0, curses.ACS_HLINE, w, style)
 
         x = 1
@@ -353,9 +266,9 @@ line number and separator'''
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style | USE_BOLD)
 
-        assert len(self._model.hits) == len(self._config.filters)
+        assert len(self._model.hits) == self._config.get_filters_count()
         for i, f in enumerate(self._config.filters):
-            color = curses.color_pair(self._config.get_color_pair_id(i))
+            color = self._config.get_color_pair(i)
 
             x = 0
             text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
@@ -363,7 +276,6 @@ line number and separator'''
 
             x += CASE_MODE_LEN + 1
             text = ' AND '.join(f.keywords)
-            color = curses.color_pair(self._config.get_color_pair_id(i))
             self._win.addstr(y + 1 + i, x, f'{self._model.hits[i]:>8} {text}', color)
 
     def _draw_prefix(self, y, prefix_info, line_idx, color):
@@ -408,8 +320,7 @@ line number and separator'''
             idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
-            color = 0 if filter_idx < 0 else self._config.get_color_pair_id(filter_idx)
-            color = curses.color_pair(color)
+            color = self._config.get_color_pair(filter_idx)
             # If offset is not 0, this means the original content line
             # is being wrapped on to multiple lines on the screen. We
             # only draw the prefix on the first line, which has offset
@@ -432,7 +343,7 @@ layout of the view model.
         # Compute space available for file content
         h, w = self._size
         prefix_len, _, _ = self._get_prefix_info()
-        h = max(0, h - 1 - len(self._config.filters))
+        h = max(0, h - 1 - self._config.get_filters_count())
         w = max(0, w - prefix_len)
 
         self._vm.layout(h, w, self._model.data, self._config.wrap)
@@ -555,8 +466,8 @@ layout of the view model.
         return f'Ignore case set to {f.ignore_case}'
 
     def _apply_palette_and_draw(self):
-        apply_palette(PALETTES[self._config.palette_index],
-                      self._config.colorize_mode == ColorizeMode.KEYWORD_HIGHLIGHT)
+        colors.apply_palette(self._config.palette_index,
+                             self._config.colorize_mode == ColorizeMode.KEYWORD_HIGHLIGHT)
         self.draw()
 
     def show(self):
@@ -963,7 +874,7 @@ def debug(*argv):
 
 def main_loop(scr, path):
     '''Main curses entry point.'''
-    init_colors()
+    colors.init()
     scr.refresh() # Must be call once on empty screen?
     views.create(scr, path)
 

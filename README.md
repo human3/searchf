@@ -54,4 +54,4 @@ So this tool ended making little or no assumption on the input file, which can b
 
 ## Development
 
-Please refer to [DEV.md](https://github.com/human3/searchf/DEV.md) for further information.
+Please refer to [DEV.md](DEV.md) for further information.

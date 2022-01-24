@@ -12,6 +12,7 @@ import time
 
 from .. import app
 from .. import colors
+from .. import utils
 from . import test_segments
 from . import test_models
 
@@ -189,46 +190,12 @@ def _run_unit_tests():
     test_models.test_view_model()
 
 
-class StdoutWrapper:
-    '''Helper class to store stdout while curses is running and testing the app'''
-    def __init__(self):
-        self._lines = []
-
-    def write(self, line):
-        '''Write current line'''
-        self._lines.append(line)
-
-    def get(self):
-        '''Get all the lines that were written'''
-        return ''.join(self._lines)
-
-
 def main():
     '''Test entry point'''
-
-    print('== test starting ==')
-
-    test_stdout = StdoutWrapper()
-    sys.stdout = test_stdout
-    sys.stderr = test_stdout
-
-    error = None
-    # pylint: disable=broad-except
-    try:
-        curses.wrapper(_run_app_tests)
-        _run_unit_tests()
-    except Exception as ex:
-        error = ex
-
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__
-    print(test_stdout.get())
-
-    if error:
-        print('== test failed ==')
-        raise error
-
-    print('== test passed ==')
+    print('== Tests started ==')
+    utils.wrapper(True, curses.wrapper, _run_app_tests)
+    _run_unit_tests()
+    print('== Tests passed ==')
 
 
 if __name__ == '__main__':

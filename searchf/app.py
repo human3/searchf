@@ -20,6 +20,7 @@ import sys
 import copy
 
 from . import __version__
+from . import utils
 from . import models
 from . import segments
 from . import colors
@@ -940,7 +941,7 @@ def main():
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
-    curses.wrapper(main_loop, args.file)
+    utils.wrapper(False, curses.wrapper, main_loop, args.file)
 
 
 if __name__ == '__main__':

@@ -727,6 +727,15 @@ class Views:
             self._content[idx].show()
         return f'Switched to {self._content[idx].name()}'
 
+    def _help_view_push(self):
+        self._hidden_view = self._current
+        return self._set_view(3, False)
+
+    def _help_view_pop(self):
+        idx = self._hidden_view
+        self._hidden_view = -1
+        return self._set_view(idx, False)
+
     def _reload(self, scroll_to):
         with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
@@ -770,15 +779,6 @@ class Views:
     def handle_key(self, key):
         '''Handles the given key, propagating it to the proper view.'''
 
-        def help_view_push():
-            self._hidden_view = self._current
-            return self._set_view(3, False)
-
-        def help_view_pop():
-            idx = self._hidden_view
-            self._hidden_view = -1
-            return self._set_view(idx, False)
-
         # Local functions redirecting to current view v
         v = self._content[self._current]
 
@@ -801,8 +801,9 @@ class Views:
             v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
 
-        # Map keys to simple text view commands that don't take any argument
-        simple = {
+        # Map keys to simple text view commands that don't take any
+        # argument and that can be directly handled by calling v.execute()
+        keys_to_command = {
             ord('F'):              TextViewCommand.POP_FILTER,
             curses.KEY_BACKSPACE:  TextViewCommand.POP_FILTER,
             ord('-'):              TextViewCommand.POP_KEYWORD,
@@ -844,15 +845,16 @@ class Views:
             ord('D'):              TextViewCommand.GO_SRIGHT,
         }
 
-        # Map keys to other more complex commands taking arguments
-        dispatch = {
+        # Map keys to custom functions used to handle more complex commands
+        # like ones taking arguments
+        keys_to_func = {
             ord('1'):          lambda: self._set_view(0, False),
             ord('2'):          lambda: self._set_view(1, False),
             ord('3'):          lambda: self._set_view(2, False),
             ord('!'):          lambda: self._set_view(0, True),
             ord('@'):          lambda: self._set_view(1, True),
             ord('#'):          lambda: self._set_view(2, True),
-            ord('?'):          help_view_push,
+            ord('?'):          self._help_view_push,
             ord('e'):          edit_keyword,
             ord('f'):          lambda: new_keyword(True),
             ord('\n'):         lambda: new_keyword(True),
@@ -865,18 +867,18 @@ class Views:
             7:                 goto_line,
         }
 
-        intersection = simple.keys() & dispatch.keys()
+        intersection = keys_to_command.keys() & keys_to_func.keys()
         assert len(intersection) == 0, f'Some keys are mapped multiple times {intersection}'
         status = ''
 
         # If help is shown, we hijack keys closing the view but forward all other keys
         # as if it is a regular view (which makes help searchable like a file...)
         if self._hidden_view >= 0 and key in (ord('q'), ord('Q'), curses.ascii.ESC):
-            help_view_pop()
-        elif key in simple:
-            status = v.execute(simple[key])
-        elif key in dispatch:
-            status = dispatch[key]()
+            self._help_view_pop()
+        elif key in keys_to_command:
+            status = v.execute(keys_to_command[key])
+        elif key in keys_to_func:
+            status = keys_to_func[key]()
         else:
             return False, 'Unknown key (? for help, q to quit)'
 

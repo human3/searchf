@@ -122,13 +122,13 @@ class Model:
         show_not_matching = len(filters) <= 0 or mode in (
             LineVisibilityMode.ALL,
             LineVisibilityMode.HIDE_MATCHING)
-
         data = []
         hits = [0 for f in filters]
 
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
+            assert len(line) <= 0 or ord(line[0]) != 0, f'Line {i} has embedded null character'
             matching = False
             for fidx, f in enumerate(filters):
                 matching, matching_segments = \

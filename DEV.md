@@ -1,5 +1,10 @@
 # Development
 
+![Latest Version](https://img.shields.io/pypi/v/searchf)
+![Publish badge](https://github.com/human3/searchf/actions/workflows/python-publish.yml/badge.svg)
+![Package badge](https://github.com/human3/searchf/actions/workflows/python-package.yml/badge.svg)
+![Pylint badge](https://github.com/human3/searchf/actions/workflows/pylint.yml/badge.svg)
+
 ## How to run the application?
 
 If working from the sources (ie not an installed package), the application can be launched as a module:

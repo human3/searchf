@@ -1,5 +1,10 @@
 # [searchf](https://github.com/human3/searchf)
 
+![Latest Version](https://img.shields.io/pypi/v/searchf)
+![Publish badge](https://github.com/human3/searchf/actions/workflows/python-publish.yml/badge.svg)
+![Package badge](https://github.com/human3/searchf/actions/workflows/python-package.yml/badge.svg)
+![Pylint badge](https://github.com/human3/searchf/actions/workflows/pylint.yml/badge.svg)
+
 Utility program to interactively search and colorize keywords in text files, select relevant lines, remove noise and help you discover the things you should care about. Works in terminals and uses stack-based interactions to minimize the number of key presses (think HP calculators).
 
 Press `ENTER` to define the first keyword of a filter and reveal only the lines containing that keyword. Press `+` to add another keyword to the current filter in order to further narrow down the lines currently displayed.

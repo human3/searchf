@@ -1,35 +1,43 @@
-'''This module contains helper functions to manipulate segments.
-
-A segment is just a pair of indices (start, end) that identifies a
-portion of text displayed with a given style. Please note that start
-is inclusive, while end is exclusive (meaning end is not part of the
-segment).
-
+'''This module contains helper functions to define and manipulate segments.
 '''
 
 import re
+
+from typing import List
+from typing import NamedTuple
+from typing import Optional
+from typing import Iterable
+from typing import Set
+from typing import Tuple
 
 # We want one letter variable name in simple functions.
 # pylint: disable=invalid-name
 
 
-def _sort_and_merge(segments):
-    '''Takes a list of segments, merges overlapping ones and returns the
-resulting list cleared off any overlapping segments. This function
-only looks at indices. For instance, in "abcde" the 2 keywords "abc"
-and "cde" are repectively matching segments (0,3) and (2,5), which
-contain overlapping indices. This function merges them as one segment
-(0,5).
-
+class Segment(NamedTuple):
+    '''A segment is a pair of indices (start, end) that identifies a
+    portion of text displayed with a given style. Please note that
+    start is inclusive, while end is exclusive.
     '''
-    merged = set()
-    pending = ()
+    start: int
+    end: int
+
+
+def _sort_and_merge(segments: Set[Segment]) -> List[Segment]:
+    '''Merges overlapping segments, sorts them, and returns a clean sorted
+    list of non overlapping segments. For instance, in "abcde" the 2
+    keywords "abc" and "cde" are repectively matching segments (0,3)
+    and (2,5) which are overlapping. This function would merge them as
+    one segment (0,5).
+    '''
+    merged: Set[Segment] = set()
+    pending: Optional[Segment] = None
     for s in sorted(segments):
-        assert s[0] < s[1]
+        assert s.start < s.end
         if not pending:
             pending = s
-        elif pending[1] >= s[0]:
-            pending = (pending[0], max(pending[1], s[1]))
+        elif pending.end >= s.start:
+            pending = Segment(pending.start, max(pending.end, s.end))
         else:
             merged.add(pending)
             pending = s
@@ -38,46 +46,47 @@ contain overlapping indices. This function merges them as one segment
     return sorted(merged)
 
 
-def find_matching(text, keywords, ignore_case):
+def find_matching(text: str, keywords, ignore_case: bool) -> Tuple[bool, List[Segment]]:
     '''Returns True and the segments matching any of the given keywords if
-each keyword is found at least once in the given text, False and an
-empty set otherwise.
-
+    each keyword is found at least once in the given text, False and
+    an empty list otherwise.
     '''
     assert len(keywords) > 0
     flags = re.IGNORECASE if ignore_case else 0
-    s = set()  # Use a set() as multiple matches are possible
+    s: Set[Segment] = set()  # Use a set() as multiple matches are possible
     for k in keywords:
         matching = False
         for m in re.finditer(k, text, flags):
             if m.start() >= m.end():
                 continue
             matching = True
-            s.add((m.start(), m.end()))
+            s.add(Segment(m.start(), m.end()))
         if not matching:
             # Bail out early as soon as one keyword has no match
-            return False, set()
+            return False, []
 
     # Sort all segments and then merge them as overlap can happen
     return True, _sort_and_merge(s)
 
 
-def iterate(start, end, matching_segments):
-    '''This function is used to build the list of text draw commands
-required to display a line containing highlighted keywords.
+def iterate(start: int,
+            end: int,
+            matching_segments: List[Segment]
+            ) -> Iterable[Tuple[bool, int, int]]:
+    '''This function is used to build the list of text draw commands to
+    display a line containing highlighted keywords. Text draws
+    commands are yielded for left to right drawing, alternating
+    highlighted segments (prefixed by True) with normal ones (prefixed
+    by False).
 
-The given 'matching_segments' is a list of pair of indices defining
-the segments of a string that must be highlighted. iterate() returns
-these highlighted segments with True to indicate they should be
-highlighted but interleaves them with the non-matching complementary
-segments returned with False, indicating they should not be
-highlighted. Finally, start and end are indices defining the
-boundaries we actually care about.
-
+    The arguments start and end define the boundaries of the text we
+    care about, and constrain all the returned draw commands. The
+    given 'matching_segments' define the segments that must be
+    highlighted.
     '''
     assert start < end
     for s in matching_segments:
-        assert s[0] < s[1]  # Paranoid overkill assert
+        assert s.start < s.end  # Paranoid overkill assert
 
         if start >= end:
             # start has moved past the area of interest: could
@@ -87,28 +96,28 @@ boundaries we actually care about.
         # Consume "s", the current matching segment, by inspecting
         # its relative position with (start, end) segment.
 
-        if start >= s[1]:
+        if start >= s.end:
             # The current matching segment is of no interest, but we
             # need to keep iterating to find next matching segment of
             # interest to the right (if any)
             continue
-        if end < s[0]:
+        if end < s.start:
             # Current matching segment and all remaining ones (on the
             # right) are of no interest. (start, end) defines a non
             # matching segment that we yield after breaking out of the
             # for loop
             break
-        if start < s[0]:
+        if start < s.start:
             # There is a non-matching segment before s that we must
             # yield now
-            yield (False, start, s[0])
-            start = s[0]
+            yield (False, start, s.start)
+            start = s.start
         # Take care of matching segment within s (if any)
-        matching_end = min(s[1], end)
+        matching_end = min(s.end, end)
         if start < matching_end:
             yield (True, start, matching_end)
         # s has been entirely consumed
-        start = s[1]
+        start = s.end
 
     # We walked through all matching_segments (if any), we now need to
     # address any non-matching segment that has been left out

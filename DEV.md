@@ -5,6 +5,12 @@
 ![Package badge](https://github.com/human3/searchf/actions/workflows/python-package.yml/badge.svg)
 ![Pylint badge](https://github.com/human3/searchf/actions/workflows/pylint.yml/badge.svg)
 
+The code in this project tries to abide by the following principles:
+
+- Simplicity comes first
+- Don't Repeat Yourself
+- no-use-before-define
+
 ## How to run the application?
 
 If working from the sources (ie not an installed package), the application can be launched as a module:
@@ -64,7 +70,7 @@ searchf/test/test_segments.py      50      0   100%
 TOTAL                            1022     15    99%
 ```
 
-## How to build and test searchf package from sources
+## How to build the package from sources
 
 WARNING: instructions below must be adapted according to platform
 
@@ -76,4 +82,4 @@ Then:
 
 - Go to root of project
 - `python -m build`
-- `python -m install dist/searchf-1.4.2-py3-none-any.whl`
+- Then, you can install with `python -m install dist/searchf-1.5-py3-none-any.whl`

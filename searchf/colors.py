@@ -74,7 +74,7 @@ PALETTES = [
 
 def cycle_palette_index(palette_index, forward):
     '''Select the palette index after the given one in the given direction'''
-    assert 0 <= palette_index
+    assert palette_index >= 0
     assert palette_index < len(PALETTES)
     incr = 1 if forward else -1
     return (palette_index + incr) % len(PALETTES)

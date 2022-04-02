@@ -50,7 +50,8 @@ def _digits_count(max_number) -> int:
 
 
 class AutoEnum(Enum):
-    '''Base class for auto enum that can get iterated over.'''
+    '''Base class for auto enum that can get iterated over with
+    wrapping.'''
     def __new__(cls, description):
         value = len(cls.__members__)
         obj = object.__new__(cls)
@@ -59,7 +60,7 @@ class AutoEnum(Enum):
         return obj
 
     def __str__(self):
-        return f'{self._description}'
+        return f'{self._value_} {self._description}'
 
     @classmethod
     def _from_int(cls, i):

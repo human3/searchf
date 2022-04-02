@@ -202,10 +202,10 @@ CASE_MODE_LEN = len(max(CASE_MODE_TEXT, key=len))
 
 class PrefixInfo(NamedTuple):
     '''Line prefix infos.'''
-    length: int  # total length of prefix
-    digit_count: int # Number of digits of the largest line number
-    separator: str # Separator between things on left (line number,
-                   # bullet), and things on right (line)
+    length: int       # Total length of prefix
+    digit_count: int  # Number of digits of the largest line number
+    separator: str    # Separator between things on left (line number,
+                      # bullet), and things on right (line)
 
 
 class TextView:

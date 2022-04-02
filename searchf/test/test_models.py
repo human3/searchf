@@ -2,6 +2,7 @@
 
 # pylint: disable=invalid-name
 # pylint: disable=protected-access
+# pylint: disable=no-member
 
 from .. import models
 

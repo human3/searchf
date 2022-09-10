@@ -971,6 +971,8 @@ def init_env() -> argparse.ArgumentParser:
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
 
+    os.environ['TERM'] = 'screen-256color'
+
     parser = argparse.ArgumentParser(
         description='Console application to search into text files and highlight keywords.',
         epilog='Press ? in the application for more information, or go to\

@@ -10,6 +10,9 @@ import os
 import sys
 import time
 
+from typing import List
+from typing import NamedTuple
+
 from .. import app
 from .. import colors
 from .. import utils
@@ -38,15 +41,26 @@ def _my_get_text(_1, _2, _3, _4, _5, _6):
     return text
 
 
-def _run_test(stdscr, description, keys, inputs):
-    print(description)
+class AppTest(NamedTuple):
+    '''Model data associated with a test:
+    - the description of the text
+    - the list of keys that will be sequentially automatically pressed by test runner
+    - the list of input that will be automatically fed to the application.
+    '''
+    description: str
+    keys: List[str]
+    inputs: List[str]
+
+
+def _run(stdscr, t: AppTest):
+    print(t.description)
     stdscr.clear()
-    _reset_inputs(inputs)
+    _reset_inputs(t.inputs)
     colors.init()
     app.views.create(stdscr, TEST_FILE)
     original_get_text = app._get_text
     app._get_text = _my_get_text
-    for key in keys:
+    for key in t.keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.01)
@@ -80,36 +94,43 @@ def _run_app_tests(stdscr):
     print(f'stdscr.getmaxyx() = {stdscr.getmaxyx()}')
     print()
 
-    _run_test(stdscr, 'Test keywords that are invalid regex',
-              ['f', 'q'], ['?'])
-    _run_test(stdscr, 'Test that help can get displayed',
-              ['?', 'd', 'a', 'a', 's', 'w', 'q'], [])
-    _run_test(stdscr, 'Test view switching',
-              ['r', 't', '1', '2', '3', '!', '@', '#'], [])
-    _run_test(stdscr, 'Test scrolling around',
-              ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], [])
-    _run_test(stdscr, 'Test goto lines',
-              ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0'])
-    _run_test(stdscr, 'Test various display modes',
-              ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm', 'q'], [])
-    _run_test(stdscr, 'Test entering one letter keywords',
-              ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-', '-', '+'],
-              ['a', 'b', 'c', 'd', ''])
-    _run_test(stdscr, 'Test entering keywords',
-              ['+', '+', 'f', 'f', 'm', 'h', 'h', 'H', 'm', 'c', 'C', 'F', '-', '-', '-', '+'],
-              ['filter', 'keyword', 'for', 'python', ''])
-    _run_test(stdscr, 'Test entering empty keywords, poping non existent keywords',
-              ['+', 'f', '-', 'F'],
-              ['', ''])
-    _run_test(stdscr, 'Test editing keywords',
-              ['e', '+', 'e', 'e'],
-              ['something', 'good', ''])
-    _run_test(stdscr, 'Test keyword search',
-              ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p'],
-              ['filter'])
-    _run_test(stdscr, 'Test case sensitive search',
-              ['i', '/', 'i', 'i'],
-              ['Show'])
+    appTests = [
+        AppTest('Test keywords that are invalid regex',
+                ['f', 'q'], ['?']),
+        AppTest('Test that help can get displayed',
+                ['?', 'd', 'a', 'a', 's', 'w', 'q'], []),
+        AppTest('Test view switching',
+                ['r', 't', '1', '2', '3', '!', '@', '#'], []),
+        AppTest('Test scrolling around',
+                ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []),
+        AppTest('Test goto lines',
+                ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0']),
+        AppTest('Test various display modes',
+                ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm', 'q'], []),
+        AppTest('Test entering one letter keywords',
+                ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-',
+                 '-', '+'],
+                ['a', 'b', 'c', 'd', '']),
+        AppTest('Test entering keywords',
+                ['+', '+', 'f', 'f', 'm', 'h', 'h', 'H', 'm', 'c', 'C', 'F', '-', '-', '-',
+                 '+'],
+                ['filter', 'keyword', 'for', 'python', '']),
+        AppTest('Test entering empty keywords, poping non existent keywords',
+                ['+', 'f', '-', 'F'],
+                ['', '']),
+        AppTest('Test editing keywords',
+                ['e', '+', 'e', 'e'],
+                ['something', 'good', '']),
+        AppTest('Test keyword search',
+                ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p'],
+                ['filter']),
+        AppTest('Test case sensitive search',
+                ['i', '/', 'i', 'i'],
+                ['Show']),
+    ]
+
+    for test in appTests:
+        _run(stdscr, test)
 
     # Test debug mode in a very hacky way by hijacking handle_key function
     # and spitting out a few dummy debug lines per key press
@@ -122,8 +143,9 @@ def _run_app_tests(stdscr):
         return original_handle_key(key)
 
     app.views.handle_key = my_handle_key
-    _run_test(stdscr, 'Test special debug mode',
-              ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
+    _run(stdscr, AppTest(
+        'Test special debug mode',
+        ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
     app.views.handle_key = original_handle_key
     app.USE_DEBUG = False
 
@@ -132,10 +154,12 @@ def _run_app_tests(stdscr):
 
     original_get_max_yx = app.get_max_yx
     app.get_max_yx = get_max_yx
-    _run_test(stdscr, 'Test with specific layout (scenario #1)',
-              ['?', ' ', 'b', 's', 'w'], [])
-    _run_test(stdscr, 'Test with specific layout (scenario #2)',
-              ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], [])
+    _run(stdscr, AppTest(
+        'Test with specific layout (scenario #1)',
+        ['?', ' ', 'b', 's', 'w'], []))
+    _run(stdscr, AppTest(
+        'Test with specific layout (scenario #2)',
+        ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []))
     app.get_max_yx = original_get_max_yx
 
     print('Test app.get_text()')

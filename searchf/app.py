@@ -152,6 +152,13 @@ class ViewConfig:
         '''Pushes the given filter'''
         self.filters.append(f)
 
+    def swap_filters(self, i, j) -> None:
+        '''Swaps the given filters'''
+        count = len(self.filters)
+        assert 0 <= i < count
+        assert 0 <= j < count
+        self.filters[i], self.filters[j] = self.filters[j], self.filters[i]
+
     def get_color_pair(self, filter_index: int) -> StatusText:
         '''Returns the id of the color pair associated with given filter index'''
         return colors.get_color_pair(self.palette_index, filter_index)
@@ -189,6 +196,7 @@ class TextViewCommand(Enum):
     TOGGLE_IGNORE_CASE = auto()
     NEXT_PALETTE = auto()
     PREV_PALETTE = auto()
+    SWAP_FILTERS = auto()
 
 
 def bool_to_text(value: bool) -> str:
@@ -550,6 +558,17 @@ layout of the view model.
         '''Returns whether the view has any filter or not.'''
         return self._config.has_filters()
 
+    def swap_filters(self) -> StatusText:
+        '''Swaps the top 2 filters'''
+        count = self._config.get_filters_count()
+        if self._config.get_filters_count() < 2:
+            return 'Not enough filters'
+        self._config.swap_filters(count - 1, count - 2)
+        # We call _sync to recompute everything. We could just go through the rendering data
+        # and just swap the filter indexes...
+        self._sync(True)
+        return 'Filters swapped'
+
     def _vscroll_to_match(self, starting: bool, direction: int) -> StatusText:
         iddata = self._vm.voffset
         idatamax = len(self._model.data)
@@ -613,6 +632,7 @@ layout of the view model.
             TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
             TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
+            TextViewCommand.SWAP_FILTERS:            self.swap_filters,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -639,6 +659,7 @@ HELP = f'''  ~ Searchf Help ~
     + =        Add a new keyword to current filter
     - _        Remove last keyword from filter
     e          Edit last keyword
+    s          Swap the top 2 filters
 
   Display modes:
     m          Show/hide non-matching lines (only when some
@@ -861,6 +882,7 @@ class Views:
             ord('A'):              TextViewCommand.GO_SLEFT,
             curses.KEY_SRIGHT:     TextViewCommand.GO_SRIGHT,
             ord('D'):              TextViewCommand.GO_SRIGHT,
+            ord('s'):              TextViewCommand.SWAP_FILTERS,
         }
 
         # Map keys to custom functions used to handle more complex commands

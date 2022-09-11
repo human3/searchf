@@ -4,6 +4,7 @@
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
 # pylint: disable=no-member
+# pylint: disable=too-many-lines
 
 from curses.textpad import Textbox
 from enum import Enum, auto
@@ -117,7 +118,7 @@ class ViewConfig:
     wrap: bool = True
     bullets: bool = False
     reverse_matching: bool = False
-    show_all_lines: bool = False
+    show_all_lines: bool = True
     show_spaces: bool = False
     colorize_mode: ColorizeMode = ColorizeMode.KEYWORD_HIGHLIGHT
     palette_index: int = 0
@@ -194,6 +195,7 @@ class TextViewCommand(Enum):
     NEXT_COLORIZE_MODE = auto()
     PREV_COLORIZE_MODE = auto()
     TOGGLE_IGNORE_CASE = auto()
+    TOGGLE_HIDING = auto()
     NEXT_PALETTE = auto()
     PREV_PALETTE = auto()
     SWAP_FILTERS = auto()
@@ -204,8 +206,11 @@ def bool_to_text(value: bool) -> str:
     return 'enabled' if value else 'disabled'
 
 
-CASE_MODE_TEXT = ['ignored', 'sensitive']
-CASE_MODE_LEN = len(max(CASE_MODE_TEXT, key=len))
+CASE_COL_TEXTS = ['Case', 'ignored', 'sensitive']
+CASE_COL_LEN = len(max(CASE_COL_TEXTS, key=len))
+
+SHOWN_COL_TEXTS = ['Shown', 'no', 'yes']
+SHOWN_COL_LEN = len(max(SHOWN_COL_TEXTS , key=len))
 
 
 class PrefixInfo(NamedTuple):
@@ -265,23 +270,19 @@ class TextView:
         style = curses.color_pair(colors.BAR_COLOR_PAIR_ID)
         self._win.hline(y, 0, curses.ACS_HLINE, w, style)
 
-        x = 1
         if not self._config.has_filters():
-            text = ' No filter '
-            self._win.addstr(y, x, text, style)
+            self._win.addstr(' No filter ', style)
         else:
-            text = ' Case '
-            self._win.addstr(y, x, f'{text}', style)
-
-            x = CASE_MODE_LEN + 1
-            text = f'{self._model.hits_count():>8} hits '
-            self._win.addstr(y, x, text, style)
+            self._win.addstr(f'{self._model.hits_count():>8} ', style)
+            self._win.addstr(f'| {"Case":^{CASE_COL_LEN}} ', style)
+            self._win.addstr(f'| {"Shown":^{SHOWN_COL_LEN}} ', style)
+            self._win.addstr('| Keywords ', style)
 
         # Print from right to left
         def move_left_for(x, text):
             return max(0, x - len(text) - 1)
-        x = w
 
+        x = w
         text = f' {self._name} '
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
@@ -302,15 +303,16 @@ class TextView:
 
         assert len(self._model.hits) == self._config.get_filters_count()
         for i, f in enumerate(self._config.filters):
-            color = self._config.get_color_pair(i)
-
             x = 0
-            text = CASE_MODE_TEXT[0 if f.ignore_case else 1]
-            self._win.addstr(y + 1 + i, x, text)
-
-            x += CASE_MODE_LEN + 1
+            y += 1
+            self._win.addstr(y, 0, f'{self._model.hits[i]:>8}')
+            text = CASE_COL_TEXTS[1 if f.ignore_case else 2]
+            self._win.addstr(f'| {text:^{CASE_COL_LEN}} ')
+            text = SHOWN_COL_TEXTS[1 if f.hiding else 2]
+            self._win.addstr(f'| {text:^{SHOWN_COL_LEN}} | ')
             text = ' AND '.join(f.keywords)
-            self._win.addstr(y + 1 + i, x, f'{self._model.hits[i]:>8} {text}', color)
+            color = 0 if f.hiding else self._config.get_color_pair(i)
+            self._win.addstr(text, color)
 
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
@@ -499,6 +501,15 @@ layout of the view model.
         self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
+    def _toggle_hiding(self) -> StatusText:
+        if not self._config.has_filters():
+            return 'Cannot change case sentitivity (no keyword)'
+        f = self._config.top_filter()
+        f.hiding = not f.hiding
+        self._sync(True)
+        action = 'hidden' if f.hiding else 'shown'
+        return f'Lines matching filter are now {action}'
+
     def _apply_palette_and_draw(self) -> None:
         colors.apply_palette(self._config.palette_index,
                              self._config.colorize_mode == ColorizeMode.KEYWORD_HIGHLIGHT)
@@ -632,6 +643,7 @@ layout of the view model.
             TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
             TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
             TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
+            TextViewCommand.TOGGLE_HIDING:           self._toggle_hiding,
             TextViewCommand.SWAP_FILTERS:            self.swap_filters,
         }
         assert command in dispatch, f'command {command}'
@@ -660,6 +672,8 @@ HELP = f'''  ~ Searchf Help ~
     - _        Remove last keyword from filter
     e          Edit last keyword
     s          Swap the top 2 filters
+    i          Toggle whether or not current filter ignores case
+    x          Toggle whether or not lines matching current filter are shown
 
   Display modes:
     m          Show/hide non-matching lines (only when some
@@ -671,7 +685,6 @@ HELP = f'''  ~ Searchf Help ~
     .          Enable/disable space displaying as bullets
     c/C        Next/previous color palette
     h/H        Next/previous highlight and colorization mode
-    i          Toggle whether or not current filter ignores case
 
   Navigation:
     SPACE      Scroll down a page
@@ -860,6 +873,7 @@ class Views:
             ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
             ord('H'):              TextViewCommand.PREV_COLORIZE_MODE,
             ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
+            ord('x'):              TextViewCommand.TOGGLE_HIDING,
             curses.KEY_UP:         TextViewCommand.GO_UP,
             ord('w'):              TextViewCommand.GO_UP,
             curses.KEY_DOWN:       TextViewCommand.GO_DOWN,

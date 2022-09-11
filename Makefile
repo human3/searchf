@@ -8,3 +8,6 @@ tests:
 cover:
 	TERM='screen-256color' coverage run -m searchf.test.all
 	coverage report -m
+
+lint:
+	pylint searchf

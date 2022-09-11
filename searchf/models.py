@@ -19,6 +19,7 @@ class Filter:
     or removed by end-user.
     '''
     ignore_case: bool = False
+    hiding: bool = False
 
     def __init__(self) -> None:
         # We use a Dict to make sure that keywords are never added
@@ -140,7 +141,8 @@ class Model:
         show_matching = mode in (
             LineVisibilityMode.ALL,
             LineVisibilityMode.ONLY_MATCHING)
-        show_not_matching = len(filters) <= 0 or mode in (
+        # We require at least a non hiding filter to show non matching lines
+        show_not_matching = sum(not f.hiding for f in filters) <= 0 or mode in (
             LineVisibilityMode.ALL,
             LineVisibilityMode.HIDE_MATCHING)
         data = []
@@ -156,7 +158,7 @@ class Model:
                     segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
-                    if show_matching:
+                    if show_matching and not f.hiding:
                         data.append(LineModel(i, fidx, line, matching_segments))
                     break
             if not matching and show_not_matching:

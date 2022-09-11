@@ -11,3 +11,5 @@ cover:
 
 lint:
 	pylint searchf
+
+all: lint tests cover

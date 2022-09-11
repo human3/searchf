@@ -4,10 +4,8 @@
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
 # pylint: disable=no-member
-# pylint: disable=too-many-lines
 
 from curses.textpad import Textbox
-from enum import Enum, auto
 from typing import List
 from typing import NamedTuple
 from typing import Optional
@@ -23,6 +21,7 @@ import copy
 
 from . import __version__
 from . import utils
+from . import enums
 from . import models
 from . import segments
 from . import colors
@@ -100,13 +99,6 @@ def clear(scr, y, x, length):
     scr.move(y, x)
 
 
-class ColorizeMode(models.AutoEnum):
-    '''Keyword colorize modes.'''
-    KEYWORD_HIGHLIGHT = ('Keyword highlight')
-    KEYWORD = ('Keyword')
-    LINE = ('Line')
-
-
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
     display modes, typically changed by end users to match their
@@ -120,7 +112,7 @@ class ViewConfig:
     reverse_matching: bool = False
     show_all_lines: bool = True
     show_spaces: bool = False
-    colorize_mode: ColorizeMode = ColorizeMode.KEYWORD_HIGHLIGHT
+    colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_index: int = 0
 
     def __init__(self) -> None:
@@ -140,14 +132,14 @@ class ViewConfig:
         assert count > 0
         return self.filters[count-1]
 
-    def get_line_visibility(self) -> models.LineVisibilityMode:
+    def get_line_visibility(self) -> enums.LineVisibility:
         '''Returns the current line visibility mode. When matching line are hidden,
         the value of show_all_lines is ignored.'''
         if self.reverse_matching:
-            return models.LineVisibilityMode.HIDE_MATCHING
+            return enums.LineVisibility.HIDE_MATCHING
         if self.show_all_lines:
-            return models.LineVisibilityMode.ALL
-        return models.LineVisibilityMode.ONLY_MATCHING
+            return enums.LineVisibility.ALL
+        return enums.LineVisibility.ONLY_MATCHING
 
     def push_filter(self, f: models.Filter) -> None:
         '''Pushes the given filter'''
@@ -168,37 +160,6 @@ class ViewConfig:
         '''Select the next palette in the given direction'''
         self.palette_index = colors.cycle_palette_index(self.palette_index, forward)
         return self.palette_index
-
-
-class TextViewCommand(Enum):
-    '''Simple commands accepted by TextView class, that do not take any argument.'''
-    GO_UP = auto()
-    GO_DOWN = auto()
-    GO_LEFT = auto()
-    GO_RIGHT = auto()
-    GO_HOME = auto()
-    GO_END = auto()
-    GO_NPAGE = auto()
-    GO_PPAGE = auto()
-    GO_SLEFT = auto()
-    GO_SRIGHT = auto()
-    POP_FILTER = auto()
-    POP_KEYWORD = auto()
-    VSCROLL_TO_NEXT_MATCH = auto()
-    VSCROLL_TO_PREV_MATCH = auto()
-    TOGGLE_SHOW_ALL_LINES = auto()
-    TOGGLE_REVERSE_MATCHING = auto()
-    TOGGLE_LINE_NUMBERS = auto()
-    TOGGLE_WRAP = auto()
-    TOGGLE_BULLETS = auto()
-    TOGGLE_SHOW_SPACES = auto()
-    NEXT_COLORIZE_MODE = auto()
-    PREV_COLORIZE_MODE = auto()
-    TOGGLE_IGNORE_CASE = auto()
-    TOGGLE_HIDING = auto()
-    NEXT_PALETTE = auto()
-    PREV_PALETTE = auto()
-    SWAP_FILTERS = auto()
 
 
 def bool_to_text(value: bool) -> str:
@@ -325,7 +286,7 @@ class TextView:
         vend = offset + self._vm.size[1]
         if self._config.show_spaces:
             text = text.replace(' ', '·')  # Note: this is curses.ACS_BULLET
-        if self._config.colorize_mode == ColorizeMode.LINE:
+        if self._config.colorize_mode == enums.ColorizeMode.LINE:
             text = text[offset:vend]
             text = f'{text:<{self._vm.size[1]}}'
             self._win.addnstr(y, x, text, self._size[1], color)
@@ -488,7 +449,7 @@ layout of the view model.
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
     def _cycle_colorize_mode(self, forward: bool) -> StatusText:
-        f = ColorizeMode.get_next if forward else ColorizeMode.get_prev
+        f = enums.ColorizeMode.get_next if forward else enums.ColorizeMode.get_prev
         self._config.colorize_mode = f(self._config.colorize_mode)
         self.show()
         return f'Colorize mode: {self._config.colorize_mode}'
@@ -512,7 +473,7 @@ layout of the view model.
 
     def _apply_palette_and_draw(self) -> None:
         colors.apply_palette(self._config.palette_index,
-                             self._config.colorize_mode == ColorizeMode.KEYWORD_HIGHLIGHT)
+                             self._config.colorize_mode == enums.ColorizeMode.KEYWORD_HIGHLIGHT)
         self.draw()
 
     def show(self) -> None:
@@ -615,36 +576,39 @@ layout of the view model.
         self._vscroll(delta * self._max_visible_lines_count)
         return STATUS_EMPTY
 
-    def execute(self, command: TextViewCommand) -> StatusText:
+    def execute(self, command: enums.TextViewCommand) -> StatusText:
         '''Executes the given command.'''
         dispatch = {
-            TextViewCommand.GO_UP:                   lambda: self._vscroll(-1),
-            TextViewCommand.GO_DOWN:                 lambda: self._vscroll(1),
-            TextViewCommand.GO_LEFT:                 lambda: self._hscroll(-1),
-            TextViewCommand.GO_RIGHT:                lambda: self._hscroll(1),
-            TextViewCommand.GO_HOME:                 lambda: self.set_v_offset(0, True),
-            TextViewCommand.GO_END:                  lambda: self.set_v_offset(sys.maxsize, True),
-            TextViewCommand.GO_NPAGE:                lambda: self._vpagescroll(1),
-            TextViewCommand.GO_PPAGE:                lambda: self._vpagescroll(-1),
-            TextViewCommand.GO_SLEFT:                lambda: self._hscroll(-20),
-            TextViewCommand.GO_SRIGHT:               lambda: self._hscroll(20),
-            TextViewCommand.VSCROLL_TO_NEXT_MATCH:   lambda: self._vscroll_to_match(False, 1),
-            TextViewCommand.VSCROLL_TO_PREV_MATCH:   lambda: self._vscroll_to_match(False, -1),
-            TextViewCommand.NEXT_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(True),
-            TextViewCommand.PREV_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(False),
-            TextViewCommand.NEXT_PALETTE:            lambda: self._cycle_palette(True),
-            TextViewCommand.PREV_PALETTE:            lambda: self._cycle_palette(False),
-            TextViewCommand.POP_FILTER:              self._pop_filter,
-            TextViewCommand.POP_KEYWORD:             self._pop_keyword,
-            TextViewCommand.TOGGLE_SHOW_ALL_LINES:   self._toggle_show_all_lines,
-            TextViewCommand.TOGGLE_REVERSE_MATCHING: self._toggle_reverse_matching,
-            TextViewCommand.TOGGLE_LINE_NUMBERS:     self._toggle_line_numbers,
-            TextViewCommand.TOGGLE_WRAP:             self._toggle_wrap,
-            TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
-            TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
-            TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
-            TextViewCommand.TOGGLE_HIDING:           self._toggle_hiding,
-            TextViewCommand.SWAP_FILTERS:            self.swap_filters,
+            enums.TextViewCommand.GO_UP:                   lambda: self._vscroll(-1),
+            enums.TextViewCommand.GO_DOWN:                 lambda: self._vscroll(1),
+            enums.TextViewCommand.GO_LEFT:                 lambda: self._hscroll(-1),
+            enums.TextViewCommand.GO_RIGHT:                lambda: self._hscroll(1),
+            enums.TextViewCommand.GO_HOME:                 lambda: self.set_v_offset(0, True),
+            enums.TextViewCommand.GO_END:                  lambda: self.set_v_offset(
+                sys.maxsize, True),
+            enums.TextViewCommand.GO_NPAGE:                lambda: self._vpagescroll(1),
+            enums.TextViewCommand.GO_PPAGE:                lambda: self._vpagescroll(-1),
+            enums.TextViewCommand.GO_SLEFT:                lambda: self._hscroll(-20),
+            enums.TextViewCommand.GO_SRIGHT:               lambda: self._hscroll(20),
+            enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH:   lambda: self._vscroll_to_match(
+                False, 1),
+            enums.TextViewCommand.VSCROLL_TO_PREV_MATCH:   lambda: self._vscroll_to_match(
+                False, -1),
+            enums.TextViewCommand.NEXT_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(True),
+            enums.TextViewCommand.PREV_COLORIZE_MODE:      lambda: self._cycle_colorize_mode(False),
+            enums.TextViewCommand.NEXT_PALETTE:            lambda: self._cycle_palette(True),
+            enums.TextViewCommand.PREV_PALETTE:            lambda: self._cycle_palette(False),
+            enums.TextViewCommand.POP_FILTER:              self._pop_filter,
+            enums.TextViewCommand.POP_KEYWORD:             self._pop_keyword,
+            enums.TextViewCommand.TOGGLE_SHOW_ALL_LINES:   self._toggle_show_all_lines,
+            enums.TextViewCommand.TOGGLE_REVERSE_MATCHING: self._toggle_reverse_matching,
+            enums.TextViewCommand.TOGGLE_LINE_NUMBERS:     self._toggle_line_numbers,
+            enums.TextViewCommand.TOGGLE_WRAP:             self._toggle_wrap,
+            enums.TextViewCommand.TOGGLE_BULLETS:          self._toggle_bullets,
+            enums.TextViewCommand.TOGGLE_SHOW_SPACES:      self._toggle_show_spaces,
+            enums.TextViewCommand.TOGGLE_IGNORE_CASE:      self._toggle_ignore_case,
+            enums.TextViewCommand.TOGGLE_HIDING:           self._toggle_hiding,
+            enums.TextViewCommand.SWAP_FILTERS:            self.swap_filters,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -849,54 +813,54 @@ class Views:
             keyword = self.get_text('Edit: ', keyword)
             if len(keyword) <= 0:
                 return 'No change made'
-            v.execute(TextViewCommand.POP_KEYWORD)
+            v.execute(enums.TextViewCommand.POP_KEYWORD)
             v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
 
         # Map keys to simple text view commands that don't take any
         # argument and that can be directly handled by calling v.execute()
         keys_to_command = {
-            ord('F'):              TextViewCommand.POP_FILTER,
-            curses.KEY_BACKSPACE:  TextViewCommand.POP_FILTER,
-            ord('-'):              TextViewCommand.POP_KEYWORD,
-            ord('_'):              TextViewCommand.POP_KEYWORD,
-            ord('n'):              TextViewCommand.VSCROLL_TO_NEXT_MATCH,
-            ord('p'):              TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('m'):              TextViewCommand.TOGGLE_SHOW_ALL_LINES,
-            ord('M'):              TextViewCommand.TOGGLE_REVERSE_MATCHING,
-            ord('l'):              TextViewCommand.TOGGLE_LINE_NUMBERS,
-            ord('k'):              TextViewCommand.TOGGLE_WRAP,
-            ord('*'):              TextViewCommand.TOGGLE_BULLETS,
-            ord('.'):              TextViewCommand.TOGGLE_SHOW_SPACES,
-            ord('c'):              TextViewCommand.NEXT_PALETTE,
-            ord('C'):              TextViewCommand.PREV_PALETTE,
-            ord('h'):              TextViewCommand.NEXT_COLORIZE_MODE,
-            ord('H'):              TextViewCommand.PREV_COLORIZE_MODE,
-            ord('i'):              TextViewCommand.TOGGLE_IGNORE_CASE,
-            ord('x'):              TextViewCommand.TOGGLE_HIDING,
-            curses.KEY_UP:         TextViewCommand.GO_UP,
-            ord('w'):              TextViewCommand.GO_UP,
-            curses.KEY_DOWN:       TextViewCommand.GO_DOWN,
-            ord('s'):              TextViewCommand.GO_DOWN,
-            curses.KEY_LEFT:       TextViewCommand.GO_LEFT,
-            ord('a'):              TextViewCommand.GO_LEFT,
-            curses.KEY_RIGHT:      TextViewCommand.GO_RIGHT,
-            ord('d'):              TextViewCommand.GO_RIGHT,
-            curses.KEY_HOME:       TextViewCommand.GO_HOME,
-            ord('g'):              TextViewCommand.GO_HOME,
-            ord('<'):              TextViewCommand.GO_HOME,
-            curses.KEY_END:        TextViewCommand.GO_END,
-            ord('G'):              TextViewCommand.GO_END,
-            ord('>'):              TextViewCommand.GO_END,
-            curses.KEY_NPAGE:      TextViewCommand.GO_NPAGE,
-            ord(' '):              TextViewCommand.GO_NPAGE,
-            curses.KEY_PPAGE:      TextViewCommand.GO_PPAGE,
-            ord('b'):              TextViewCommand.GO_PPAGE,
-            curses.KEY_SLEFT:      TextViewCommand.GO_SLEFT,
-            ord('A'):              TextViewCommand.GO_SLEFT,
-            curses.KEY_SRIGHT:     TextViewCommand.GO_SRIGHT,
-            ord('D'):              TextViewCommand.GO_SRIGHT,
-            ord('s'):              TextViewCommand.SWAP_FILTERS,
+            ord('F'):              enums.TextViewCommand.POP_FILTER,
+            curses.KEY_BACKSPACE:  enums.TextViewCommand.POP_FILTER,
+            ord('-'):              enums.TextViewCommand.POP_KEYWORD,
+            ord('_'):              enums.TextViewCommand.POP_KEYWORD,
+            ord('n'):              enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH,
+            ord('p'):              enums.TextViewCommand.VSCROLL_TO_PREV_MATCH,
+            ord('m'):              enums.TextViewCommand.TOGGLE_SHOW_ALL_LINES,
+            ord('M'):              enums.TextViewCommand.TOGGLE_REVERSE_MATCHING,
+            ord('l'):              enums.TextViewCommand.TOGGLE_LINE_NUMBERS,
+            ord('k'):              enums.TextViewCommand.TOGGLE_WRAP,
+            ord('*'):              enums.TextViewCommand.TOGGLE_BULLETS,
+            ord('.'):              enums.TextViewCommand.TOGGLE_SHOW_SPACES,
+            ord('c'):              enums.TextViewCommand.NEXT_PALETTE,
+            ord('C'):              enums.TextViewCommand.PREV_PALETTE,
+            ord('h'):              enums.TextViewCommand.NEXT_COLORIZE_MODE,
+            ord('H'):              enums.TextViewCommand.PREV_COLORIZE_MODE,
+            ord('i'):              enums.TextViewCommand.TOGGLE_IGNORE_CASE,
+            ord('x'):              enums.TextViewCommand.TOGGLE_HIDING,
+            curses.KEY_UP:         enums.TextViewCommand.GO_UP,
+            ord('w'):              enums.TextViewCommand.GO_UP,
+            curses.KEY_DOWN:       enums.TextViewCommand.GO_DOWN,
+            ord('s'):              enums.TextViewCommand.GO_DOWN,
+            curses.KEY_LEFT:       enums.TextViewCommand.GO_LEFT,
+            ord('a'):              enums.TextViewCommand.GO_LEFT,
+            curses.KEY_RIGHT:      enums.TextViewCommand.GO_RIGHT,
+            ord('d'):              enums.TextViewCommand.GO_RIGHT,
+            curses.KEY_HOME:       enums.TextViewCommand.GO_HOME,
+            ord('g'):              enums.TextViewCommand.GO_HOME,
+            ord('<'):              enums.TextViewCommand.GO_HOME,
+            curses.KEY_END:        enums.TextViewCommand.GO_END,
+            ord('G'):              enums.TextViewCommand.GO_END,
+            ord('>'):              enums.TextViewCommand.GO_END,
+            curses.KEY_NPAGE:      enums.TextViewCommand.GO_NPAGE,
+            ord(' '):              enums.TextViewCommand.GO_NPAGE,
+            curses.KEY_PPAGE:      enums.TextViewCommand.GO_PPAGE,
+            ord('b'):              enums.TextViewCommand.GO_PPAGE,
+            curses.KEY_SLEFT:      enums.TextViewCommand.GO_SLEFT,
+            ord('A'):              enums.TextViewCommand.GO_SLEFT,
+            curses.KEY_SRIGHT:     enums.TextViewCommand.GO_SRIGHT,
+            ord('D'):              enums.TextViewCommand.GO_SRIGHT,
+            ord('s'):              enums.TextViewCommand.SWAP_FILTERS,
         }
 
         # Map keys to custom functions used to handle more complex commands

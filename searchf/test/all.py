@@ -16,6 +16,7 @@ from typing import NamedTuple
 from .. import app
 from .. import colors
 from .. import utils
+from . import test_enums
 from . import test_segments
 from . import test_models
 
@@ -202,14 +203,16 @@ def _run_app_tests(stdscr):
 
 
 def _run_unit_tests():
+    print('Test enums.test_visibility_mode()')
+    test_enums.test_visibility_mode()
+    print('Test enums.test_from_int()')
+    test_enums.test_from_int()
     print('Test segments.iterate()')
     test_segments.test_iterate()
     print('Test segments._sort_and_merge()')
     test_segments.test_sort_and_merge()
     print('Test segments.find_matching()')
     test_segments.test_find_matching()
-    print('Test models.test_visibility_mode()')
-    test_models.test_visibility_mode()
     print('Test models.test_filter()')
     test_models.test_filter()
     print('Test models.test_digit_count()')

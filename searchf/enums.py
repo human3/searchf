@@ -15,7 +15,7 @@ class AutoEnum(Enum):
         return obj
 
     def __str__(self):
-        return f'{self._value_} {self._description}'
+        return f'{self._description}' # f'{self._value_} {self._description}'
 
     @classmethod
     def from_int(cls, i):
@@ -43,6 +43,9 @@ class AutoEnum(Enum):
 class LineVisibility(AutoEnum):
     '''Line visibility modes.'''
     ONLY_MATCHING = ('Showing only matching lines')
+    CONTEXT_1 = ('Reveal 1 line above/below matching')
+    CONTEXT_2 = ('Reveal 2 lines above/below matching')
+    CONTEXT_5 = ('Reveal 5 lines above/below matching')
     ALL = ('Showing all lines')
 
 

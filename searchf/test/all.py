@@ -203,8 +203,8 @@ def _run_app_tests(stdscr):
 
 
 def _run_unit_tests():
-    print('Test enums.test_visibility_mode()')
-    test_enums.test_visibility_mode()
+    print('Test enums.test_get_next_prev()')
+    test_enums.test_get_next_prev()
     print('Test enums.test_from_int()')
     test_enums.test_from_int()
     print('Test segments.iterate()')

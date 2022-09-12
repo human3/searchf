@@ -96,15 +96,15 @@ class Model:
         '''Recomputes the data model by applying the given filters to the
         current file content.
         '''
-        show_matching = mode in (
-            enums.LineVisibility.ALL,
-            enums.LineVisibility.ONLY_MATCHING)
         # We require at least a non hiding filter to show non matching lines
-        show_not_matching = sum(not f.hiding for f in filters) <= 0 \
-            or mode == enums.LineVisibility.ALL
+        # show_not_matching = sum(not f.hiding for f in filters) <= 0 \
+        #     or mode == enums.LineVisibility.ALL
         data = []
         hits = [0 for f in filters]
 
+        queue = []
+        reveal_count = 5 if mode == enums.LineVisibility.CONTEXT_1 else 0
+        reveal_left = 0
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
@@ -115,15 +115,20 @@ class Model:
                     segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
-                    if show_matching and not f.hiding:
+                    if not f.hiding:
+                        reveal_left = reveal_count
                         data.append(LineModel(i, fidx, line, matching_segments))
                     break
-            if not matching and show_not_matching:
-                data.append(LineModel(i, -1, line, []))
+            reveal_left -= 1
+            if not matching:
+                show_not_matching = mode == enums.LineVisibility.ALL or reveal_left >= 0
+                if show_not_matching:
+                    data.append(LineModel(i, -1, line, []))
+                else:
+                    queue.append(LineModel(i, -1, line, []))
 
         self.data = data
         self.hits = hits
-
 
 class LineViewModel(NamedTuple):
     '''View model data associated with each line'''

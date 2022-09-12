@@ -43,6 +43,7 @@ class AutoEnum(Enum):
 class LineVisibility(AutoEnum):
     '''Line visibility modes.'''
     ONLY_MATCHING = ('Showing only matching lines')
+    CONTEXT_1 = ('Reveal 1 line above/below matching')
     ALL = ('Showing all lines')
 
 

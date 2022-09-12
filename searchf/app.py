@@ -226,10 +226,10 @@ class TextView:
         if not self._config.has_filters():
             self._win.addstr(' No filter ', style)
         else:
-            self._win.addstr(f'{self._model.hits_count():>8} ', style)
-            self._win.addstr(f'| {"Case":^{CASE_COL_LEN}} ', style)
-            self._win.addstr(f'| {"Shown":^{SHOWN_COL_LEN}} ', style)
-            self._win.addstr('| Keywords ', style)
+            self._win.addstr(f'{self._model.hits_count():>8}', style)
+            self._win.addstr(f' | {"Case":^{CASE_COL_LEN}}', style)
+            self._win.addstr(f' | {"Shown":^{SHOWN_COL_LEN}}', style)
+            self._win.addstr(' | Keywords ', style)
 
         # Print from right to left
         def move_left_for(x, text):
@@ -260,9 +260,9 @@ class TextView:
             y += 1
             self._win.addstr(y, 0, f'{self._model.hits[i]:>8}')
             text = CASE_COL_TEXTS[1 if f.ignore_case else 2]
-            self._win.addstr(f'| {text:^{CASE_COL_LEN}} ')
+            self._win.addstr(f' | {text:^{CASE_COL_LEN}}')
             text = SHOWN_COL_TEXTS[1 if f.hiding else 2]
-            self._win.addstr(f'| {text:^{SHOWN_COL_LEN}} | ')
+            self._win.addstr(f' | {text:^{SHOWN_COL_LEN}} | ')
             text = ' AND '.join(f.keywords)
             color = 0 if f.hiding else self._config.get_color_pair(i)
             self._win.addstr(text, color)

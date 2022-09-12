@@ -44,7 +44,6 @@ class LineVisibility(AutoEnum):
     '''Line visibility modes.'''
     ONLY_MATCHING = ('Showing only matching lines')
     ALL = ('Showing all lines')
-    HIDE_MATCHING = ('Hiding matching lines')
 
 
 class ColorizeMode(AutoEnum):
@@ -70,14 +69,14 @@ class TextViewCommand(Enum):
     POP_KEYWORD = auto()
     VSCROLL_TO_NEXT_MATCH = auto()
     VSCROLL_TO_PREV_MATCH = auto()
-    TOGGLE_SHOW_ALL_LINES = auto()
-    TOGGLE_REVERSE_MATCHING = auto()
     TOGGLE_LINE_NUMBERS = auto()
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
     NEXT_COLORIZE_MODE = auto()
     PREV_COLORIZE_MODE = auto()
+    NEXT_LINE_VISIBILITY = auto()
+    PREV_LINE_VISIBILITY = auto()
     TOGGLE_IGNORE_CASE = auto()
     TOGGLE_HIDING = auto()
     NEXT_PALETTE = auto()

@@ -100,9 +100,8 @@ class Model:
             enums.LineVisibility.ALL,
             enums.LineVisibility.ONLY_MATCHING)
         # We require at least a non hiding filter to show non matching lines
-        show_not_matching = sum(not f.hiding for f in filters) <= 0 or mode in (
-            enums.LineVisibility.ALL,
-            enums.LineVisibility.HIDE_MATCHING)
+        show_not_matching = sum(not f.hiding for f in filters) <= 0 \
+            or mode == enums.LineVisibility.ALL
         data = []
         hits = [0 for f in filters]
 

@@ -2,19 +2,24 @@
 
 from .. import enums
 
+class TestEnum(enums.AutoEnum):
+    '''Test enum.'''
+    FIRST_VALUE = ('First')
+    MIDDLE_VALUE = ('Middle')
+    LAST_VALUE = ('Last')
 
-def test_visibility_mode():
-    '''Test enums.LineVisibility'''
-    assert enums.LineVisibility.HIDE_MATCHING.get_next() \
-        == enums.LineVisibility.ONLY_MATCHING
-    assert enums.LineVisibility.HIDE_MATCHING \
-        == enums.LineVisibility.ONLY_MATCHING.get_prev()
+def test_get_next_prev():
+    '''Test enums.get_next and enums.get_prev'''
+    assert TestEnum.LAST_VALUE.get_next() \
+        == TestEnum.FIRST_VALUE
+    assert TestEnum.LAST_VALUE \
+        == TestEnum.FIRST_VALUE.get_prev()
 
 def test_from_int():
     '''Test enums can be converted from int.'''
     actual = None
     try:
-        enums.LineVisibility.from_int(12)
+        TestEnum.from_int(12)
     except ValueError as ex:
         actual = ex
     assert actual

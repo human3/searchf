@@ -270,7 +270,10 @@ class TextView:
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
         if w_index > 0:
-            self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
+            if line_idx < 0:
+                self._win.addstr(y, 0, f'{"----":^{w_index}}', color | USE_BOLD)
+            else:
+                self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
     def _draw_content(self, position, text, matching_segments, offset, color):

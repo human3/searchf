@@ -44,6 +44,8 @@ class LineVisibility(AutoEnum):
     '''Line visibility modes.'''
     ONLY_MATCHING = ('Showing only matching lines')
     CONTEXT_1 = ('Reveal 1 line above/below matching')
+    CONTEXT_2 = ('Reveal 2 lines above/below matching')
+    CONTEXT_5 = ('Reveal 5 lines above/below matching')
     ALL = ('Showing all lines')
 
 

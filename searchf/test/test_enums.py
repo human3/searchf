@@ -2,7 +2,7 @@
 
 from .. import enums
 
-class TestEnum(enums.AutoEnum):
+class DummyEnum(enums.AutoEnum):
     '''Test enum.'''
     FIRST_VALUE = ('First')
     MIDDLE_VALUE = ('Middle')
@@ -10,16 +10,16 @@ class TestEnum(enums.AutoEnum):
 
 def test_get_next_prev():
     '''Test enums.get_next and enums.get_prev'''
-    assert TestEnum.LAST_VALUE.get_next() \
-        == TestEnum.FIRST_VALUE
-    assert TestEnum.LAST_VALUE \
-        == TestEnum.FIRST_VALUE.get_prev()
+    assert DummyEnum.LAST_VALUE.get_next() \
+        == DummyEnum.FIRST_VALUE
+    assert DummyEnum.LAST_VALUE \
+        == DummyEnum.FIRST_VALUE.get_prev()
 
 def test_from_int():
     '''Test enums can be converted from int.'''
     actual = None
     try:
-        TestEnum.from_int(12)
+        DummyEnum.from_int(12)
     except ValueError as ex:
         actual = ex
     assert actual

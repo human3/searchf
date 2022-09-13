@@ -49,11 +49,14 @@ class Filter:
 def _digits_count(max_number) -> int:
     return math.floor(math.log10(max(1, max_number))+1)
 
+RULER_INDEX = -1
 
 class LineModel(NamedTuple):
     '''Model data associated with each line:
     - the index of the line in the original content (required because
-      we don't always show all lines of the original file)
+      we don't always show all lines of the original file), or
+      -1 if this line does not represent original content (like
+      an horizontal ruler).
     - the index of the matching filter if any, or -1 otherwise
     - the text of the line
     - the segments that will be highlighted (and that are matching
@@ -66,9 +69,10 @@ class LineModel(NamedTuple):
 
 
 class LineModelFilter:
-    '''Class use to filter out LineModel according to a line visibility
-    mode. Non matching LineModel can be buffered so that they can be
-    displayed above matching LineModel.
+    '''Class use to filter out LineModel according to a given line visibility
+    mode. Models are added sequentially, one by one, and are then yielded back
+    to caller (or not) so as to reveal the desired amount of non-matching lines
+    above and below matching lines.
     '''
     def __init__(self, mode: enums.LineVisibility):
         self._queue: List[LineModel] = []
@@ -109,23 +113,37 @@ class LineModelFilter:
         return models
 
     def _flushBeforeMatching(self) -> List[LineModel]:
+        '''Flush the queue and make sure we are going to bufferize
+        the appropriate amount of subsequent non-matching lines, if
+        we encounter any.'''
         self._left = self._size
         return self._flush()
+
+    def _updateLastYielded(self, model: LineModel):
+        line, _, _, _ = model
+        self._last_line_visible = line + 1
 
     def addMatching(self, model: LineModel) -> List[LineModel]:
         '''Adds a line model that matches a filter. Returns
         the list of line models that are visible, if any.'''
-        data = []
-        queued = self._flushBeforeMatching()
+
+        models = []
+        queued = self._flush()
         if len(queued) > 0:
+            # Check if we need to add horizontal rule (index -1)
             line, _, _, _ = queued[0]
-            if line > self._last_line_visible: # and self._last_line_visible > 0:
-                data.append(LineModel(-1, -1, '---------------------------', []))
-        data = data + queued
-        data.append(model)
-        line, _, _, _ = model
-        self._last_line_visible = line + 1
-        return data
+            if line > self._last_line_visible:
+                models.append(LineModel(RULER_INDEX, -1, None, []))
+            models = models + queued
+
+        models.append(model)
+        self._updateLastYielded(model)
+
+        # Make sure we are going to bufferize the appropriate amount
+        # of subsequent non-matching lines, if we encounter any.
+        self._left = self._size
+
+        return models
 
     def addNonMatching(self, model: LineModel) -> List[LineModel]:
         '''Adds a line model that does not match any filter. Returns
@@ -134,8 +152,7 @@ class LineModelFilter:
             return []
         queued = self._flush()
         assert len(queued) == 1
-        line, _, _, _ = model
-        self._last_line_visible = line + 1
+        self._updateLastYielded(model)
         return queued
 
 
@@ -270,8 +287,11 @@ class ViewModel:
         else:
             for idata, mdata in enumerate(model_data):
                 firstdlines.append(len(data))
-                _, _, text, _ = mdata
+                line_idx, _, text, _ = mdata
                 offset = 0
+                if line_idx == RULER_INDEX:
+                    data.append(LineViewModel(idata, offset))
+                    continue
                 left = len(text)
                 while left >= 0:
                     data.append(LineViewModel(idata, offset))

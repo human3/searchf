@@ -267,13 +267,15 @@ class TextView:
             color = 0 if f.hiding else self._config.get_color_pair(i)
             self._win.addstr(text, color)
 
+    def _draw_ruler(self, y, prefix_info):
+        _, w_index, _ = prefix_info
+        self._win.addstr(y, 0, f'{"----":^{w_index}}')
+
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
         if w_index > 0:
-            if line_idx < 0:
-                self._win.addstr(y, 0, f'{"----":^{w_index}}', color | USE_BOLD)
-            else:
-                self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
+            assert line_idx >= 0
+            self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
     def _draw_content(self, position, text, matching_segments, offset, color):
@@ -312,6 +314,9 @@ class TextView:
             idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
+            if line_idx == models.RULER_INDEX:
+                self._draw_ruler(y, prefix_info)
+                continue
             color = self._config.get_color_pair(filter_idx)
             # If offset is not 0, this means the original content line
             # is being wrapped on to multiple lines on the screen. We

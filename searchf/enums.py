@@ -15,7 +15,7 @@ class AutoEnum(Enum):
         return obj
 
     def __str__(self):
-        return f'{self._value_} {self._description}'
+        return f'{self._description}' # f'{self._value_} {self._description}'
 
     @classmethod
     def from_int(cls, i):

@@ -26,7 +26,7 @@ If working from the sources (ie not an installed package), the application can b
 
 ## What about coverage?
 
-The numbers below are as of version `1.5`.
+The numbers below are as of version `1.6`.
 
 Unit tests don't cover much as `pytest --cov=searchf` returns:
 
@@ -34,18 +34,21 @@ Unit tests don't cover much as `pytest --cov=searchf` returns:
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    554    554     0%
+searchf/app.py                    563    563     0%
 searchf/colors.py                  29      0   100%
-searchf/models.py                 134      2    99%
-searchf/segments.py                48      0   100%
+searchf/enums.py                   63      1    98%
+searchf/models.py                 181     12    93%
+searchf/segments.py                57      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/all.py               144    144     0%
-searchf/test/color.py              48     48     0%
+searchf/test/all.py               125    125     0%
+searchf/test/color.py              54     54     0%
 searchf/test/test_colors.py        32      4    88%
-searchf/test/test_models.py        62      0   100%
-searchf/test/test_segments.py      50      0   100%
+searchf/test/test_enums.py         15      0   100%
+searchf/test/test_models.py        58      0   100%
+searchf/test/test_segments.py      51      0   100%
+searchf/utils.py                   26     26     0%
 ---------------------------------------------------
-TOTAL                            1102    752    32%
+TOTAL                            1255    785    37%
 ```
 
 Application tests coverage is better at 99%. Indeed, running
@@ -58,16 +61,19 @@ shows:
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    554     10    98%
+searchf/app.py                    563     10    98%
 searchf/colors.py                  29      0   100%
-searchf/models.py                 134      0   100%
-searchf/segments.py                48      0   100%
+searchf/enums.py                   63      0   100%
+searchf/models.py                 181      0   100%
+searchf/segments.py                57      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/all.py               144      5    97%
-searchf/test/test_models.py        62      0   100%
-searchf/test/test_segments.py      50      0   100%
+searchf/test/all.py               125      1    99%
+searchf/test/test_enums.py         15      0   100%
+searchf/test/test_models.py        58      0   100%
+searchf/test/test_segments.py      51      0   100%
+searchf/utils.py                   26      4    85%
 ---------------------------------------------------
-TOTAL                            1022     15    99%
+TOTAL                            1169     15    99%
 ```
 
 ## How to build the package from sources

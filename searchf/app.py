@@ -110,7 +110,7 @@ class ViewConfig:
     wrap: bool = True
     bullets: bool = False
     reverse_matching: bool = False
-    line_visibility: enums.LineVisibility = enums.LineVisibility.ALL
+    line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
     show_all_lines: bool = True
     show_spaces: bool = False
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT

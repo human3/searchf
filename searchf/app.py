@@ -187,6 +187,7 @@ class TextView:
         self._max_visible_lines_count = 0
         self._win: Optional[curses._CursesWindow] = None
         self._size: Size = (0, 0)
+        self._ruler: str = ''
 
     def get_config(self) -> ViewConfig:
         '''Gets the config'''
@@ -267,10 +268,6 @@ class TextView:
             color = 0 if f.hiding else self._config.get_color_pair(i)
             self._win.addstr(text, color)
 
-    def _draw_ruler(self, y, prefix_info):
-        _, w_index, _ = prefix_info
-        self._win.addstr(y, 0, f'{"----":^{w_index}}')
-
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
         if w_index > 0:
@@ -315,7 +312,7 @@ class TextView:
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
             if line_idx == models.RULER_INDEX:
-                self._draw_ruler(y, prefix_info)
+                self._win.addstr(y, 0, self._ruler)
                 continue
             color = self._config.get_color_pair(filter_idx)
             # If offset is not 0, this means the original content line
@@ -339,6 +336,7 @@ layout of the view model.
 
         # Compute space available for file content
         h, w = self._size
+        self._ruler = '-' * w
         prefix_len, _, _ = self._get_prefix_info()
         h = max(0, h - 1 - self._config.get_filters_count())
         w = max(0, w - prefix_len)

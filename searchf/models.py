@@ -112,13 +112,6 @@ class LineModelFilter:
         self._queue = []
         return models
 
-    def _flushBeforeMatching(self) -> List[LineModel]:
-        '''Flush the queue and make sure we are going to bufferize
-        the appropriate amount of subsequent non-matching lines, if
-        we encounter any.'''
-        self._left = self._size
-        return self._flush()
-
     def _updateLastYielded(self, model: LineModel):
         line, _, _, _ = model
         self._last_line_visible = line + 1
@@ -133,7 +126,7 @@ class LineModelFilter:
             # Check if we need to add horizontal rule (index -1)
             line, _, _, _ = queued[0]
             if line > self._last_line_visible:
-                models.append(LineModel(RULER_INDEX, -1, None, []))
+                models.append(LineModel(RULER_INDEX, -1, '', []))
             models = models + queued
 
         models.append(model)

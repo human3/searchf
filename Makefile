@@ -9,7 +9,10 @@ cover:
 	TERM='screen-256color' coverage run -m searchf.test.all
 	coverage report -m
 
+type:
+	mypy searchf
+
 lint:
 	pylint searchf
 
-all: lint tests cover
+all: type lint tests cover

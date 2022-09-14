@@ -49,11 +49,14 @@ class Filter:
 def _digits_count(max_number) -> int:
     return math.floor(math.log10(max(1, max_number))+1)
 
+RULER_INDEX = -1
 
 class LineModel(NamedTuple):
     '''Model data associated with each line:
     - the index of the line in the original content (required because
-      we don't always show all lines of the original file)
+      we don't always show all lines of the original file), or
+      -1 if this line does not represent original content (like
+      an horizontal ruler).
     - the index of the matching filter if any, or -1 otherwise
     - the text of the line
     - the segments that will be highlighted (and that are matching
@@ -63,6 +66,87 @@ class LineModel(NamedTuple):
     filter_index: int
     text: str
     segments: List[segments.Segment]
+
+
+class LineModelFilter:
+    '''Class use to filter out LineModel according to a given line visibility
+    mode. Models are added sequentially, one by one, and are then yielded back
+    to caller (or not) so as to reveal the desired amount of non-matching lines
+    above and below matching lines.
+    '''
+    def __init__(self, mode: enums.LineVisibility):
+        self._queue: List[LineModel] = []
+        if mode == enums.LineVisibility.ONLY_MATCHING:
+            self._size = 0
+        elif mode == enums.LineVisibility.CONTEXT_1:
+            self._size = 1
+        elif mode == enums.LineVisibility.CONTEXT_2:
+            self._size = 2
+        elif mode == enums.LineVisibility.CONTEXT_5:
+            self._size = 5
+        else:
+            assert mode == enums.LineVisibility.ALL, f'BAD enum {mode}'
+            self._size = -1
+        self._left = 0
+        self._last_line_visible = 0
+
+    def _add(self, model: LineModel) -> bool:
+        '''Adds model and returns whether or not caller should flush queue.'''
+        if self._size == 0:
+            return False
+        self._queue.append(model)
+        if self._size < 0:
+            # Infinite capacity, never queueing anything...
+            return True
+        if self._left > 0:
+            # Want caller to call flush
+            self._left -= 1
+            return True
+        # We are now queueing these lines, as we are unsure they will be shown
+        if len(self._queue) > self._size:
+            self._queue.pop(0)
+        return False
+
+    def _flush(self) -> List[LineModel]:
+        models = self._queue
+        self._queue = []
+        return models
+
+    def _updateLastYielded(self, model: LineModel):
+        line, _, _, _ = model
+        self._last_line_visible = line + 1
+
+    def addMatching(self, model: LineModel) -> List[LineModel]:
+        '''Adds a line model that matches a filter. Returns
+        the list of line models that are visible, if any.'''
+
+        models = []
+        queued = self._flush()
+        if len(queued) > 0:
+            # Check if we need to add horizontal rule (index -1)
+            line, _, _, _ = queued[0]
+            if line > self._last_line_visible:
+                models.append(LineModel(RULER_INDEX, -1, '', []))
+            models = models + queued
+
+        models.append(model)
+        self._updateLastYielded(model)
+
+        # Make sure we are going to bufferize the appropriate amount
+        # of subsequent non-matching lines, if we encounter any.
+        self._left = self._size
+
+        return models
+
+    def addNonMatching(self, model: LineModel) -> List[LineModel]:
+        '''Adds a line model that does not match any filter. Returns
+        the list of line models that are visible, if any.'''
+        if not self._add(model):
+            return []
+        queued = self._flush()
+        assert len(queued) == 1
+        self._updateLastYielded(model)
+        return queued
 
 
 class Model:
@@ -96,15 +180,10 @@ class Model:
         '''Recomputes the data model by applying the given filters to the
         current file content.
         '''
-        show_matching = mode in (
-            enums.LineVisibility.ALL,
-            enums.LineVisibility.ONLY_MATCHING)
-        # We require at least a non hiding filter to show non matching lines
-        show_not_matching = sum(not f.hiding for f in filters) <= 0 \
-            or mode == enums.LineVisibility.ALL
-        data = []
+        data: List[LineModel] = []
         hits = [0 for f in filters]
-
+        mode = mode if sum(not f.hiding for f in filters) > 0 else enums.LineVisibility.ALL
+        q = LineModelFilter(mode)
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
@@ -115,15 +194,16 @@ class Model:
                     segments.find_matching(line, f.keywords, f.ignore_case)
                 if matching:
                     hits[fidx] += 1
-                    if show_matching and not f.hiding:
-                        data.append(LineModel(i, fidx, line, matching_segments))
+                    if not f.hiding:
+                        lines = q.addMatching(LineModel(i, fidx, line, matching_segments))
+                        data = data + lines
                     break
-            if not matching and show_not_matching:
-                data.append(LineModel(i, -1, line, []))
+            if not matching:
+                lines = q.addNonMatching(LineModel(i, -1, line, []))
+                data = data + lines
 
         self.data = data
         self.hits = hits
-
 
 class LineViewModel(NamedTuple):
     '''View model data associated with each line'''
@@ -197,8 +277,11 @@ class ViewModel:
         else:
             for idata, mdata in enumerate(model_data):
                 firstdlines.append(len(data))
-                _, _, text, _ = mdata
+                line_idx, _, text, _ = mdata
                 offset = 0
+                if line_idx == RULER_INDEX:
+                    data.append(LineViewModel(idata, offset))
+                    continue
                 left = len(text)
                 while left >= 0:
                     data.append(LineViewModel(idata, offset))

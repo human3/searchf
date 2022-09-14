@@ -4,6 +4,7 @@
 # pylint: disable=protected-access
 # pylint: disable=no-member
 
+from .. import enums
 from .. import models
 
 
@@ -45,21 +46,25 @@ def test_model():
     assert 3 == m.line_count()
     assert 1 == m.line_number_length()
 
-    m.sync([], False)
+    m.sync([], enums.LineVisibility.ALL)
     assert 0 == m.hits_count()
 
     f = models.Filter()
     f.add('not match')
-    m.sync([f], False)
+    m.sync([f], enums.LineVisibility.ALL)
     assert 0 == m.hits_count()
     assert 3 == m.line_count()
 
     f.pop()
     f.add('line')
-    m.sync([f], False)
+    m.sync([f], enums.LineVisibility.ALL)
     assert 2 == m.hits_count()
     assert 3 == m.line_count()
-    m.sync([f], True)
+    m.sync([f], enums.LineVisibility.CONTEXT_1)
+    assert 2 == m.hits_count()
+    m.sync([f], enums.LineVisibility.CONTEXT_2)
+    assert 2 == m.hits_count()
+    m.sync([f], enums.LineVisibility.CONTEXT_5)
     assert 2 == m.hits_count()
 
 
@@ -69,7 +74,7 @@ def test_view_model():
 
     m = models.Model()
     m.set_lines(['A very simple first line', 'Another line', 'And a third one'])
-    m.sync([], False)
+    m.sync([], enums.LineVisibility.ALL)
 
     vm.layout(1, 1, m.data, True)
     vm.layout(1, 1, m.data, False)

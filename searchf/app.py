@@ -187,6 +187,7 @@ class TextView:
         self._max_visible_lines_count = 0
         self._win: Optional[curses._CursesWindow] = None
         self._size: Size = (0, 0)
+        self._ruler: str = ''
 
     def get_config(self) -> ViewConfig:
         '''Gets the config'''
@@ -226,10 +227,10 @@ class TextView:
         if not self._config.has_filters():
             self._win.addstr(' No filter ', style)
         else:
-            self._win.addstr(f'{self._model.hits_count():>8} ', style)
-            self._win.addstr(f'| {"Case":^{CASE_COL_LEN}} ', style)
-            self._win.addstr(f'| {"Shown":^{SHOWN_COL_LEN}} ', style)
-            self._win.addstr('| Keywords ', style)
+            self._win.addstr(f'{self._model.hits_count():>8}', style)
+            self._win.addstr(f' | {"Case":^{CASE_COL_LEN}}', style)
+            self._win.addstr(f' | {"Shown":^{SHOWN_COL_LEN}}', style)
+            self._win.addstr(' | Keywords ', style)
 
         # Print from right to left
         def move_left_for(x, text):
@@ -260,9 +261,9 @@ class TextView:
             y += 1
             self._win.addstr(y, 0, f'{self._model.hits[i]:>8}')
             text = CASE_COL_TEXTS[1 if f.ignore_case else 2]
-            self._win.addstr(f'| {text:^{CASE_COL_LEN}} ')
+            self._win.addstr(f' | {text:^{CASE_COL_LEN}}')
             text = SHOWN_COL_TEXTS[1 if f.hiding else 2]
-            self._win.addstr(f'| {text:^{SHOWN_COL_LEN}} | ')
+            self._win.addstr(f' | {text:^{SHOWN_COL_LEN}} | ')
             text = ' AND '.join(f.keywords)
             color = 0 if f.hiding else self._config.get_color_pair(i)
             self._win.addstr(text, color)
@@ -270,6 +271,7 @@ class TextView:
     def _draw_prefix(self, y, prefix_info, line_idx, color):
         _, w_index, sep = prefix_info
         if w_index > 0:
+            assert line_idx >= 0
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
@@ -309,6 +311,9 @@ class TextView:
             idata, offset = self._vm.data[iddata]
             iddata += 1
             line_idx, filter_idx, text, matching_segments = self._model.data[idata]
+            if line_idx == models.RULER_INDEX:
+                self._win.addstr(y, 0, self._ruler)
+                continue
             color = self._config.get_color_pair(filter_idx)
             # If offset is not 0, this means the original content line
             # is being wrapped on to multiple lines on the screen. We
@@ -331,6 +336,7 @@ layout of the view model.
 
         # Compute space available for file content
         h, w = self._size
+        self._ruler = '-' * w
         prefix_len, _, _ = self._get_prefix_info()
         h = max(0, h - 1 - self._config.get_filters_count())
         w = max(0, w - prefix_len)
@@ -769,12 +775,13 @@ class Views:
     def _get_keyword(self) -> str:
         return self.get_text('Keyword: ', '')
 
-    def try_start_search(self) -> None:
+    def try_start_search(self) -> StatusText:
         '''Tries to initiate a less like search.'''
         v = self._content[self._current]
-        if not v.has_filters():
-            t = self._get_keyword()
-            v.search(t)
+        if v.has_filters():
+            return 'Cannot start search when filters already defined'
+        t = self._get_keyword()
+        return v.search(t)
 
     def handle_key(self, key) -> Tuple[bool, StatusText]:
         '''Handles the given key, propagating it to the proper view.'''

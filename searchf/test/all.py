@@ -123,7 +123,7 @@ def _run_app_tests(stdscr):
                 ['e', '+', 'e', 'e'],
                 ['something', 'good', '']),
         AppTest('Test keyword search',
-                ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p'],
+                ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p', '/'],
                 ['filter']),
         AppTest('Test case sensitive search',
                 ['i', '/', 'i', 'i'],

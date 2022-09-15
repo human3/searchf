@@ -625,7 +625,9 @@ HELP = f'''  ~ Searchf Help ~
     1 2 3      Switch to view #1, #2 or #3
     ! @ #      Switch to view #1, #2 or #3 with current filters
     r          Reload file
+    R          Toggle auto reload file
     t          Reload file and scroll to end (tail)
+    T          Toggle auto reload and scroll to end (tail)
 
   Filters:
     f ENTER    Enter first keyword of a new filter

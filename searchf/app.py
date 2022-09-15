@@ -36,6 +36,7 @@ USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
 StatusText = str
 
 STATUS_EMPTY = ''
+STATUS_UNCHANGED = 'unchanged'
 
 Size = Tuple[int, int]
 
@@ -49,6 +50,11 @@ def get_ch(scr):
     '''This function is a test artifact that wraps getch() from curses so
     that we can overwrite it and inject keys while testing.'''
     return scr.getch()
+
+
+def getmtime(path):
+    '''Wraps os.getmtime() for testing'''
+    return os.path.getmtime(path)
 
 
 class EscapeException(Exception):
@@ -697,6 +703,9 @@ class Views:
         self._current: int = -1
         self._hidden_view: int = -1
         self._y_get_text: int = 0
+        self._mtime: float = 0.0
+        self._auto_reload: bool = False
+        self._auto_reload_anchor: int = 0
 
     def _layout(self) -> None:
         assert self._scr
@@ -752,6 +761,7 @@ class Views:
                     v.set_lines(lines)
                     v.set_v_offset(scroll_to, False)
         self._content[self._current].draw()
+        self._mtime = getmtime(self._path)
         return 'File reloaded'
 
     def create(self, scr, path: str) -> None:
@@ -783,8 +793,24 @@ class Views:
         t = self._get_keyword()
         return v.search(t)
 
+    def _toggle_auto_reload(self, anchor: int):
+        self._auto_reload = not self._auto_reload
+        self._auto_reload_anchor = anchor
+        return f'Auto reload {self._auto_reload}'
+
+    def _poll(self) -> Tuple[bool, StatusText]:
+        if self._auto_reload:
+            mtime = getmtime(self._path)
+            if mtime != self._mtime:
+                return True, self._reload(self._auto_reload_anchor)
+        return False, STATUS_UNCHANGED
+
     def handle_key(self, key) -> Tuple[bool, StatusText]:
         '''Handles the given key, propagating it to the proper view.'''
+
+        if key == -1:
+            # No key, means we are polling view for any self triggered action
+            return self._poll()
 
         # Local functions redirecting to current view v
         v = self._content[self._current]
@@ -868,7 +894,9 @@ class Views:
             ord('f'):          lambda: new_keyword(True),
             ord('\n'):         lambda: new_keyword(True),
             ord('r'):          lambda: self._reload(0),
+            ord('R'):          lambda: self._toggle_auto_reload(0),
             ord('t'):          lambda: self._reload(sys.maxsize),
+            ord('T'):          lambda: self._toggle_auto_reload(sys.maxsize),
             ord('+'):          lambda: new_keyword(False),
             ord('='):          lambda: new_keyword(False),
             ord('/'):          self.try_start_search,
@@ -915,9 +943,8 @@ def main_loop(scr, path: str) -> None:
     status_x = max(0, min(10, max_x - 50))  # allow for 50 char of status
     status_y = max_y - 1
 
+    scr.timeout(1000)
     while True:
-        scr.refresh()
-        scr.move(status_y, 0)
         try:
             key = get_ch(scr)
         except KeyboardInterrupt:
@@ -925,14 +952,16 @@ def main_loop(scr, path: str) -> None:
         # debug(f'Key {key}')
         if key == curses.KEY_RESIZE:
             raise Exception('Sorry, resizing is not supported')
-
-        clear(scr, status_y, status_x, len(status))
-        handled, status = views.handle_key(key)
+        handled, new_status = views.handle_key(key)
         if not handled and key in (ord('q'), ord('Q')):
             break
-        if not status:
-            status = ''
+        if new_status == STATUS_UNCHANGED:
+            continue
+        clear(scr, status_y, status_x, len(status))
+        status = new_status
         scr.addstr(status_y, status_x, status[:max_x-1])
+        scr.refresh()
+        scr.move(status_y, 0)
 
 
 def init_env() -> argparse.ArgumentParser:

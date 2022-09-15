@@ -42,6 +42,13 @@ def _my_get_text(_1, _2, _3, _4, _5, _6):
     return text
 
 
+TIME = 0.0
+def _my_getmtime(_):
+    global TIME
+    TIME += 1
+    return TIME
+
+
 class AppTest(NamedTuple):
     '''Model data associated with a test:
     - the description of the text
@@ -52,6 +59,8 @@ class AppTest(NamedTuple):
     keys: List[str]
     inputs: List[str]
 
+# Special key that will make _my_get_ch return -1 and result in app being polled
+KEY_POLL = 'POLL'
 
 def _run(stdscr, t: AppTest):
     print(t.description)
@@ -61,26 +70,27 @@ def _run(stdscr, t: AppTest):
     app.views.create(stdscr, TEST_FILE)
     original_get_text = app._get_text
     app._get_text = _my_get_text
+    original_getmtime = app.getmtime
+    app.getmtime = _my_getmtime
+
     for key in t.keys:
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.01)
-        handled = app.views.handle_key(ord(key))
-        assert handled or key == 'q'
+        app.views.handle_key(-1 if key == KEY_POLL else ord(key))
     app._get_text = original_get_text
+    app.getmtime =  original_getmtime
 
-
-KEYS = [' ', '>', '<']
+KEYS = [' ', '>', '<', KEY_POLL]
 KEY_IDX = 0
-
 
 def _my_get_ch(_):
     global KEY_IDX
     if KEY_IDX >= len(KEYS):
         return ord('q')
-    key = ord(KEYS[KEY_IDX])
+    key = KEYS[KEY_IDX]
     KEY_IDX += 1
-    return key
+    return -1 if key == KEY_POLL else ord(key)
 
 
 # This is poor man's testing, as we don't validate much other than
@@ -102,6 +112,8 @@ def _run_app_tests(stdscr):
                 ['?', 'd', 'a', 'a', 's', 'w', 'q'], []),
         AppTest('Test view switching',
                 ['r', 't', '1', '2', '3', '!', '@', '#'], []),
+        AppTest('Test reloading',
+                ['r', 't', KEY_POLL, 'R', KEY_POLL, 'R', 'T', 'T'], []),
         AppTest('Test scrolling around',
                 ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []),
         AppTest('Test goto lines',
@@ -156,6 +168,7 @@ def _run_app_tests(stdscr):
     app.views.handle_key = original_handle_key
     app.USE_DEBUG = False
 
+    # Test a specific screen resolution
     def get_max_yx(_):
         return 20, 20
 
@@ -194,6 +207,7 @@ def _run_app_tests(stdscr):
 
     print('Test app.main_loop()')
     app.get_ch = _my_get_ch
+    app.getmtime = _my_getmtime
     app.main_loop(stdscr, TEST_FILE)
     app.get_ch = stdscr.getch
 

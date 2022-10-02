@@ -169,7 +169,7 @@ CASE_COL_TEXTS = ['Case', 'ignored', 'sensitive']
 CASE_COL_LEN = len(max(CASE_COL_TEXTS, key=len))
 
 SHOWN_COL_TEXTS = ['Shown', 'no', 'yes']
-SHOWN_COL_LEN = len(max(SHOWN_COL_TEXTS , key=len))
+SHOWN_COL_LEN = len(max(SHOWN_COL_TEXTS, key=len))
 
 
 class PrefixInfo(NamedTuple):

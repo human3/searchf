@@ -79,7 +79,7 @@ def _run(stdscr, t: AppTest):
         time.sleep(0.01)
         app.views.handle_key(-1 if key == KEY_POLL else ord(key))
     app._get_text = original_get_text
-    app.getmtime =  original_getmtime
+    app.getmtime = original_getmtime
 
 KEYS = [' ', '>', '<', KEY_POLL]
 KEY_IDX = 0

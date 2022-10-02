@@ -20,12 +20,14 @@ import sys
 import copy
 
 from . import __version__
+from . import debug
 from . import utils
 from . import enums
 from . import models
 from . import segments
 from . import colors
-
+from . import keys
+from . import types
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -38,18 +40,11 @@ StatusText = str
 STATUS_EMPTY = ''
 STATUS_UNCHANGED = 'unchanged'
 
-Size = Tuple[int, int]
 
-def get_max_yx(scr) -> Size:
+def get_max_yx(scr) -> types.Size:
     '''This function is a test artifact that wraps getmaxyx() from curses
     so that we can overwrite it and test specific dimensions.'''
     return scr.getmaxyx()
-
-
-def get_ch(scr):
-    '''This function is a test artifact that wraps getch() from curses so
-    that we can overwrite it and inject keys while testing.'''
-    return scr.getch()
 
 
 def getmtime(path):
@@ -192,7 +187,7 @@ class TextView:
         self._basename = os.path.basename(path)
         self._max_visible_lines_count = 0
         self._win: Optional[curses._CursesWindow] = None
-        self._size: Size = (0, 0)
+        self._size: types.Size = (0, 0)
         self._ruler: str = ''
 
     def get_config(self) -> ViewConfig:
@@ -300,7 +295,7 @@ class TextView:
 
     def draw(self):
         '''Draws the view'''
-        # debug(f'{self._name} draw {self._vm.voffset}')
+        # debug.out(f'{self._name} draw {self._vm.voffset}')
         self._win.clear()
 
         prefix_info = self._get_prefix_info()
@@ -665,7 +660,7 @@ Type 'q' to close this help'''
 
 class DebugView:
     '''Displays few debug lines, convenient to debug layout while curses running.'''
-    def __init__(self, scr, size: Size, position: Tuple[int, int]) -> None:
+    def __init__(self, scr, size: types.Size, position: Tuple[int, int]) -> None:
         self._scr = scr
         self._lines: List[str] = []
         self._size = size
@@ -727,6 +722,7 @@ class Views:
             view_lines_count = maxh
             x = padding
             y = dbg_size[0] + padding
+            debug.set_output(self.debug.out)
 
         for v in self._content:
             v.layout(view_lines_count, maxw, y, x)
@@ -919,22 +915,15 @@ class Views:
         elif key in keys_to_func:
             status = StatusText(keys_to_func[key]())
         else:
-            return False, 'Unknown key (? for help, q to quit)'
+            return False, f'Unknown key {key} (? for help, q to quit)'
 
         return True, status
 
 
 views = Views()
 
-
-def debug(*argv) -> None:
-    '''Function to output a debug string onto the curses managed screen.'''
-    if views.debug:
-        views.debug.out(*argv)
-
-
-def main_loop(scr, path: str) -> None:
-    '''Main curses entry point.'''
+def main_loop(scr, path: str, keysProcessor: keys.Processor) -> None:
+    '''Main loop consuming keys and events.'''
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
     views.create(scr, path)
@@ -948,10 +937,9 @@ def main_loop(scr, path: str) -> None:
     scr.timeout(1000)
     while True:
         try:
-            key = get_ch(scr)
+            key = keysProcessor.get()
         except KeyboardInterrupt:
             break
-        # debug(f'Key {key}')
         if key == curses.KEY_RESIZE:
             raise Exception('Sorry, resizing is not supported')
         handled, new_status = views.handle_key(key)
@@ -964,6 +952,11 @@ def main_loop(scr, path: str) -> None:
         scr.addstr(status_y, status_x, status[:max_x-1])
         scr.refresh()
         scr.move(status_y, 0)
+
+
+def main_curses(scr, path: str) -> None:
+    '''Main entry point requiring curse environment.'''
+    main_loop(scr, path, keys.Processor(scr))
 
 
 def init_env() -> argparse.ArgumentParser:
@@ -985,7 +978,8 @@ def main() -> None:
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
-    utils.wrapper(False, curses.wrapper, main_loop, args.file)
+    utils.wrapper(False, curses.wrapper,
+                  main_curses, args.file)
 
 
 if __name__ == '__main__':

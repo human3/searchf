@@ -7,7 +7,6 @@
 
 import curses
 import os
-import sys
 import time
 
 from typing import List
@@ -16,13 +15,14 @@ from typing import NamedTuple
 from .. import app
 from .. import colors
 from .. import utils
+from .. import debug
+from .. import keys
 from . import test_enums
 from . import test_segments
 from . import test_models
+from . import test_keys
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
-if len(sys.argv) > 1:
-    TEST_FILE = sys.argv[1]
 
 INPUTS = []
 INPUT_IDX = 0
@@ -59,8 +59,6 @@ class AppTest(NamedTuple):
     keys: List[str]
     inputs: List[str]
 
-# Special key that will make _my_get_ch return -1 and result in app being polled
-KEY_POLL = 'POLL'
 
 def _run(stdscr, t: AppTest):
     print(t.description)
@@ -77,20 +75,9 @@ def _run(stdscr, t: AppTest):
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.01)
-        app.views.handle_key(-1 if key == KEY_POLL else ord(key))
+        app.views.handle_key(-1 if key == keys.POLL else ord(key))
     app._get_text = original_get_text
     app.getmtime = original_getmtime
-
-KEYS = [' ', '>', '<', KEY_POLL]
-KEY_IDX = 0
-
-def _my_get_ch(_):
-    global KEY_IDX
-    if KEY_IDX >= len(KEYS):
-        return ord('q')
-    key = KEYS[KEY_IDX]
-    KEY_IDX += 1
-    return -1 if key == KEY_POLL else ord(key)
 
 
 # This is poor man's testing, as we don't validate much other than
@@ -113,7 +100,7 @@ def _run_app_tests(stdscr):
         AppTest('Test view switching',
                 ['r', 't', '1', '2', '3', '!', '@', '#'], []),
         AppTest('Test reloading',
-                ['r', 't', KEY_POLL, 'R', KEY_POLL, 'R', 'T', 'T'], []),
+                ['r', 't', keys.POLL, 'R', keys.POLL, 'R', 'T', 'T'], []),
         AppTest('Test scrolling around',
                 ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []),
         AppTest('Test goto lines',
@@ -158,7 +145,7 @@ def _run_app_tests(stdscr):
 
     def my_handle_key(key):
         for i in range(20):
-            app.debug(f'Test {i} dbg {key}')
+            debug.out(f'Test {i} dbg {key}')
         return original_handle_key(key)
 
     app.views.handle_key = my_handle_key
@@ -206,10 +193,10 @@ def _run_app_tests(stdscr):
     assert actual
 
     print('Test app.main_loop()')
-    app.get_ch = _my_get_ch
     app.getmtime = _my_getmtime
-    app.main_loop(stdscr, TEST_FILE)
-    app.get_ch = stdscr.getch
+    p = keys.Processor(stdscr)
+    p.inject_test_keys(['q', ' ', '>', '<', keys.POLL])
+    app.main_loop(stdscr, TEST_FILE, p)
 
     print('Test app.init_env()')
     parser = app.init_env()
@@ -235,15 +222,15 @@ def _run_unit_tests():
     test_models.test_model()
     print('Test models.test_view_model()')
     test_models.test_view_model()
-
+    print('Test keys.test_processor()')
+    test_keys.test_processor()
 
 def main():
     '''Test entry point'''
     print('== Tests started ==')
-    utils.wrapper(True, curses.wrapper, _run_app_tests)
     _run_unit_tests()
+    utils.wrapper(True, curses.wrapper, _run_app_tests)
     print('== Tests passed ==')
-
 
 if __name__ == '__main__':
     main()

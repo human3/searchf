@@ -7,7 +7,7 @@ def wrapper(force, func, /, *args):
     '''Helper function that wraps given function (eg curses.wrapper) so
     that print() statements gets bufferized and dumped to stdout in
     case func raises any exception. This allows seeing the output of
-    debug print() statements which are otherwize lost as curses traps
+    debug print() statements which are otherwise lost as curses traps
     stdout for its own use.'''
 
     class StdBuffer:

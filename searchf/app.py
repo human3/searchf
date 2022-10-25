@@ -145,6 +145,15 @@ class ViewConfig:
         assert 0 <= j < count
         self.filters[i], self.filters[j] = self.filters[j], self.filters[i]
 
+    def rotate_filters(self, up: bool) -> None:
+        '''Rotates filters'''
+        count = len(self.filters)
+        assert count >= 2
+        if up:
+            self.filters = self.filters[1:] + self.filters[:1]
+        else:
+            self.filters = self.filters[-1:] + self.filters[:-1]
+
     def get_color_pair(self, filter_index: int) -> StatusText:
         '''Returns the id of the color pair associated with given filter index'''
         return colors.get_color_pair(self.palette_index, filter_index)
@@ -529,10 +538,16 @@ layout of the view model.
         if self._config.get_filters_count() < 2:
             return 'Not enough filters'
         self._config.swap_filters(count - 1, count - 2)
-        # We call _sync to recompute everything. We could just go through the rendering data
-        # and just swap the filter indexes...
         self._sync(True)
         return 'Filters swapped'
+
+    def rotate_filters(self, up: bool) -> StatusText:
+        '''Rotate the filters'''
+        if self._config.get_filters_count() < 2:
+            return 'Not enough filters'
+        self._config.rotate_filters(up)
+        self._sync(True)
+        return 'Filters rotated'
 
     def _vscroll_to_match(self, starting: bool, direction: int) -> StatusText:
         iddata = self._vm.voffset
@@ -602,6 +617,8 @@ layout of the view model.
             enums.TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
             enums.TextViewCommand.TOGGLE_HIDING:         self._toggle_hiding,
             enums.TextViewCommand.SWAP_FILTERS:          self.swap_filters,
+            enums.TextViewCommand.ROTATE_FILTERS_UP:     lambda: self.rotate_filters(True),
+            enums.TextViewCommand.ROTATE_FILTERS_DOWN:   lambda: self.rotate_filters(False),
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -630,7 +647,8 @@ HELP = f'''  ~ Searchf Help ~
     + =        Add a new keyword to current filter
     - _        Remove last keyword from filter
     e          Edit last keyword
-    s          Swap the top 2 filters
+    d          Swap the top 2 filters
+    w/s        Rotate the filters up/down
     i          Toggle whether or not current filter ignores case
     x          Toggle whether or not lines matching current filter are shown
 
@@ -638,7 +656,7 @@ HELP = f'''  ~ Searchf Help ~
     l          Toggles line numbers visibility
     k          Toggles line wrapping
     *          Toggles diamonds visibility at line starts (when wrapping)
-    .          Enable/disable space displaying as bullets
+    .          Toggles whitespace displaying as dot
     c/C        Next/previous color palette
     h/H        Next/previous highlight and colorization mode
     m/M        Next/previous line visibility mode
@@ -646,7 +664,7 @@ HELP = f'''  ~ Searchf Help ~
   Navigation:
     SPACE      Scroll down a page
     b          Scroll back a page
-    ARROWS     Scroll up/down/left/right (also wasd)
+    ARROWS     Scroll up/down/left/right
     <  g       Scroll to the top
     >  G       Scroll to the bottom
     p          Scroll to previous matching line
@@ -854,13 +872,9 @@ class Views:
             ord('i'):              enums.TextViewCommand.TOGGLE_IGNORE_CASE,
             ord('x'):              enums.TextViewCommand.TOGGLE_HIDING,
             curses.KEY_UP:         enums.TextViewCommand.GO_UP,
-            ord('w'):              enums.TextViewCommand.GO_UP,
             curses.KEY_DOWN:       enums.TextViewCommand.GO_DOWN,
-            ord('s'):              enums.TextViewCommand.GO_DOWN,
             curses.KEY_LEFT:       enums.TextViewCommand.GO_LEFT,
-            ord('a'):              enums.TextViewCommand.GO_LEFT,
             curses.KEY_RIGHT:      enums.TextViewCommand.GO_RIGHT,
-            ord('d'):              enums.TextViewCommand.GO_RIGHT,
             curses.KEY_HOME:       enums.TextViewCommand.GO_HOME,
             ord('g'):              enums.TextViewCommand.GO_HOME,
             ord('<'):              enums.TextViewCommand.GO_HOME,
@@ -872,10 +886,10 @@ class Views:
             curses.KEY_PPAGE:      enums.TextViewCommand.GO_PPAGE,
             ord('b'):              enums.TextViewCommand.GO_PPAGE,
             curses.KEY_SLEFT:      enums.TextViewCommand.GO_SLEFT,
-            ord('A'):              enums.TextViewCommand.GO_SLEFT,
             curses.KEY_SRIGHT:     enums.TextViewCommand.GO_SRIGHT,
-            ord('D'):              enums.TextViewCommand.GO_SRIGHT,
-            ord('s'):              enums.TextViewCommand.SWAP_FILTERS,
+            ord('d'):              enums.TextViewCommand.SWAP_FILTERS,
+            ord('w'):              enums.TextViewCommand.ROTATE_FILTERS_UP,
+            ord('s'):              enums.TextViewCommand.ROTATE_FILTERS_DOWN,
         }
 
         # Map keys to custom functions used to handle more complex commands
@@ -973,14 +987,12 @@ def init_env() -> argparse.ArgumentParser:
     parser.add_argument('file')
     return parser
 
-
 def main() -> None:
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
     utils.wrapper(False, curses.wrapper,
                   main_curses, args.file)
-
 
 if __name__ == '__main__':
     main()

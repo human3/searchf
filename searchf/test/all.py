@@ -131,7 +131,10 @@ def _run_app_tests(stdscr):
                 ['x', 'f', 'x', 'x'],
                 ['Show']),
         AppTest('Test swapping filters',
-                ['s', 'f', 'f', 's'],
+                ['d', 'f', 'f', 'd'],
+                ['key', 'python']),
+        AppTest('Test rotating filters',
+                ['w', 'f', 'f', 'w', 's'],
                 ['key', 'python']),
     ]
 

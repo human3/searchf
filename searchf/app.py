@@ -40,6 +40,14 @@ StatusText = str
 STATUS_EMPTY = ''
 STATUS_UNCHANGED = 'unchanged'
 
+def _load_help_lines():
+    lines = [f'  ~ Searchf {__version__} Help ~', '']
+    help_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'help.txt')
+    with open(help_file, encoding='utf-8') as f:
+        lines += f.readlines()
+    return lines
+
+HELP_LINES = _load_help_lines()
 
 def get_max_yx(scr) -> types.Size:
     '''This function is a test artifact that wraps getmaxyx() from curses
@@ -623,59 +631,6 @@ layout of the view model.
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
 
-
-HELP = f'''  ~ Searchf Help ~
-
-  Version: {__version__}
-  More info: https://github.com/human3/searchf
-
-  Utility to interactively search for keywords in text files.
-
-  General keys:
-    q          Quit program, or close this help view
-    ?          Show this help
-    1 2 3      Switch to view #1, #2 or #3
-    ! @ #      Switch to view #1, #2 or #3 with current filters
-    r          Reload file
-    R          Toggle auto reload file
-    t          Reload file and scroll to end (tail)
-    T          Toggle auto reload and scroll to end (tail)
-
-  Filters:
-    f ENTER    Enter first keyword of a new filter
-    F          Pop top level filter
-    + =        Add a new keyword to current filter
-    - _        Remove last keyword from filter
-    e          Edit last keyword
-    d          Swap the top 2 filters
-    w/s        Rotate the filters up/down
-    i          Toggle whether or not current filter ignores case
-    x          Toggle whether or not lines matching current filter are shown
-
-  Display modes:
-    l          Toggles line numbers visibility
-    k          Toggles line wrapping
-    *          Toggles diamonds visibility at line starts (when wrapping)
-    .          Toggles whitespace displaying as dot
-    c/C        Next/previous color palette
-    h/H        Next/previous highlight and colorization mode
-    m/M        Next/previous line visibility mode
-
-  Navigation:
-    SPACE      Scroll down a page
-    b          Scroll back a page
-    ARROWS     Scroll up/down/left/right
-    <  g       Scroll to the top
-    >  G       Scroll to the bottom
-    p          Scroll to previous matching line
-    n          Scroll to next matching line
-    TAB  ^g    Goto line number
-    /          Start a search, kinda like "less", but only if
-               there are currently no filter defined...
-
-Type 'q' to close this help'''
-
-
 class DebugView:
     '''Displays few debug lines, convenient to debug layout while curses running.'''
     def __init__(self, scr, size: types.Size, position: Tuple[int, int]) -> None:
@@ -772,7 +727,7 @@ class Views:
             lines = f.readlines()
             for i, v in enumerate(self._content):
                 if i == len(self._content) - 1:
-                    v.set_lines(HELP.split('\n'))
+                    v.set_lines(HELP_LINES)
                 else:
                     v.set_lines(lines)
                     v.set_v_offset(scroll_to, False)

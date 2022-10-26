@@ -85,3 +85,5 @@ class TextViewCommand(Enum):
     NEXT_PALETTE = auto()
     PREV_PALETTE = auto()
     SWAP_FILTERS = auto()
+    ROTATE_FILTERS_UP = auto()
+    ROTATE_FILTERS_DOWN = auto()

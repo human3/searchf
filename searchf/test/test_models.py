@@ -25,47 +25,47 @@ def test_filter():
 
 def test_digit_count():
     '''Test models._digit_count()'''
-    assert 1 == models._digits_count(0)
-    assert 1 == models._digits_count(9)
-    assert 2 == models._digits_count(10)
-    assert 2 == models._digits_count(99)
-    assert 6 == models._digits_count(123456)
+    assert models._digits_count(0) == 1
+    assert models._digits_count(9) == 1
+    assert models._digits_count(10) == 2
+    assert models._digits_count(99) == 2
+    assert models._digits_count(123456) == 6
 
 
 def test_model():
     '''Test models.Model'''
     m = models.Model()
-    assert 0 == m.line_count()
-    assert 0 == m.hits_count()
+    assert m.line_count() == 0
+    assert m.hits_count() == 0
 
     m.set_lines([])
-    assert 0 == m.line_count()
-    assert 1 == m.line_number_length()
+    assert m.line_count() == 0
+    assert m.line_number_length() == 1
 
     m.set_lines(['A very simple first line', 'Another line', 'And a third one'])
-    assert 3 == m.line_count()
-    assert 1 == m.line_number_length()
+    assert m.line_count() == 3
+    assert m.line_number_length() == 1
 
     m.sync([], enums.LineVisibility.ALL)
-    assert 0 == m.hits_count()
+    assert m.hits_count() == 0
 
     f = models.Filter()
     f.add('not match')
     m.sync([f], enums.LineVisibility.ALL)
-    assert 0 == m.hits_count()
-    assert 3 == m.line_count()
+    assert m.hits_count() == 0
+    assert m.line_count() == 3
 
     f.pop()
     f.add('line')
     m.sync([f], enums.LineVisibility.ALL)
-    assert 2 == m.hits_count()
-    assert 3 == m.line_count()
+    assert m.hits_count() == 2
+    assert m.line_count() == 3
     m.sync([f], enums.LineVisibility.CONTEXT_1)
-    assert 2 == m.hits_count()
+    assert m.hits_count() == 2
     m.sync([f], enums.LineVisibility.CONTEXT_2)
-    assert 2 == m.hits_count()
+    assert m.hits_count() == 2
     m.sync([f], enums.LineVisibility.CONTEXT_5)
-    assert 2 == m.hits_count()
+    assert m.hits_count() == 2
 
 
 def test_view_model():

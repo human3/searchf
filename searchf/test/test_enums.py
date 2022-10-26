@@ -10,10 +10,14 @@ class DummyEnum(enums.AutoEnum):
 
 def test_get_next_prev():
     '''Test enums.get_next and enums.get_prev'''
-    assert DummyEnum.LAST_VALUE.get_next() \
+    assert DummyEnum.get_next(DummyEnum.FIRST_VALUE) \
+        == DummyEnum.MIDDLE_VALUE
+    assert DummyEnum.get_next(DummyEnum.MIDDLE_VALUE) \
+        == DummyEnum.LAST_VALUE
+    assert DummyEnum.get_next(DummyEnum.LAST_VALUE) \
         == DummyEnum.FIRST_VALUE
     assert DummyEnum.LAST_VALUE \
-        == DummyEnum.FIRST_VALUE.get_prev()
+        == DummyEnum.get_prev(DummyEnum.FIRST_VALUE)
 
 def test_from_int():
     '''Test enums can be converted from int.'''

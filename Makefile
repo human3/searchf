@@ -17,6 +17,17 @@ lint:
 
 # deps target requires sudo
 deps:
-	apt install mypy pylint
+	apt install mypy pylint python3-venv
+	python3 -m pip install build
+
+# Build package locally
+build:
+	python3 -m build
+
+install: build
+	python3 -m pip install dist/searchf-*.tar.gz
+
+clean:
+	pip uninstall -y searchf
 
 all: type lint tests cover

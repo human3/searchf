@@ -82,10 +82,10 @@ WARNING: instructions below must be adapted according to platform
 
 First install build dependencies (once) with something like
 
-`python -m pip install build`
+`python3 -m pip install build`
 
 Then:
 
 - Go to root of project
-- `python -m build`
-- Then, you can install with `python -m install dist/searchf-1.5-py3-none-any.whl`
+- `python3 -m build`
+- Then, you can install with `python3 -m pip install dist/searchf-*.tar.gz`

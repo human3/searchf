@@ -52,7 +52,6 @@ def _show_all_and_wait(scr):
 def main(scr):
     '''Module entry point'''
     assert curses.has_colors()
-    assert curses.can_change_color()
 
     colors.init()
     _reset()

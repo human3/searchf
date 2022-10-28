@@ -17,10 +17,13 @@ from .. import colors
 from .. import utils
 from .. import debug
 from .. import keys
+from .. import storage
+
 from . import test_enums
 from . import test_segments
 from . import test_models
 from . import test_keys
+from . import test_storage
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 
@@ -61,11 +64,13 @@ class AppTest(NamedTuple):
 
 
 def _run(stdscr, t: AppTest):
+    '''Helper function to run the given AppTest'''
     print(t.description)
     stdscr.clear()
     _reset_inputs(t.inputs)
     colors.init()
-    app.views.create(stdscr, TEST_FILE)
+    store = storage.Store('.searchf.test')
+    app.views.create(store, stdscr, TEST_FILE)
     original_get_text = app._get_text
     app._get_text = _my_get_text
     original_getmtime = app.getmtime
@@ -75,9 +80,11 @@ def _run(stdscr, t: AppTest):
         stdscr.refresh()
         # Add sleep just to see something, test can run without it
         time.sleep(0.01)
-        app.views.handle_key(-1 if key == keys.POLL else ord(key))
+        app.views.handle_key(key if isinstance(key, int) else ord(key))
+
     app._get_text = original_get_text
     app.getmtime = original_getmtime
+    store.destroy()
 
 
 # This is poor man's testing, as we don't validate much other than
@@ -94,19 +101,21 @@ def _run_app_tests(stdscr):
 
     appTests = [
         AppTest('Test keywords that are invalid regex',
-                ['f', 'q'], ['?']),
+                ['f'], ['?']),
         AppTest('Test that help can get displayed',
-                ['?', 'd', 'a', 'a', 's', 'w', 'q'], []),
+                ['?'], []),
         AppTest('Test view switching',
                 ['r', 't', '1', '2', '3', '!', '@', '#'], []),
         AppTest('Test reloading',
                 ['r', 't', keys.POLL, 'R', keys.POLL, 'R', 'T', 'T'], []),
         AppTest('Test scrolling around',
-                ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []),
+                ['>', '<', ' ', 'b'], []),
+        AppTest('Test scrolling horizontally',
+                [curses.KEY_RIGHT, curses.KEY_LEFT], []),
         AppTest('Test goto lines',
                 ['\t', '\t', '\t', '\t'], ['5', '99999', 'bad', '0']),
         AppTest('Test various display modes',
-                ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm', 'q'], []),
+                ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm'], []),
         AppTest('Test entering one letter keywords',
                 ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-',
                  '-', '+'],
@@ -135,6 +144,9 @@ def _run_app_tests(stdscr):
                 ['key', 'python']),
         AppTest('Test rotating filters',
                 ['w', 'f', 'f', 'w', 's'],
+                ['key', 'python']),
+        AppTest('Test save/load/delete slots',
+                ['[', '\\', '|', 'f', 'f', '\\', '\\', '[', ']', '|'],
                 ['key', 'python']),
     ]
 
@@ -211,6 +223,8 @@ def _run_unit_tests():
     test_enums.test_get_next_prev()
     print('Test enums.test_from_int()')
     test_enums.test_from_int()
+    print('Test enums.test_repr()')
+    test_enums.test_repr()
     print('Test segments.iterate()')
     test_segments.test_iterate()
     print('Test segments._sort_and_merge()')
@@ -227,6 +241,9 @@ def _run_unit_tests():
     test_models.test_view_model()
     print('Test keys.test_processor()')
     test_keys.test_processor()
+    print('Test storage.test_strore()')
+    test_storage.test_store()
+
 
 def main():
     '''Test entry point'''
@@ -234,6 +251,7 @@ def main():
     _run_unit_tests()
     utils.wrapper(True, curses.wrapper, _run_app_tests)
     print('== Tests passed ==')
+
 
 if __name__ == '__main__':
     main()

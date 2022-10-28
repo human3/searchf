@@ -87,3 +87,7 @@ class TextViewCommand(Enum):
     SWAP_FILTERS = auto()
     ROTATE_FILTERS_UP = auto()
     ROTATE_FILTERS_DOWN = auto()
+    SLOT_SAVE = auto()
+    SLOT_DELETE = auto()
+    SLOT_LOAD_NEXT = auto()
+    SLOT_LOAD_PREV = auto()

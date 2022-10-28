@@ -30,6 +30,7 @@ def test_processor():
         key = proc.process_(ord(k))
         assert key in (-1, curses.KEY_SRIGHT)
 
+    # Make sure we timeout while escaping
     keys.ESCAPE_TIMEOUT = 0.01
     key = proc.process_(27)
     assert proc.escaping_

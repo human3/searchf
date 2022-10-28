@@ -9,6 +9,9 @@
     R          Toggle auto reload file
     t          Reload file and scroll to end (tail)
     T          Toggle auto reload and scroll to end (tail)
+    \          Save filters and modes into next slot on disk
+    |          Delete current (last loaded) slot from disk
+    [/]        Load filters and modes from next/prev slot on disk
 
   Filters:
     f ENTER    Enter first keyword of a new filter

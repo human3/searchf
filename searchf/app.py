@@ -12,18 +12,19 @@ from typing import Optional
 from typing import Tuple
 
 import argparse
+import copy
 import curses
 import curses.ascii
 import os
 import re
 import sys
-import copy
 
 from . import __version__
 from . import debug
 from . import utils
 from . import enums
 from . import models
+from . import storage
 from . import segments
 from . import colors
 from . import keys
@@ -34,8 +35,6 @@ USE_DEBUG = False
 
 # Do not use curses.A_BOLD on Windows as it just renders horribly when highlighting
 USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
-
-StatusText = str
 
 STATUS_EMPTY = ''
 STATUS_UNCHANGED = 'unchanged'
@@ -54,15 +53,12 @@ def get_max_yx(scr) -> types.Size:
     so that we can overwrite it and test specific dimensions.'''
     return scr.getmaxyx()
 
-
 def getmtime(path):
     '''Wraps os.getmtime() for testing'''
     return os.path.getmtime(path)
 
-
 class EscapeException(Exception):
     '''Signals that Escape key has been pressed'''
-
 
 def _validate(c):
     if c == curses.ascii.DEL:
@@ -70,7 +66,6 @@ def _validate(c):
     elif c == curses.ascii.ESC:
         raise EscapeException()
     return c
-
 
 def _get_text(scr, y, x, prompt, handler, text):
     scr.addstr(y, x, prompt)
@@ -92,7 +87,6 @@ def _get_text(scr, y, x, prompt, handler, text):
     clear(scr, y, 0, len(prompt))
     return text if text else ''
 
-
 def get_text(scr, y, x, prompt, text):
     '''Prompts user to enter some text.'''
     def handle(box):
@@ -106,7 +100,6 @@ def clear(scr, y, x, length):
     blank = f'{" ":>{length}}'
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
-
 
 class ViewConfig:
     '''Holds the configuration of a view, like filters to use or the
@@ -124,6 +117,7 @@ class ViewConfig:
     show_spaces: bool = False
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_index: int = 0
+    dirty: bool = False
 
     def __init__(self) -> None:
         self.filters: List[models.Filter] = []
@@ -144,10 +138,12 @@ class ViewConfig:
 
     def push_filter(self, f: models.Filter) -> None:
         '''Pushes the given filter'''
+        self.dirty = True
         self.filters.append(f)
 
     def swap_filters(self, i, j) -> None:
         '''Swaps the given filters'''
+        self.dirty = True
         count = len(self.filters)
         assert 0 <= i < count
         assert 0 <= j < count
@@ -155,6 +151,7 @@ class ViewConfig:
 
     def rotate_filters(self, up: bool) -> None:
         '''Rotates filters'''
+        self.dirty = True
         count = len(self.filters)
         assert count >= 2
         if up:
@@ -162,15 +159,16 @@ class ViewConfig:
         else:
             self.filters = self.filters[-1:] + self.filters[:-1]
 
-    def get_color_pair(self, filter_index: int) -> StatusText:
+    def get_color_pair(self, filter_index: int) -> types.Status:
         '''Returns the id of the color pair associated with given filter index'''
+        self.dirty = True
         return colors.get_color_pair(self.palette_index, filter_index)
 
     def cycle_palette(self, forward: bool) -> int:
         '''Select the next palette in the given direction'''
+        self.dirty = True
         self.palette_index = colors.cycle_palette_index(self.palette_index, forward)
         return self.palette_index
-
 
 def bool_to_text(value: bool) -> str:
     '''Converts a boolean value to text.'''
@@ -191,14 +189,14 @@ class PrefixInfo(NamedTuple):
     separator: str    # Separator between things on left (line number,
                       # bullet), and things on right (line)
 
-
 class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
-    def __init__(self, scr, name: str, path: str) -> None:
+    def __init__(self, store, scr, name: str, path: str) -> None:
         self._model: models.Model = models.Model()
         self._vm: models.ViewModel = models.ViewModel()
         self._config: ViewConfig = ViewConfig()
+        self._store = store
         self._scr = scr
         self._name: str = name
         self._basename = os.path.basename(path)
@@ -210,6 +208,31 @@ class TextView:
     def get_config(self) -> ViewConfig:
         '''Gets the config'''
         return self._config
+
+    def _slot_save(self) -> types.Status:
+        '''Save the config'''
+        if not self._config.has_filters():
+            return 'No filters to save'
+        if not self._config.dirty:
+            return 'No change to save'
+        idx = self._store.save(self._config)
+        self._config.dirty = False
+        return f'Filters saved in slot {idx}'
+
+    def _slot_delete(self) -> types.Status:
+        idx = self._store.delete()
+        if idx:
+            self._config.dirty = True # Allows saving again
+            return f'Slot {idx} deleted'
+        return 'No slot loaded. Cannot delete current slot.'
+
+    def _slot_load(self, goto_next: bool) -> types.Status:
+        if not self._store.can_load():
+            return 'Nothing to load. All slots are empty.'
+        self._config, idx = self._store.load(goto_next)
+        self._sync(True)
+        self._config.dirty = False
+        return f'Slot {idx} loaded'
 
     def name(self) -> str:
         '''Gets the name of the view.'''
@@ -386,14 +409,14 @@ layout of the view model.
         self._model.set_lines(lines)
         self._sync(False)
 
-    def _pop_filter(self) -> StatusText:
+    def _pop_filter(self) -> types.Status:
         if self._config.has_filters():
             self._config.filters.pop()
             self._sync(True)
             return 'Filter removed'
         return 'No filter to remove'
 
-    def push_keyword(self, keyword: str, new_filter: bool) -> StatusText:
+    def push_keyword(self, keyword: str, new_filter: bool) -> types.Status:
         '''Pushes a new keyword in current top level filter (if new_filter is
         False) or in a brand new filter (if new_filter is True).'''
         if len(keyword) <= 0:
@@ -413,7 +436,7 @@ layout of the view model.
         self._sync(True)
         return 'New filter created' if new_filter else 'Keyword added'
 
-    def _pop_keyword(self) -> StatusText:
+    def _pop_keyword(self) -> types.Status:
         if not self._config.has_filters():
             return 'No keyword to remove'
         f = self._config.top_filter()
@@ -432,39 +455,39 @@ layout of the view model.
         f = self._config.top_filter()
         return f.get_count_and_last_keyword()
 
-    def _toggle_line_numbers(self) -> StatusText:
+    def _toggle_line_numbers(self) -> types.Status:
         self._config.line_numbers = not self._config.line_numbers
         self._layout(True)
         return f'Line numbers {bool_to_text(self._config.line_numbers)}'
 
-    def _toggle_wrap(self) -> StatusText:
+    def _toggle_wrap(self) -> types.Status:
         self._config.wrap = not self._config.wrap
         self._layout(True)
         return f'Line wrapping {bool_to_text(self._config.wrap)}'
 
-    def _toggle_bullets(self) -> StatusText:
+    def _toggle_bullets(self) -> types.Status:
         self._config.bullets = not self._config.bullets
         self._layout(True)
         return f'Bullets {bool_to_text(self._config.bullets)}'
 
-    def _toggle_show_spaces(self) -> StatusText:
+    def _toggle_show_spaces(self) -> types.Status:
         self._config.show_spaces = not self._config.show_spaces
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
-    def _cycle_colorize_mode(self, forward: bool) -> StatusText:
+    def _cycle_colorize_mode(self, forward: bool) -> types.Status:
         f = enums.ColorizeMode.get_next if forward else enums.ColorizeMode.get_prev
         self._config.colorize_mode = f(self._config.colorize_mode)
         self.show()
         return f'Colorize mode: {self._config.colorize_mode}'
 
-    def _cycle_line_visibility(self, forward: bool) -> StatusText:
+    def _cycle_line_visibility(self, forward: bool) -> types.Status:
         f = enums.LineVisibility.get_next if forward else enums.LineVisibility.get_prev
         self._config.line_visibility = f(self._config.line_visibility)
         self._sync(True)
         return f'{self._config.line_visibility}'
 
-    def _toggle_ignore_case(self) -> StatusText:
+    def _toggle_ignore_case(self) -> types.Status:
         if not self._config.has_filters():
             return 'Cannot change case sentitivity (no keyword)'
         f = self._config.top_filter()
@@ -472,7 +495,7 @@ layout of the view model.
         self._sync(True)
         return f'Ignore case set to {f.ignore_case}'
 
-    def _toggle_hiding(self) -> StatusText:
+    def _toggle_hiding(self) -> types.Status:
         if not self._config.has_filters():
             return 'Cannot change case sentitivity (no keyword)'
         f = self._config.top_filter()
@@ -490,31 +513,31 @@ layout of the view model.
         '''Shows the view, after it was hidden by another one'''
         self._apply_palette_and_draw()
 
-    def _cycle_palette(self, forward: bool) -> StatusText:
+    def _cycle_palette(self, forward: bool) -> types.Status:
         idx = self._config.cycle_palette(forward)
         self._apply_palette_and_draw()
         return f'Using color palette #{idx}'
 
-    def _set_h_offset(self, offset: int) -> StatusText:
+    def _set_h_offset(self, offset: int) -> types.Status:
         if self._vm.set_h_offset(offset):
             self.draw()
         return STATUS_EMPTY
 
-    def set_v_offset(self, offset: int, redraw: int) -> StatusText:
+    def set_v_offset(self, offset: int, redraw: int) -> types.Status:
         '''Sets the vertical offset of the view.'''
         if self._vm.set_v_offset(offset) and redraw:
             self.draw()
         return STATUS_EMPTY
 
-    def _hscroll(self, delta: int) -> StatusText:
+    def _hscroll(self, delta: int) -> types.Status:
         self._set_h_offset(self._vm.hoffset + delta)
         return STATUS_EMPTY
 
-    def _vscroll(self, delta: int) -> StatusText:
+    def _vscroll(self, delta: int) -> types.Status:
         self.set_v_offset(self._vm.voffset + delta, True)
         return STATUS_EMPTY
 
-    def goto_line(self, line_text: str) -> StatusText:
+    def goto_line(self, line_text: str) -> types.Status:
         '''Makes sure the given line is visible, making it the first line on
         the screen unless that would make last line of the file not
         displayed at the bottom.'''
@@ -540,7 +563,7 @@ layout of the view model.
         '''Returns whether the view has any filter or not.'''
         return self._config.has_filters()
 
-    def swap_filters(self) -> StatusText:
+    def swap_filters(self) -> types.Status:
         '''Swaps the top 2 filters'''
         count = self._config.get_filters_count()
         if self._config.get_filters_count() < 2:
@@ -549,7 +572,7 @@ layout of the view model.
         self._sync(True)
         return 'Filters swapped'
 
-    def rotate_filters(self, up: bool) -> StatusText:
+    def rotate_filters(self, up: bool) -> types.Status:
         '''Rotate the filters'''
         if self._config.get_filters_count() < 2:
             return 'Not enough filters'
@@ -557,7 +580,7 @@ layout of the view model.
         self._sync(True)
         return 'Filters rotated'
 
-    def _vscroll_to_match(self, starting: bool, direction: int) -> StatusText:
+    def _vscroll_to_match(self, starting: bool, direction: int) -> types.Status:
         iddata = self._vm.voffset
         idatamax = len(self._model.data)
         idata, _ = self._vm.data[iddata]
@@ -577,7 +600,7 @@ layout of the view model.
             return '(END)' if direction > 0 else '(BEGIN)'
         return 'Next match' if direction > 0 else 'Previous match'
 
-    def search(self, keyword: str) -> StatusText:
+    def search(self, keyword: str) -> types.Status:
         '''Searches for the given keyword. This function assumes the view
         currently has no filter.'''
         assert not self.has_filters()
@@ -588,11 +611,11 @@ layout of the view model.
             self._vscroll_to_match(True, 1)
         return STATUS_EMPTY
 
-    def _vpagescroll(self, delta: int) -> StatusText:
+    def _vpagescroll(self, delta: int) -> types.Status:
         self._vscroll(delta * self._max_visible_lines_count)
         return STATUS_EMPTY
 
-    def execute(self, command: enums.TextViewCommand) -> StatusText:
+    def execute(self, command: enums.TextViewCommand) -> types.Status:
         '''Executes the given command.'''
         dispatch = {
             enums.TextViewCommand.GO_UP:                 lambda: self._vscroll(-1),
@@ -627,6 +650,10 @@ layout of the view model.
             enums.TextViewCommand.SWAP_FILTERS:          self.swap_filters,
             enums.TextViewCommand.ROTATE_FILTERS_UP:     lambda: self.rotate_filters(True),
             enums.TextViewCommand.ROTATE_FILTERS_DOWN:   lambda: self.rotate_filters(False),
+            enums.TextViewCommand.SLOT_SAVE:             self._slot_save,
+            enums.TextViewCommand.SLOT_DELETE:           self._slot_delete,
+            enums.TextViewCommand.SLOT_LOAD_NEXT:        lambda: self._slot_load(True),
+            enums.TextViewCommand.SLOT_LOAD_PREV:        lambda: self._slot_load(False),
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
@@ -703,7 +730,7 @@ class Views:
         y += view_lines_count
         self._y_get_text = y
 
-    def _set_view(self, idx: int, propagate_config: bool) -> StatusText:
+    def _set_view(self, idx: int, propagate_config: bool) -> types.Status:
         assert 0 <= idx < len(self._content)
         if self._current != idx:
             config = self._content[self._current].get_config()
@@ -713,16 +740,16 @@ class Views:
             self._content[idx].show()
         return f'Switched to {self._content[idx].name()}'
 
-    def _help_view_push(self) -> StatusText:
+    def _help_view_push(self) -> types.Status:
         self._hidden_view = self._current
         return self._set_view(3, False)
 
-    def _help_view_pop(self) -> StatusText:
+    def _help_view_pop(self) -> types.Status:
         idx = self._hidden_view
         self._hidden_view = -1
         return self._set_view(idx, False)
 
-    def _reload(self, scroll_to: int) -> StatusText:
+    def _reload(self, scroll_to: int) -> types.Status:
         with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
             for i, v in enumerate(self._content):
@@ -735,16 +762,16 @@ class Views:
         self._mtime = getmtime(self._path)
         return 'File reloaded'
 
-    def create(self, scr, path: str) -> None:
+    def create(self, store, scr, path: str) -> None:
         '''Creates all views in the given screen, and loads the content from
         the given file.'''
         self._scr = scr
         self._path = path
         self._content.clear()
-        self._content.append(TextView(scr, 'View 1', path))
-        self._content.append(TextView(scr, 'View 2', path))
-        self._content.append(TextView(scr, 'View 3', path))
-        self._content.append(TextView(scr, 'Help', 'Help'))
+        self._content.append(TextView(store, scr, 'View 1', path))
+        self._content.append(TextView(store, scr, 'View 2', path))
+        self._content.append(TextView(store, scr, 'View 3', path))
+        self._content.append(TextView(store, scr, 'Help', 'Help'))
         self._layout()
         self._reload(0)
         self._set_view(0, False)
@@ -756,7 +783,7 @@ class Views:
     def _get_keyword(self) -> str:
         return self.get_text('Keyword: ', '')
 
-    def try_start_search(self) -> StatusText:
+    def try_start_search(self) -> types.Status:
         '''Tries to initiate a less like search.'''
         v = self._content[self._current]
         if v.has_filters():
@@ -769,14 +796,14 @@ class Views:
         self._auto_reload_anchor = anchor
         return f'Auto reload {self._auto_reload}'
 
-    def _poll(self) -> Tuple[bool, StatusText]:
+    def _poll(self) -> Tuple[bool, types.Status]:
         if self._auto_reload:
             mtime = getmtime(self._path)
             if mtime != self._mtime:
                 return True, self._reload(self._auto_reload_anchor)
         return False, STATUS_UNCHANGED
 
-    def handle_key(self, key) -> Tuple[bool, StatusText]:
+    def handle_key(self, key) -> Tuple[bool, types.Status]:
         '''Handles the given key, propagating it to the proper view.'''
 
         if key == -1:
@@ -786,15 +813,15 @@ class Views:
         # Local functions redirecting to current view v
         v = self._content[self._current]
 
-        def new_keyword(new_filter) -> StatusText:
+        def new_keyword(new_filter) -> types.Status:
             keyword = self._get_keyword()
             return v.push_keyword(keyword, new_filter)
 
-        def goto_line() -> StatusText:
+        def goto_line() -> types.Status:
             line_as_text = self.get_text('Enter line: ', '')
             return v.goto_line(line_as_text)
 
-        def edit_keyword() -> StatusText:
+        def edit_keyword() -> types.Status:
             count, keyword = v.get_last_keyword()
             if count <= 0:
                 return 'No keyword to edit'
@@ -845,6 +872,10 @@ class Views:
             ord('d'):              enums.TextViewCommand.SWAP_FILTERS,
             ord('w'):              enums.TextViewCommand.ROTATE_FILTERS_UP,
             ord('s'):              enums.TextViewCommand.ROTATE_FILTERS_DOWN,
+            ord('\\'):             enums.TextViewCommand.SLOT_SAVE,
+            ord('|'):              enums.TextViewCommand.SLOT_DELETE,
+            ord(']'):              enums.TextViewCommand.SLOT_LOAD_NEXT,
+            ord('['):              enums.TextViewCommand.SLOT_LOAD_PREV,
         }
 
         # Map keys to custom functions used to handle more complex commands
@@ -873,7 +904,7 @@ class Views:
 
         intersection = keys_to_command.keys() & keys_to_func.keys()
         assert len(intersection) == 0, f'Some keys are mapped multiple times {intersection}'
-        status: StatusText = ''
+        status: types.Status = ''
 
         # If help is shown, we hijack keys closing the view but forward all other keys
         # as if it is a regular view (which makes help searchable like a file...)
@@ -882,7 +913,7 @@ class Views:
         elif key in keys_to_command:
             status = v.execute(keys_to_command[key])
         elif key in keys_to_func:
-            status = StatusText(keys_to_func[key]())
+            status = types.Status(keys_to_func[key]())
         else:
             return False, f'Unknown key {key} (? for help, q to quit)'
 
@@ -895,7 +926,8 @@ def main_loop(scr, path: str, keysProcessor: keys.Processor) -> None:
     '''Main loop consuming keys and events.'''
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
-    views.create(scr, path)
+    store = storage.Store('.searchf')
+    views.create(store, scr, path)
 
     max_y, max_x = get_max_yx(scr)
 

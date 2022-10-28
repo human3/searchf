@@ -3,3 +3,4 @@
 from typing import Tuple
 
 Size = Tuple[int, int]
+Status = str

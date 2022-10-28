@@ -3,7 +3,6 @@
 from enum import auto
 from enum import Enum
 
-
 class AutoEnum(Enum):
     '''Base class for auto enum that can get iterated over with
     wrapping.'''
@@ -42,7 +41,7 @@ class AutoEnum(Enum):
 
 class LineVisibility(AutoEnum):
     '''Line visibility modes.'''
-    ONLY_MATCHING = ('Showing only matching lines')
+    ONLY_MATCHING = 'Showing only matching lines'
     CONTEXT_1 = ('Reveal 1 line above/below matching')
     CONTEXT_2 = ('Reveal 2 lines above/below matching')
     CONTEXT_5 = ('Reveal 5 lines above/below matching')
@@ -87,3 +86,7 @@ class TextViewCommand(Enum):
     SWAP_FILTERS = auto()
     ROTATE_FILTERS_UP = auto()
     ROTATE_FILTERS_DOWN = auto()
+    SAVE = auto()
+    LOAD_NEXT = auto()
+    LOAD_PREV = auto()
+    DELETE = auto()

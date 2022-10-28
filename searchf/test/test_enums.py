@@ -27,3 +27,7 @@ def test_from_int():
     except ValueError as ex:
         actual = ex
     assert actual
+
+def test_repr():
+    '''Test enums can be converted to text.'''
+    assert f'{DummyEnum.FIRST_VALUE}' == 'First'

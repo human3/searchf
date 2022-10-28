@@ -9,6 +9,8 @@
     R          Toggle auto reload file
     t          Reload file and scroll to end (tail)
     T          Toggle auto reload and scroll to end (tail)
+    a/A        Save/delete filters and modes to/from disk
+    z/Z        Load next/prev filters and modes from disk
 
   Filters:
     f ENTER    Enter first keyword of a new filter

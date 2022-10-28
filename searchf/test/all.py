@@ -17,6 +17,8 @@ from .. import colors
 from .. import utils
 from .. import debug
 from .. import keys
+from .. import storage
+
 from . import test_enums
 from . import test_segments
 from . import test_models
@@ -65,7 +67,8 @@ def _run(stdscr, t: AppTest):
     stdscr.clear()
     _reset_inputs(t.inputs)
     colors.init()
-    app.views.create(stdscr, TEST_FILE)
+    store = storage.Store('.searchf.test')
+    app.views.create(store, stdscr, TEST_FILE)
     original_get_text = app._get_text
     app._get_text = _my_get_text
     original_getmtime = app.getmtime
@@ -78,7 +81,7 @@ def _run(stdscr, t: AppTest):
         app.views.handle_key(-1 if key == keys.POLL else ord(key))
     app._get_text = original_get_text
     app.getmtime = original_getmtime
-
+    store.destroy()
 
 # This is poor man's testing, as we don't validate much other than
 # just making sure things don't blow up when executing common commands
@@ -135,6 +138,9 @@ def _run_app_tests(stdscr):
                 ['key', 'python']),
         AppTest('Test rotating filters',
                 ['w', 'f', 'f', 'w', 's'],
+                ['key', 'python']),
+        AppTest('Test save/load/delete config',
+                ['a', 'A', 'f', 'f', 'a', 'z', 'Z', 'A'],
                 ['key', 'python']),
     ]
 

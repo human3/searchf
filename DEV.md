@@ -19,62 +19,73 @@ If working from the sources (ie not an installed package), the application can b
 
 ## How to run test?
 
-- First install dependencies with `pip install pytest pytest-cov` (once)
-- Then just type `pytest` to run the unit tests
+- First install dependencies with `make deps` (once)
+- Then run `make tests`
+
+Provided that your terminal as the appropriate color settings
+(eg TERM=screen-256color), you can also use:
+
+- `pytest` to run the unit tests
 - `python3 -m searchf.test.all` runs the application tests
 - `python3 -m searchf.test.color` shows current palettes definition, and bridges gaps in colors unit tests which do not evaluate side-effects
 
 ## What about coverage?
 
-The numbers below are as of version `1.6`.
+The numbers below are as of version `1.7`.
 
-Unit tests don't cover much as `pytest --cov=searchf` returns:
+### Unit tests
 
 ```
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    563    563     0%
 searchf/colors.py                  29      0   100%
-searchf/enums.py                   63      1    98%
+searchf/enums.py                   69      0   100%
+searchf/keys.py                    41      5    88%
 searchf/models.py                 181     12    93%
 searchf/segments.py                57      0   100%
+searchf/storage.py                 62      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/all.py               125    125     0%
-searchf/test/color.py              54     54     0%
 searchf/test/test_colors.py        32      4    88%
-searchf/test/test_enums.py         15      0   100%
+searchf/test/test_enums.py         19      0   100%
+searchf/test/test_keys.py          27      0   100%
 searchf/test/test_models.py        58      0   100%
 searchf/test/test_segments.py      51      0   100%
-searchf/utils.py                   26     26     0%
+searchf/test/test_storage.py       26      0   100%
 ---------------------------------------------------
-TOTAL                            1255    785    37%
+TOTAL                             653     21    97%
 ```
 
-Application tests coverage is better at 99%. Indeed, running
-- `coverage run -m searchf.test.all` then
-- `coverage report`
+Run `make cover_unit` for updated numbers.
 
-shows:
+### Application tests
 
 ```
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 1      0   100%
-searchf/app.py                    563     10    98%
+searchf/app.py                    631     12    98%
 searchf/colors.py                  29      0   100%
-searchf/enums.py                   63      0   100%
+searchf/debug.py                    6      0   100%
+searchf/enums.py                   69      0   100%
+searchf/keys.py                    41      1    98%
 searchf/models.py                 181      0   100%
 searchf/segments.py                57      0   100%
+searchf/storage.py                 62      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/all.py               125      1    99%
-searchf/test/test_enums.py         15      0   100%
+searchf/test/all.py               134      0   100%
+searchf/test/test_enums.py         19      0   100%
+searchf/test/test_keys.py          27      0   100%
 searchf/test/test_models.py        58      0   100%
 searchf/test/test_segments.py      51      0   100%
+searchf/test/test_storage.py       26      0   100%
+searchf/types.py                    3      0   100%
 searchf/utils.py                   26      4    85%
 ---------------------------------------------------
-TOTAL                            1169     15    99%
+TOTAL                            1421     17    99%
 ```
+
+Run `make cover_all` for updated numbers.
 
 ## How to build the package from sources
 

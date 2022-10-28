@@ -1,13 +1,23 @@
+RUN_PY_MOD=TERM='screen-256color' python3 -m
+GENERATE_REPORT=python3 -m coverage report -m
+
 run:
-	python3 -m searchf.app README.md
+	$(RUN_PY_MOD) searchf.app README.md
 
 tests:
-	TERM='screen-256color' python3 -m pytest
-	TERM='screen-256color' python3 -m searchf.test.all
+	$(RUN_PY_MOD) pytest
+	$(RUN_PY_MOD) searchf.test.all
 
-cover:
-	TERM='screen-256color' python3 -m coverage run -m searchf.test.all
-	python3 -m coverage report -m
+cover_all:
+	$(RUN_PY_MOD) coverage run -m searchf.test.all
+	$(GENERATE_REPORT)
+
+cover_unit:
+	$(RUN_PY_MOD) coverage run -m pytest
+	$(GENERATE_REPORT)
+
+test_color:
+	$(RUN_PY_MOD) searchf.test.color
 
 type:
 	mypy searchf
@@ -18,7 +28,7 @@ lint:
 # deps target requires sudo
 deps:
 	apt install mypy pylint python3-venv
-	python3 -m pip install build
+	python3 -m pip install build pytest pytest-cov
 
 # Build package locally
 build:
@@ -30,4 +40,4 @@ install: build
 clean:
 	pip uninstall -y searchf
 
-all: type lint tests cover
+all: type lint tests cover_all

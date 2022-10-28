@@ -7,7 +7,7 @@ import curses
 import curses.ascii
 
 # Special key that will make _my_get_ch return -1 and result in app being polled
-POLL = 'POLL'
+POLL = -1
 
 # Number of seconds to wait before canceling key escape sequence
 ESCAPE_TIMEOUT = 0.2

@@ -6,18 +6,32 @@ import datetime
 import curses
 import curses.ascii
 
-# Special key that will make _my_get_ch return -1 and result in app being polled
+# Special key that will result in app being polled
 POLL = -1
 
 # Number of seconds to wait before canceling key escape sequence
 ESCAPE_TIMEOUT = 0.2
 
+class Provider:
+    '''Key press provider, that replaces curses getch()
+    implementation when testing.'''
+    def __init__(self, keys: List[str]) -> None:
+        self._keys: List[str] = keys
+
+    def getch(self) -> int:
+        '''Gets the next key'''
+        key = self._keys.pop(0)
+        return key if isinstance(key, int) else ord(key)
+
 class Processor:
     '''Class that returns key pressed by end-user, handling any required
-    decoding of escape sequences.'''
-    def __init__(self, scr) -> None:
-        self.scr_ = scr
-        self.test_keys_: List[str] = []
+    decoding of escape sequences.
+    '''
+    def __init__(self, getch_provider) -> None:
+        getch_attr = getattr(getch_provider, 'getch', None)
+        assert getch_attr
+        assert callable(getch_attr)
+        self._getch_provider = getch_provider
         self.escaping_ = False
         self.seq_ = ''
         self.start_: datetime.datetime = datetime.datetime.min
@@ -30,11 +44,7 @@ class Processor:
             'OF': curses.KEY_END,
         }
 
-    def inject_test_keys(self, test_keys: List[str]) -> None:
-        '''Inject the given list of keys for testing purposes'''
-        self.test_keys_ = test_keys
-
-    def process_(self, key) -> int:
+    def process(self, key) -> int:
         '''Process given key'''
         if key < 0:
             self.escaping_ = False
@@ -59,10 +69,6 @@ class Processor:
         assert not self.escaping_
         return key
 
-    def get(self):
+    def get(self) -> int:
         '''Returns key typed by user or -1 if none'''
-        if len(self.test_keys_) > 0:
-            key = self.test_keys_.pop()
-            return -1 if key == POLL else ord(key)
-
-        return self.process_(self.scr_.getch())
+        return self.process(self._getch_provider.getch())

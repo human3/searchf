@@ -40,4 +40,6 @@ install: build
 clean:
 	pip uninstall -y searchf
 
-all: type lint tests cover_all
+cover: cover_all
+
+all: type lint cover_all

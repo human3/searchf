@@ -31,13 +31,13 @@ def test_init():
     colors.init()
 
 
-def test_cycle_palette_index():
-    '''Test colors.cycle_palette_index()'''
+def test_cycle_palette():
+    '''Test colors.cycle_palette()'''
     max_index = len(colors.PALETTES) - 1
-    assert colors.cycle_palette_index(0, True) == 1
-    assert colors.cycle_palette_index(0, False) == max_index
-    assert colors.cycle_palette_index(max_index, True) == 0
-    assert colors.cycle_palette_index(max_index, False) == max_index - 1
+    assert colors.cycle_palette(0, True) == 1
+    assert colors.cycle_palette(0, False) == max_index
+    assert colors.cycle_palette(max_index, True) == 0
+    assert colors.cycle_palette(max_index, False) == max_index - 1
 
 
 def test_apply_palette():
@@ -46,9 +46,9 @@ def test_apply_palette():
         return
     # WARNING: this is not a real test since function has side-effects
     # we are not validating
-    for index in range(len(colors.PALETTES)):
-        colors.apply_palette(index, False)
-        colors.apply_palette(index, True)
+    for pid in range(len(colors.PALETTES)):
+        colors.apply_palette(pid, False)
+        colors.apply_palette(pid, True)
 
 
 def test_get_color_pair():

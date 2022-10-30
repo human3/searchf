@@ -114,3 +114,29 @@ def test_view_model():
     vm.set_v_offset(0)
     vm.set_v_offset(1)
     vm.set_v_offset(100)
+
+
+def test_view_config():
+    '''Test models.ViewConfig'''
+    vc = models.ViewConfig()
+    assert not vc.has_filters()
+
+    last = models.Filter()
+    vc.push_filter(last)
+    assert vc.has_filters()
+    assert vc.get_filters_count() == 1
+    assert last == vc.top_filter()
+
+    last = models.Filter()
+    vc.push_filter(last)
+    assert vc.get_filters_count() == 2
+    assert last == vc.top_filter()
+    vc.swap_filters(0, 1)
+    assert last != vc.top_filter()
+
+    vc.rotate_filters(False)
+    assert last == vc.top_filter()
+    vc.rotate_filters(True)
+    assert last != vc.top_filter()
+
+    vc.set_palette(1)

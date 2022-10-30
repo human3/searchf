@@ -67,6 +67,13 @@ class LineModel(NamedTuple):
     text: str
     segments: List[segments.Segment]
 
+VISIBILITY_TO_SIZE = {
+    enums.LineVisibility.ONLY_MATCHING: 0,
+    enums.LineVisibility.CONTEXT_1: 1,
+    enums.LineVisibility.CONTEXT_2: 2,
+    enums.LineVisibility.CONTEXT_5: 5,
+    enums.LineVisibility.ALL: -1,
+}
 
 class LineModelFilter:
     '''Class use to filter out LineModel according to a given line visibility
@@ -76,17 +83,8 @@ class LineModelFilter:
     '''
     def __init__(self, mode: enums.LineVisibility):
         self._queue: List[LineModel] = []
-        if mode == enums.LineVisibility.ONLY_MATCHING:
-            self._size = 0
-        elif mode == enums.LineVisibility.CONTEXT_1:
-            self._size = 1
-        elif mode == enums.LineVisibility.CONTEXT_2:
-            self._size = 2
-        elif mode == enums.LineVisibility.CONTEXT_5:
-            self._size = 5
-        else:
-            assert mode == enums.LineVisibility.ALL, f'BAD enum {mode}'
-            self._size = -1
+        assert mode in VISIBILITY_TO_SIZE
+        self._size = VISIBILITY_TO_SIZE[mode]
         self._left = 0
         self._last_line_visible = 0
 
@@ -161,6 +159,10 @@ class Model:
     def line_count(self) -> int:
         '''Gets the number of lines in the original file'''
         return len(self._lines)
+
+    def visible_line_count(self) -> int:
+        '''Gets the total number of lines that would be visible if not limited by screen height'''
+        return len(self.data)
 
     def line_number_length(self) -> int:
         '''Number of digit required to display bigest line number'''

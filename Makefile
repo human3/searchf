@@ -28,7 +28,7 @@ lint:
 # deps target requires sudo
 deps:
 	apt install mypy pylint python3-venv
-	python3 -m pip install build pytest pytest-cov
+	python3 -m pip install build pytest pytest-cov flake8
 
 # Build package locally
 build:

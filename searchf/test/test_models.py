@@ -1,9 +1,5 @@
 '''Unit tests for models'''
 
-# pylint: disable=invalid-name
-# pylint: disable=protected-access
-# pylint: disable=no-member
-
 from .. import enums
 from .. import models
 
@@ -24,12 +20,12 @@ def test_filter():
 
 
 def test_digit_count():
-    '''Test models._digit_count()'''
-    assert models._digits_count(0) == 1
-    assert models._digits_count(9) == 1
-    assert models._digits_count(10) == 2
-    assert models._digits_count(99) == 2
-    assert models._digits_count(123456) == 6
+    '''Test models.digit_count()'''
+    assert models.digits_count(0) == 1
+    assert models.digits_count(9) == 1
+    assert models.digits_count(10) == 2
+    assert models.digits_count(99) == 2
+    assert models.digits_count(123456) == 6
 
 
 def test_model():

@@ -1,6 +1,5 @@
 '''Provides model classes for application.'''
 
-# pylint: disable=invalid-name
 
 import math
 from typing import Dict
@@ -46,8 +45,9 @@ class Filter:
         return count, keyword
 
 
-def _digits_count(max_number) -> int:
-    return math.floor(math.log10(max(1, max_number))+1)
+def digits_count(number: int) -> int:
+    '''Returns the number of digits required to display given number'''
+    return math.floor(math.log10(max(1, number))+1)
 
 RULER_INDEX = -1
 
@@ -112,11 +112,11 @@ class LineModelFilter:
         self._queue = []
         return models
 
-    def _updateLastYielded(self, model: LineModel):
+    def _update_last_line_visible(self, model: LineModel):
         line, _, _, _ = model
         self._last_line_visible = line + 1
 
-    def addMatching(self, model: LineModel) -> List[LineModel]:
+    def add_matching(self, model: LineModel) -> List[LineModel]:
         '''Adds a line model that matches a filter. Returns
         the list of line models that are visible, if any.'''
 
@@ -130,7 +130,7 @@ class LineModelFilter:
             models = models + queued
 
         models.append(model)
-        self._updateLastYielded(model)
+        self._update_last_line_visible(model)
 
         # Make sure we are going to bufferize the appropriate amount
         # of subsequent non-matching lines, if we encounter any.
@@ -138,14 +138,14 @@ class LineModelFilter:
 
         return models
 
-    def addNonMatching(self, model: LineModel) -> List[LineModel]:
+    def add_non_matching(self, model: LineModel) -> List[LineModel]:
         '''Adds a line model that does not match any filter. Returns
         the list of line models that are visible, if any.'''
         if not self._add(model):
             return []
         queued = self._flush()
         assert len(queued) == 1
-        self._updateLastYielded(model)
+        self._update_last_line_visible(model)
         return queued
 
 
@@ -164,7 +164,7 @@ class Model:
 
     def line_number_length(self) -> int:
         '''Number of digit required to display bigest line number'''
-        return _digits_count(len(self._lines))
+        return digits_count(len(self._lines))
 
     def set_lines(self, lines: List[str]) -> None:
         '''Sets and stores the file content lines into the data model'''
@@ -183,7 +183,7 @@ class Model:
         data: List[LineModel] = []
         hits = [0 for f in filters]
         mode = mode if sum(not f.hiding for f in filters) > 0 else enums.LineVisibility.ALL
-        q = LineModelFilter(mode)
+        lmf = LineModelFilter(mode)
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
@@ -195,11 +195,11 @@ class Model:
                 if matching:
                     hits[fidx] += 1
                     if not f.hiding:
-                        lines = q.addMatching(LineModel(i, fidx, line, matching_segments))
+                        lines = lmf.add_matching(LineModel(i, fidx, line, matching_segments))
                         data = data + lines
                     break
             if not matching:
-                lines = q.addNonMatching(LineModel(i, -1, line, []))
+                lines = lmf.add_non_matching(LineModel(i, -1, line, []))
                 data = data + lines
 
         self.data = data

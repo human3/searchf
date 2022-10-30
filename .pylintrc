@@ -1,0 +1,7 @@
+[BASIC]
+max-args = 7
+min-public-methods = 1
+good-names = c, f, i, j, k, h, m, t, v, w, x, y, ex, vm
+
+# E1101: Module 'curses' has no '_CursesWindow' member (no-member)
+generated-members = curses.*

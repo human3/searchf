@@ -1,10 +1,5 @@
 '''https://github.com/human3/searchf'''
 
-# pylint: disable=invalid-name
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-arguments
-# pylint: disable=no-member
-
 from curses.textpad import Textbox
 from typing import List
 from typing import NamedTuple
@@ -60,16 +55,21 @@ def getmtime(path):
 class EscapeException(Exception):
     '''Signals that Escape key has been pressed'''
 
-def _validate(c):
-    if c == curses.ascii.DEL:
-        c = curses.KEY_BACKSPACE
-    elif c == curses.ascii.ESC:
-        raise EscapeException()
-    return c
+class ResizeException(Exception):
+    '''Signals that unsupported terminal resizing has happened'''
 
-def _get_text(scr, y, x, prompt, handler, text):
-    scr.addstr(y, x, prompt)
-    x += len(prompt)
+def validate(k: int) -> int:
+    '''Validates key'''
+    if k == curses.ascii.DEL:
+        k = curses.KEY_BACKSPACE
+    elif k == curses.ascii.ESC:
+        raise EscapeException()
+    return k
+
+def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
+    '''Gets text interactively from end user'''
+    scr.addstr(y, x, text_prompt)
+    x += len(text_prompt)
     editwin = curses.newwin(1, 30, y, x)
     scr.refresh()
     box = Textbox(editwin)
@@ -84,14 +84,14 @@ def _get_text(scr, y, x, prompt, handler, text):
 
     editwin.clear()
     editwin.refresh()
-    clear(scr, y, 0, len(prompt))
+    clear(scr, y, 0, len(text_prompt))
     return text if text else ''
 
-def get_text(scr, y, x, prompt, text):
+def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
     '''Prompts user to enter some text.'''
     def handle(box):
-        box.edit(validate=_validate)
-    return _get_text(scr, y, x, prompt, handle, text)
+        box.edit(validate=validate)
+    return get_text(scr, y, x, text_prompt, handle, text)
 
 
 def clear(scr, y, x, length):
@@ -108,6 +108,9 @@ class ViewConfig:
     serialized at some point to persist somewhere and get re-used accross
     session.
     '''
+
+    # pylint: disable=too-many-instance-attributes
+
     line_numbers: bool = True
     wrap: bool = True
     bullets: bool = False
@@ -149,12 +152,12 @@ class ViewConfig:
         assert 0 <= j < count
         self.filters[i], self.filters[j] = self.filters[j], self.filters[i]
 
-    def rotate_filters(self, up: bool) -> None:
+    def rotate_filters(self, go_up: bool) -> None:
         '''Rotates filters'''
         self.dirty = True
         count = len(self.filters)
         assert count >= 2
-        if up:
+        if go_up:
             self.filters = self.filters[1:] + self.filters[:1]
         else:
             self.filters = self.filters[-1:] + self.filters[:-1]
@@ -192,6 +195,9 @@ class PrefixInfo(NamedTuple):
 class TextView:
     '''Display selected content of a file, using filters and keyword to
     highlight specific text.'''
+
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, store, scr, name: str, path: str) -> None:
         self._model: models.Model = models.Model()
         self._vm: models.ViewModel = models.ViewModel()
@@ -221,7 +227,8 @@ class TextView:
 
     def _slot_delete(self) -> types.Status:
         idx = self._store.delete()
-        if idx:
+        if idx is not None:
+            assert idx >= 0
             self._config.dirty = True # Allows saving again
             return f'Slot {idx} deleted'
         return 'No slot loaded. Cannot delete current slot.'
@@ -572,11 +579,11 @@ layout of the view model.
         self._sync(True)
         return 'Filters swapped'
 
-    def rotate_filters(self, up: bool) -> types.Status:
+    def rotate_filters(self, go_up: bool) -> types.Status:
         '''Rotate the filters'''
         if self._config.get_filters_count() < 2:
             return 'Not enough filters'
-        self._config.rotate_filters(up)
+        self._config.rotate_filters(go_up)
         self._sync(True)
         return 'Filters rotated'
 
@@ -692,6 +699,9 @@ class DebugView:
 class Views:
     '''Aggregates all views, controlling which ones are visible, handling
     key presses and command dispatching.'''
+
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self) -> None:
         self.debug = None
         self._scr = None
@@ -722,7 +732,7 @@ class Views:
             view_lines_count = maxh
             x = padding
             y = dbg_size[0] + padding
-            debug.set_output(self.debug.out)
+            debug.OUT_FUNC = self.debug.out
 
         for v in self._content:
             v.layout(view_lines_count, maxw, y, x)
@@ -776,12 +786,12 @@ class Views:
         self._reload(0)
         self._set_view(0, False)
 
-    def get_text(self, prompt: str, text: Optional[str]) -> str:
+    def prompt(self, text_prompt: str, text: str) -> str:
         '''Prompts user to enter or edit some text.'''
-        return get_text(self._scr, self._y_get_text, 0, prompt, text)
+        return prompt(self._scr, self._y_get_text, 0, text_prompt, text)
 
     def _get_keyword(self) -> str:
-        return self.get_text('Keyword: ', '')
+        return self.prompt('Keyword: ', '')
 
     def try_start_search(self) -> types.Status:
         '''Tries to initiate a less like search.'''
@@ -818,14 +828,14 @@ class Views:
             return v.push_keyword(keyword, new_filter)
 
         def goto_line() -> types.Status:
-            line_as_text = self.get_text('Enter line: ', '')
+            line_as_text = self.prompt('Enter line: ', '')
             return v.goto_line(line_as_text)
 
         def edit_keyword() -> types.Status:
             count, keyword = v.get_last_keyword()
             if count <= 0:
                 return 'No keyword to edit'
-            keyword = self.get_text('Edit: ', keyword)
+            keyword = self.prompt('Edit: ', keyword if keyword else '')
             if len(keyword) <= 0:
                 return 'No change made'
             v.execute(enums.TextViewCommand.POP_KEYWORD)
@@ -920,14 +930,14 @@ class Views:
         return True, status
 
 
-views = Views()
+VIEWS = Views()
 
-def main_loop(scr, path: str, keysProcessor: keys.Processor) -> None:
+def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
     '''Main loop consuming keys and events.'''
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
     store = storage.Store('.searchf')
-    views.create(store, scr, path)
+    VIEWS.create(store, scr, path)
 
     max_y, max_x = get_max_yx(scr)
 
@@ -938,12 +948,12 @@ def main_loop(scr, path: str, keysProcessor: keys.Processor) -> None:
     scr.timeout(1000)
     while True:
         try:
-            key = keysProcessor.get()
+            key = keys_processor.get()
         except KeyboardInterrupt:
             break
         if key == curses.KEY_RESIZE:
-            raise Exception('Sorry, resizing is not supported')
-        handled, new_status = views.handle_key(key)
+            raise ResizeException('Sorry, resizing is not supported')
+        handled, new_status = VIEWS.handle_key(key)
         if not handled and key in (ord('q'), ord('Q')):
             break
         if new_status == STATUS_UNCHANGED:
@@ -978,8 +988,7 @@ def main() -> None:
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
-    utils.wrapper(False, curses.wrapper,
-                  main_curses, args.file)
+    utils.wrapper(False, curses.wrapper, main_curses, args.file)
 
 if __name__ == '__main__':
     main()

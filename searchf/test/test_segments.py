@@ -35,8 +35,7 @@ def test_iterate():
 
 def _sort_and_merge(test_segments, expected_segments):
     count = 0
-    # pylint: disable=protected-access
-    for actual, expected in zip(segments._sort_and_merge(test_segments), expected_segments):
+    for actual, expected in zip(segments.sort_and_merge(test_segments), expected_segments):
         assert actual[0] < actual[1]
         assert actual == expected, f'{actual} != {expected}'
         count += 1
@@ -44,7 +43,7 @@ def _sort_and_merge(test_segments, expected_segments):
 
 
 def test_sort_and_merge():
-    '''Test segments._sort_and_merge()'''
+    '''Test segments.sort_and_merge()'''
     seg = {segments.Segment(0, 1), segments.Segment(2, 3)}
     _sort_and_merge(seg, seg)
     _sort_and_merge({segments.Segment(2, 3), segments.Segment(0, 1)},

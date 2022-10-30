@@ -1,16 +1,13 @@
 '''Application end-to-end tests.
 '''
 
-# pylint: disable=global-statement
-# pylint: disable=protected-access
-# pylint: disable=invalid-name
-
 import curses
 import os
 import time
 
 from typing import List
 from typing import NamedTuple
+from contextlib import contextmanager
 
 from .. import app
 from .. import colors
@@ -27,65 +24,142 @@ from . import test_storage
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
 
-INPUTS = []
-INPUT_IDX = 0
+class KeywordsInjector:
+    '''Class that emulates end-user entering keywords. Provides a
+    get_text() function that can replace the one in the app module.
+    '''
+    def __init__(self, keywords: List[str]):
+        self._keywords = keywords
 
+    def get_next(self) -> str:
+        '''Returns the next keyword'''
+        return self._keywords.pop(0)
 
-def _reset_inputs(inputs):
-    global INPUTS, INPUT_IDX
-    INPUTS = inputs
-    INPUT_IDX = 0
+    def get_text(self, scr, y, x, text_prompt: str, handler, text: str) -> str:
+        '''Function to replace app.get_next'''
+        # pylint: disable=unused-argument
+        return self.get_next()
 
+class MtimeInjector:
+    '''Class that emulates end-user externally changing file. Provides
+    a getmtime() function that can replace the one in the app module,
+    and that makes sure the file always changes.'''
 
-def _my_get_text(_1, _2, _3, _4, _5, _6):
-    global INPUT_IDX
-    assert INPUT_IDX < len(INPUTS), f'{INPUT_IDX} {INPUTS}'
-    text = INPUTS[INPUT_IDX]
-    INPUT_IDX += 1
-    return text
+    def __init__(self):
+        self._time = 0.0
 
+    def getmtime(self, path: str) -> float:
+        '''Returns the file last modification time'''
+        # pylint: disable=unused-argument
+        self._time += 1
+        return self._time
 
-TIME = 0.0
-def _my_getmtime(_):
-    global TIME
-    TIME += 1
-    return TIME
+@contextmanager
+def app_modifier(keywords_injector: KeywordsInjector, mtime_injector: MtimeInjector):
+    '''Context manager that replaces key and text input methods of the app
+    module, and makes sure tests are run always with same screen resolution'''
 
+    def _injected_get_max_yx(_):
+        return 30, 80
+
+    get_text = app.get_text
+    getmtime = app.getmtime
+    get_max_yx = app.get_max_yx
+    app.get_text = keywords_injector.get_text
+    app.getmtime = mtime_injector.getmtime
+    app.get_max_yx = _injected_get_max_yx
+    try:
+        yield
+    finally:
+        app.get_text = get_text
+        app.getmtime = getmtime
+        app.get_max_yx = get_max_yx
 
 class AppTest(NamedTuple):
     '''Model data associated with a test:
     - the description of the text
     - the list of keys that will be sequentially automatically pressed by test runner
-    - the list of input that will be automatically fed to the application.
+    - the list of text input that will be automatically fed to the application
     '''
     description: str
     keys: List[str]
     inputs: List[str]
 
-
 def _run(stdscr, t: AppTest):
     '''Helper function to run the given AppTest'''
     print(t.description)
     stdscr.clear()
-    _reset_inputs(t.inputs)
     colors.init()
     store = storage.Store('.searchf.test')
-    app.views.create(store, stdscr, TEST_FILE)
-    original_get_text = app._get_text
-    app._get_text = _my_get_text
-    original_getmtime = app.getmtime
-    app.getmtime = _my_getmtime
-
-    for key in t.keys:
-        stdscr.refresh()
-        # Add sleep just to see something, test can run without it
-        time.sleep(0.01)
-        app.views.handle_key(key if isinstance(key, int) else ord(key))
-
-    app._get_text = original_get_text
-    app.getmtime = original_getmtime
+    with app_modifier(KeywordsInjector(t.inputs), MtimeInjector()):
+        app.VIEWS.create(store, stdscr, TEST_FILE)
+        for key in t.keys:
+            stdscr.refresh()
+            # Add sleep just to see something, test can run without it
+            time.sleep(0.01)
+            app.VIEWS.handle_key(key if isinstance(key, int) else ord(key))
     store.destroy()
 
+def _test_app_init_env():
+    print('Test app.init_env()')
+    parser = app.init_env()
+    assert parser
+
+def _test_app_get_text(stdscr):
+    print('Test app.get_text()')
+
+    def my_handler(_):
+        pass
+    def my_handler_throwing(_):
+        raise app.EscapeException
+
+    app.get_text(stdscr, 0, 0, "Testing prompt", my_handler, 'Editable content')
+    app.get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing, '')
+
+def _test_app_validate():
+    print('Test app.validate()')
+    assert app.validate('a') == 'a'
+    assert app.validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
+    actual = None
+    try:
+        app.validate(curses.ascii.ESC)
+    except app.EscapeException as ex:
+        actual = ex
+    assert actual
+
+def _test_app_main_loop(stdscr):
+    print('Test app.main_loop()')
+    keys_processor = keys.Processor(keys.Provider(
+        [' ', '>', 'l', keys.POLL, 'q']))
+    app.main_loop(stdscr, TEST_FILE, keys_processor)
+
+def _test_app_resize(stdscr):
+    print('Test app.resize')
+    keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE]))
+    actual = None
+    try:
+        app.main_loop(stdscr, TEST_FILE, keys_processor)
+    except app.ResizeException as ex:
+        actual = ex
+    assert actual
+
+def _test_app_debug_view(stdscr):
+    # Test debug mode in a very hacky way by hijacking handle_key function
+    # and spitting out a few dummy debug lines per key press
+    app.USE_DEBUG = True
+    original_handle_key = app.VIEWS.handle_key
+
+    def my_handle_key(key):
+        for i in range(20):
+            debug.out(f'Test {i} dbg {key}')
+        return original_handle_key(key)
+
+    app.VIEWS.handle_key = my_handle_key
+    _run(stdscr, AppTest(
+        'Test special debug mode',
+        ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
+    app.VIEWS.handle_key = original_handle_key
+    app.USE_DEBUG = False
 
 # This is poor man's testing, as we don't validate much other than
 # just making sure things don't blow up when executing common commands
@@ -99,11 +173,11 @@ def _run_app_tests(stdscr):
     print(f'stdscr.getmaxyx() = {stdscr.getmaxyx()}')
     print()
 
-    appTests = [
+    app_tests = [
         AppTest('Test keywords that are invalid regex',
                 ['f'], ['?']),
         AppTest('Test that help can get displayed',
-                ['?'], []),
+                ['?', 'q'], []),
         AppTest('Test view switching',
                 ['r', 't', '1', '2', '3', '!', '@', '#'], []),
         AppTest('Test reloading',
@@ -150,73 +224,15 @@ def _run_app_tests(stdscr):
                 ['key', 'python']),
     ]
 
-    for test in appTests:
+    for test in app_tests:
         _run(stdscr, test)
 
-    # Test debug mode in a very hacky way by hijacking handle_key function
-    # and spitting out a few dummy debug lines per key press
-    app.USE_DEBUG = True
-    original_handle_key = app.views.handle_key
-
-    def my_handle_key(key):
-        for i in range(20):
-            debug.out(f'Test {i} dbg {key}')
-        return original_handle_key(key)
-
-    app.views.handle_key = my_handle_key
-    _run(stdscr, AppTest(
-        'Test special debug mode',
-        ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
-    app.views.handle_key = original_handle_key
-    app.USE_DEBUG = False
-
-    # Test a specific screen resolution
-    def get_max_yx(_):
-        return 20, 20
-
-    original_get_max_yx = app.get_max_yx
-    app.get_max_yx = get_max_yx
-    _run(stdscr, AppTest(
-        'Test with specific layout (scenario #1)',
-        ['?', ' ', 'b', 's', 'w'], []))
-    _run(stdscr, AppTest(
-        'Test with specific layout (scenario #2)',
-        ['>', '<', 'd', 'a', 's', 'w', 'D', 'A', ' ', 'b', 'q'], []))
-    app.get_max_yx = original_get_max_yx
-
-    print('Test app.get_text()')
-
-    def my_handler(_):
-        pass
-
-    _reset_inputs(['dummy'])
-    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler, '')
-
-    def my_handler_throwing(_):
-        raise app.EscapeException
-
-    app._get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing, '')
-
-    print('Test app._validate()')
-    assert app._validate('a') == 'a'
-    assert app._validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
-    actual = None
-    try:
-        app._validate(curses.ascii.ESC)
-    except app.EscapeException as e:
-        actual = e
-    assert actual
-
-    print('Test app.main_loop()')
-    app.getmtime = _my_getmtime
-    p = keys.Processor(stdscr)
-    p.inject_test_keys(['q', ' ', '>', '<', keys.POLL])
-    app.main_loop(stdscr, TEST_FILE, p)
-
-    print('Test app.init_env()')
-    parser = app.init_env()
-    assert parser
-
+    _test_app_init_env()
+    _test_app_get_text(stdscr)
+    _test_app_validate()
+    _test_app_main_loop(stdscr)
+    _test_app_resize(stdscr)
+    _test_app_debug_view(stdscr)
 
 def _run_unit_tests():
     print('Test enums.test_get_next_prev()')
@@ -244,14 +260,12 @@ def _run_unit_tests():
     print('Test storage.test_strore()')
     test_storage.test_store()
 
-
 def main():
     '''Test entry point'''
     print('== Tests started ==')
     _run_unit_tests()
     utils.wrapper(True, curses.wrapper, _run_app_tests)
     print('== Tests passed ==')
-
 
 if __name__ == '__main__':
     main()

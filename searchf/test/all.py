@@ -12,15 +12,16 @@ from contextlib import contextmanager
 
 from .. import app
 from .. import colors
-from .. import utils
 from .. import debug
 from .. import keys
 from .. import storage
+from .. import utils
+from .. import views
 
 from . import test_enums
-from . import test_segments
-from . import test_models
 from . import test_keys
+from . import test_models
+from . import test_segments
 from . import test_storage
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -70,18 +71,18 @@ def app_modifier(keywords_injector: KeywordsInjector,
     def _injected_get_max_yx(_):
         return 30, 80
 
-    get_text = app.get_text
-    getmtime = app.getmtime
-    get_max_yx = app.get_max_yx
-    app.get_text = keywords_injector.get_text
-    app.getmtime = mtime_injector.getmtime
-    app.get_max_yx = _injected_get_max_yx
+    get_text = views.get_text
+    getmtime = views.getmtime
+    get_max_yx = views.get_max_yx
+    views.get_text = keywords_injector.get_text
+    views.getmtime = mtime_injector.getmtime
+    views.get_max_yx = _injected_get_max_yx
     try:
         yield
     finally:
-        app.get_text = get_text
-        app.getmtime = getmtime
-        app.get_max_yx = get_max_yx
+        views.get_text = get_text
+        views.getmtime = getmtime
+        views.get_max_yx = get_max_yx
 
 
 class AppTest(NamedTuple):
@@ -126,22 +127,22 @@ def _test_app_get_text(stdscr):
         pass
 
     def my_handler_throwing(_):
-        raise app.EscapeException
+        raise views.EscapeException
 
-    app.get_text(stdscr, 0, 0,
-                 "Testing prompt", my_handler, 'Editable content')
-    app.get_text(stdscr, 0, 0,
-                 "Testing prompt", my_handler_throwing, '')
+    views.get_text(stdscr, 0, 0,
+                   "Testing prompt", my_handler, 'Editable content')
+    views.get_text(stdscr, 0, 0,
+                   "Testing prompt", my_handler_throwing, '')
 
 
 def _test_app_validate():
-    print('Test app.validate()')
-    assert app.validate('a') == 'a'
-    assert app.validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
+    print('Test views.validate()')
+    assert views.validate('a') == 'a'
+    assert views.validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
     actual = None
     try:
-        app.validate(curses.ascii.ESC)
-    except app.EscapeException as ex:
+        views.validate(curses.ascii.ESC)
+    except views.EscapeException as ex:
         actual = ex
     assert actual
 
@@ -159,7 +160,7 @@ def _test_app_resize(stdscr):
     actual = None
     try:
         app.main_loop(stdscr, TEST_FILE, keys_processor)
-    except app.ResizeException as ex:
+    except views.ResizeException as ex:
         actual = ex
     assert actual
 
@@ -167,7 +168,7 @@ def _test_app_resize(stdscr):
 def _test_app_debug_view(stdscr):
     # Test debug mode in a very hacky way by hijacking handle_key function
     # and spitting out a few dummy debug lines per key press
-    app.USE_DEBUG = True
+    views.USE_DEBUG = True
     original_handle_key = app.VIEWS.handle_key
 
     def my_handle_key(key):
@@ -180,7 +181,7 @@ def _test_app_debug_view(stdscr):
         'Test special debug mode',
         ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
     app.VIEWS.handle_key = original_handle_key
-    app.USE_DEBUG = False
+    views.USE_DEBUG = False
 
 
 # This is poor man's testing, as we don't validate much other than
@@ -278,6 +279,8 @@ def _run_unit_tests():
     test_models.test_model()
     print('Test models.test_view_model()')
     test_models.test_view_model()
+    print('Test models.test_view_config()')
+    test_models.test_view_config()
     print('Test keys.test_processor()')
     test_keys.test_process()
     print('Test keys.test_process()')

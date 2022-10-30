@@ -40,6 +40,7 @@ install: build
 
 clean:
 	pip uninstall -y searchf
+	find -type f -name "*~" -print -delete
 
 cover: cover_all
 

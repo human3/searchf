@@ -2,6 +2,8 @@
 
 import curses
 
+from . import types
+
 BAR_COLOR_PAIR_ID = 1
 BAR_COLOR_BG = 39  # 249
 
@@ -72,18 +74,21 @@ PALETTES = [
 ]
 
 
-def cycle_palette_index(palette_index, forward):
+def cycle_palette(
+        palette_id: types.PaletteId,
+        forward: bool
+        ) -> types.PaletteId:
     '''Select the palette index after the given one in the given direction'''
-    assert palette_index >= 0
-    assert palette_index < len(PALETTES)
+    assert palette_id >= 0
+    assert palette_id < len(PALETTES)
     incr = 1 if forward else -1
-    return (palette_index + incr) % len(PALETTES)
+    return (palette_id + incr) % len(PALETTES)
 
 
-def apply_palette(palette_index, reverse):
+def apply_palette(palette_id: types.PaletteId, reverse: bool) -> None:
     '''Apply given palette to curses.'''
     # Note: python raises IndexError for us if palette_index is out of range
-    pal = PALETTES[palette_index]
+    pal = PALETTES[palette_id]
     for i, color in enumerate(pal):
         pair_id = FIRST_FILTER_COLOR_PAIR_ID + i
         if reverse:
@@ -92,11 +97,14 @@ def apply_palette(palette_index, reverse):
             curses.init_pair(pair_id, color, -1)
 
 
-def get_color_pair(palette_index, filter_index):
+def get_color_pair(
+        palette_id: types.PaletteId,
+        filter_index: int
+        ) -> types.ColorPair:
     '''Gets the curses.color_pair associated with given palette and filter'''
     if filter_index < 0:
         return curses.color_pair(0)
-    colors_count = len(PALETTES[palette_index])
+    colors_count = len(PALETTES[palette_id])
     pair_id = FIRST_FILTER_COLOR_PAIR_ID + (filter_index % colors_count)
     return curses.color_pair(pair_id)
 

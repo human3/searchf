@@ -1,6 +1,5 @@
 '''Provides various model classes for searchf application.'''
 
-
 import math
 
 from typing import Dict
@@ -9,8 +8,9 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 
-from . import segments
 from . import enums
+from . import segments
+from . import types
 
 
 class Filter:
@@ -336,3 +336,70 @@ class ViewModel:
                     left -= width
         self.data = data
         self.firstdlines = firstdlines
+
+
+class ViewConfig:
+    '''This class holds the configuration of a view, like filters to use or the
+    display modes, typically changed by end users to match their need. Does not
+    contain any data related to actual file content, and can get serialized for
+    persistence (see storage.py). This class is not a view class per-se in the
+    sense that it does NOT depend on curses or anything UI related.
+    '''
+
+    # pylint: disable=too-many-instance-attributes
+
+    line_numbers: bool = True
+    wrap: bool = True
+    bullets: bool = False
+    reverse_matching: bool = False
+    line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
+    show_all_lines: bool = True
+    show_spaces: bool = False
+    colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
+    palette_id: types.PaletteId = 0
+    dirty: bool = False
+
+    def __init__(self) -> None:
+        self.filters: List[Filter] = []
+
+    def get_filters_count(self) -> int:
+        '''Returns the number of filters currently defined'''
+        return len(self.filters)
+
+    def has_filters(self) -> bool:
+        '''Returns whether or not there is any filter'''
+        return len(self.filters) > 0
+
+    def top_filter(self) -> Filter:
+        '''Returns top level filter (most recently added)'''
+        count = len(self.filters)
+        assert count > 0
+        return self.filters[count-1]
+
+    def push_filter(self, f: Filter) -> None:
+        '''Pushes the given filter'''
+        self.dirty = True
+        self.filters.append(f)
+
+    def swap_filters(self, i, j) -> None:
+        '''Swaps the given filters'''
+        self.dirty = True
+        count = len(self.filters)
+        assert 0 <= i < count
+        assert 0 <= j < count
+        self.filters[i], self.filters[j] = self.filters[j], self.filters[i]
+
+    def rotate_filters(self, go_up: bool) -> None:
+        '''Rotates filters'''
+        self.dirty = True
+        count = len(self.filters)
+        assert count >= 2
+        if go_up:
+            self.filters = self.filters[1:] + self.filters[:1]
+        else:
+            self.filters = self.filters[-1:] + self.filters[:-1]
+
+    def set_palette(self, pid: types.PaletteId) -> None:
+        '''Select the next palette in the given direction'''
+        self.dirty = True
+        self.palette_id = pid

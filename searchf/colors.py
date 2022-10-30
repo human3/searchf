@@ -104,7 +104,7 @@ def get_color_pair(palette_index, filter_index):
 def init():
     '''Initializes color support.'''
     assert curses.has_colors()
-    assert curses.COLORS >= 256, f'Screen has {curses.COLORS} colors (try TERM=screen-256color)'
+    assert curses.COLORS >= 256, 'Not enough colors (try TERM=screen-256color)'
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)

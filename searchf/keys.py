@@ -12,6 +12,7 @@ POLL = -1
 # Number of seconds to wait before canceling key escape sequence
 ESCAPE_TIMEOUT = 0.2
 
+
 class Provider:
     '''Key press provider, that replaces curses getch()
     implementation when testing.'''
@@ -22,6 +23,7 @@ class Provider:
         '''Gets the next key'''
         key = self._keys.pop(0)
         return key if isinstance(key, int) else ord(key)
+
 
 class Processor:
     '''Class that returns key pressed by end-user, handling any required

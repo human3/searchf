@@ -45,14 +45,19 @@ def sort_and_merge(segments: Set[Segment]) -> List[Segment]:
     return sorted(merged)
 
 
-def find_matching(text: str, keywords, ignore_case: bool) -> Tuple[bool, List[Segment]]:
+def find_matching(
+        text: str,
+        keywords,
+        ignore_case: bool
+        ) -> Tuple[bool, List[Segment]]:
     '''Returns True and the segments matching any of the given keywords if
     each keyword is found at least once in the given text, False and
     an empty list otherwise.
     '''
     assert len(keywords) > 0
     flags = re.IGNORECASE if ignore_case else 0
-    matching: Set[Segment] = set()  # Use a set() as multiple matches are possible
+    matching: Set[Segment] = set()
+    # matching is a set() as multiple matches are possible
     for k in keywords:
         is_matching = False
         for match in re.finditer(k, text, flags):
@@ -68,10 +73,11 @@ def find_matching(text: str, keywords, ignore_case: bool) -> Tuple[bool, List[Se
     return True, sort_and_merge(matching)
 
 
-def iterate(start: int,
-            end: int,
-            matching_segments: List[Segment]
-            ) -> Iterable[Tuple[bool, int, int]]:
+def iterate(
+        start: int,
+        end: int,
+        matching_segments: List[Segment]
+        ) -> Iterable[Tuple[bool, int, int]]:
     '''This function is used to build the list of text draw commands to
     display a line containing highlighted keywords. Text draws
     commands are yielded for left to right drawing, alternating

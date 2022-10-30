@@ -23,7 +23,9 @@ from . import test_models
 from . import test_keys
 from . import test_storage
 
-TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample.txt')
+TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         'sample.txt')
+
 
 class KeywordsInjector:
     '''Class that emulates end-user entering keywords. Provides a
@@ -41,6 +43,7 @@ class KeywordsInjector:
         # pylint: disable=unused-argument
         return self.get_next()
 
+
 class MtimeInjector:
     '''Class that emulates end-user externally changing file. Provides
     a getmtime() function that can replace the one in the app module,
@@ -55,10 +58,14 @@ class MtimeInjector:
         self._time += 1
         return self._time
 
+
 @contextmanager
-def app_modifier(keywords_injector: KeywordsInjector, mtime_injector: MtimeInjector):
+def app_modifier(keywords_injector: KeywordsInjector,
+                 mtime_injector: MtimeInjector):
     '''Context manager that replaces key and text input methods of the app
-    module, and makes sure tests are run always with same screen resolution'''
+    module, and makes sure tests are run always with same screen
+    resolution
+    '''
 
     def _injected_get_max_yx(_):
         return 30, 80
@@ -76,15 +83,19 @@ def app_modifier(keywords_injector: KeywordsInjector, mtime_injector: MtimeInjec
         app.getmtime = getmtime
         app.get_max_yx = get_max_yx
 
+
 class AppTest(NamedTuple):
     '''Model data associated with a test:
-    - the description of the text
-    - the list of keys that will be sequentially automatically pressed by test runner
-    - the list of text input that will be automatically fed to the application
+    - the description of the test
+    - the list of keys that will be sequentially automatically pressed
+      by test runner
+    - the list of text input that will be automatically fed to the
+      application
     '''
     description: str
     keys: List[str]
     inputs: List[str]
+
 
 def _run(stdscr, t: AppTest):
     '''Helper function to run the given AppTest'''
@@ -101,21 +112,27 @@ def _run(stdscr, t: AppTest):
             app.VIEWS.handle_key(key if isinstance(key, int) else ord(key))
     store.destroy()
 
+
 def _test_app_init_env():
     print('Test app.init_env()')
     parser = app.init_env()
     assert parser
+
 
 def _test_app_get_text(stdscr):
     print('Test app.get_text()')
 
     def my_handler(_):
         pass
+
     def my_handler_throwing(_):
         raise app.EscapeException
 
-    app.get_text(stdscr, 0, 0, "Testing prompt", my_handler, 'Editable content')
-    app.get_text(stdscr, 0, 0, "Testing prompt", my_handler_throwing, '')
+    app.get_text(stdscr, 0, 0,
+                 "Testing prompt", my_handler, 'Editable content')
+    app.get_text(stdscr, 0, 0,
+                 "Testing prompt", my_handler_throwing, '')
+
 
 def _test_app_validate():
     print('Test app.validate()')
@@ -128,11 +145,13 @@ def _test_app_validate():
         actual = ex
     assert actual
 
+
 def _test_app_main_loop(stdscr):
     print('Test app.main_loop()')
     keys_processor = keys.Processor(keys.Provider(
         [' ', '>', 'l', keys.POLL, 'q']))
     app.main_loop(stdscr, TEST_FILE, keys_processor)
+
 
 def _test_app_resize(stdscr):
     print('Test app.resize')
@@ -143,6 +162,7 @@ def _test_app_resize(stdscr):
     except app.ResizeException as ex:
         actual = ex
     assert actual
+
 
 def _test_app_debug_view(stdscr):
     # Test debug mode in a very hacky way by hijacking handle_key function
@@ -161,6 +181,7 @@ def _test_app_debug_view(stdscr):
         ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
     app.VIEWS.handle_key = original_handle_key
     app.USE_DEBUG = False
+
 
 # This is poor man's testing, as we don't validate much other than
 # just making sure things don't blow up when executing common commands
@@ -192,12 +213,12 @@ def _run_app_tests(stdscr):
         AppTest('Test various display modes',
                 ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm'], []),
         AppTest('Test entering one letter keywords',
-                ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c', 'F', '-', '-',
-                 '-', '+'],
+                ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c',
+                 'F', '-', '-', '-', '+'],
                 ['a', 'b', 'c', 'd', '']),
         AppTest('Test entering keywords',
-                ['+', '+', 'f', 'f', 'm', 'h', 'h', 'H', 'm', 'c', 'C', 'F', '-', '-', '-',
-                 '+'],
+                ['+', '+', 'f', 'f', 'm', 'h', 'h', 'H', 'm', 'c', 'C', 'F',
+                 '-', '-', '-', '+'],
                 ['filter', 'keyword', 'for', 'python', '']),
         AppTest('Test entering empty keywords, poping non existent keywords',
                 ['+', 'f', '-', 'F'],
@@ -235,6 +256,7 @@ def _run_app_tests(stdscr):
     _test_app_resize(stdscr)
     _test_app_debug_view(stdscr)
 
+
 def _run_unit_tests():
     print('Test enums.test_get_next_prev()')
     test_enums.test_get_next_prev()
@@ -263,11 +285,13 @@ def _run_unit_tests():
     print('Test storage.test_strore()')
     test_storage.test_store()
 
+
 def _test_app_main():
     print('Test app.main()')
 
-    # We use a context manager that replaces app.init_env and keys.Processor in order to
-    # be able to load app.main as if it was invoked by end-user
+    # We use a context manager that replaces app.init_env and
+    # keys.Processor in order to be able to load app.main as if it was
+    # invoked by end-user
 
     def _init_env():
         parser = argparse.ArgumentParser(description='Dummy parser')
@@ -278,6 +302,7 @@ def _test_app_main():
     class _KeysProcessor:
         def __init__(self, _):
             self._keys = [-1, ord('<')]
+
         def get(self):
             '''Get next key'''
             if len(self._keys) <= 0:
@@ -299,6 +324,7 @@ def _test_app_main():
     with _app_modifier():
         app.main()
 
+
 def main():
     '''Test entry point'''
     print('== Tests started ==')
@@ -306,6 +332,7 @@ def main():
     utils.wrapper(True, curses.wrapper, _run_app_tests)
     _test_app_main()
     print('== Tests passed ==')
+
 
 if __name__ == '__main__':
     main()

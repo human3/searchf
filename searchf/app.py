@@ -1,5 +1,7 @@
 '''https://github.com/human3/searchf'''
 
+# pylint: disable=too-many-lines
+
 from curses.textpad import Textbox
 from typing import List
 from typing import NamedTuple
@@ -28,35 +30,46 @@ from . import types
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
 
-# Do not use curses.A_BOLD on Windows as it just renders horribly when highlighting
+# Do not use curses.A_BOLD on Windows as it just renders horribly when
+# highlighting
 USE_BOLD = 0 if sys.platform == 'win32' else curses.A_BOLD
 
 STATUS_EMPTY = ''
 STATUS_UNCHANGED = 'unchanged'
 
+
 def _load_help_lines():
     lines = [f'  ~ Searchf {__version__} Help ~', '']
-    help_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'help.txt')
+    help_file = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'help.txt')
     with open(help_file, encoding='utf-8') as f:
         lines += f.readlines()
     return lines
 
+
 HELP_LINES = _load_help_lines()
 
+
 def get_max_yx(scr) -> types.Size:
-    '''This function is a test artifact that wraps getmaxyx() from curses
-    so that we can overwrite it and test specific dimensions.'''
+    '''This function is a test artifact that wraps getmaxyx() from curses so
+    that we can overwrite it and test specific dimensions.
+    '''
     return scr.getmaxyx()
+
 
 def getmtime(path):
     '''Wraps os.getmtime() for testing'''
     return os.path.getmtime(path)
 
+
 class EscapeException(Exception):
     '''Signals that Escape key has been pressed'''
 
+
 class ResizeException(Exception):
     '''Signals that unsupported terminal resizing has happened'''
+
 
 def validate(k: int) -> int:
     '''Validates key'''
@@ -65,6 +78,7 @@ def validate(k: int) -> int:
     elif k == curses.ascii.ESC:
         raise EscapeException()
     return k
+
 
 def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
     '''Gets text interactively from end user'''
@@ -87,11 +101,13 @@ def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
     clear(scr, y, 0, len(text_prompt))
     return text if text else ''
 
+
 def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
     '''Prompts user to enter some text.'''
     def handle(box):
         box.edit(validate=validate)
     return get_text(scr, y, x, text_prompt, handle, text)
+
 
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
@@ -100,12 +116,12 @@ def clear(scr, y, x, length):
     scr.addstr(y, x, blank[:maxw-(x+1)])
     scr.move(y, x)
 
+
 class ViewConfig:
-    '''Holds the configuration of a view, like filters to use or the
-    display modes, typically changed by end users to match their
-    need. Does not contain any data related to file content. Should be
-    serialized at some point to persist somewhere and get re-used accross
-    session.
+    '''Holds the configuration of a view, like filters to use or the display
+    modes, typically changed by end users to match their need. Does not
+    contain any data related to file content. Should be serialized at some
+    point to persist somewhere and get re-used accross session.
     '''
 
     # pylint: disable=too-many-instance-attributes
@@ -162,15 +178,18 @@ class ViewConfig:
             self.filters = self.filters[-1:] + self.filters[:-1]
 
     def get_color_pair(self, filter_index: int) -> types.Status:
-        '''Returns the id of the color pair associated with given filter index'''
+        '''Returns the id of the color pair associated with given filter
+        index'''
         self.dirty = True
         return colors.get_color_pair(self.palette_index, filter_index)
 
     def cycle_palette(self, forward: bool) -> int:
         '''Select the next palette in the given direction'''
         self.dirty = True
-        self.palette_index = colors.cycle_palette_index(self.palette_index, forward)
+        self.palette_index = colors.cycle_palette_index(
+            self.palette_index, forward)
         return self.palette_index
+
 
 def bool_to_text(value: bool) -> str:
     '''Converts a boolean value to text.'''
@@ -185,11 +204,18 @@ SHOWN_COL_LEN = len(max(SHOWN_COL_TEXTS, key=len))
 
 
 class PrefixInfo(NamedTuple):
-    '''Line prefix infos.'''
-    length: int       # Total length of prefix
-    digit_count: int  # Number of digits of the largest line number
-    separator: str    # Separator between things on left (line number,
-                      # bullet), and things on right (line)
+    '''Line prefix infos.
+
+    Attributes:
+        length       Total length of prefix.
+        digit_count  Number of digits of the largest line number.
+        separator    Separator between things on left (line number,
+                     bullet), and things on right (line).
+    '''
+    length: int
+    digit_count: int
+    separator: str
+
 
 class TextView:
     '''Display selected content of a file, using filters and keyword to
@@ -228,7 +254,7 @@ class TextView:
         idx = self._store.delete()
         if idx is not None:
             assert idx >= 0
-            self._config.dirty = True # Allows saving again
+            self._config.dirty = True  # Allows saving again
             return f'Slot {idx} deleted'
         return 'No slot loaded. Cannot delete current slot.'
 
@@ -288,7 +314,8 @@ class TextView:
         x = move_left_for(x, text)
         self._win.addstr(y, x, text, style)
 
-        text = ''.ljust(5)  # voffest_desc is not always shown, but at most 5 char long
+        # voffest_desc is not always shown, but at most 5 char long
+        text = ''.ljust(5)
         x = move_left_for(x, text)
         if len(self._vm.voffset_desc) > 0:
             text = f' {self._vm.voffset_desc:>3} '
@@ -332,7 +359,8 @@ class TextView:
             text = f'{text:<{self._vm.size[1]}}'
             self._win.addnstr(y, x, text, self._size[1], color)
         else:
-            for match, start, end in segments.iterate(offset, vend, matching_segments):
+            for match, start, end in segments.iterate(
+                    offset, vend, matching_segments):
                 assert start < end
                 c = color if match else 0
                 length = end - start
@@ -347,8 +375,8 @@ class TextView:
         prefix_info = self._get_prefix_info()
 
         # Only draw what we need: we are going to pull at most
-        # _max_visible_lines_count lines from the data model, possibly
-        # less if some content needs multiple lines (wrapping)
+        # _max_visible_lines_count lines from the data model, possibly less if
+        # some content needs multiple lines (wrapping)
         iddata = self._vm.voffset
         iddatamax = self._vm.lines_count()
 
@@ -357,19 +385,24 @@ class TextView:
                 break
             idata, offset = self._vm.data[iddata]
             iddata += 1
-            line_idx, filter_idx, text, matching_segments = self._model.data[idata]
+            line_idx, filter_idx, text, matching_segments = \
+                self._model.data[idata]
             if line_idx == models.RULER_INDEX:
                 self._win.addstr(y, 0, self._ruler)
                 continue
             color = self._config.get_color_pair(filter_idx)
-            # If offset is not 0, this means the original content line
-            # is being wrapped on to multiple lines on the screen. We
-            # only draw the prefix on the first line, which has offset
-            # 0.
+            # If offset is not 0, this means the original content line is
+            # being wrapped on to multiple lines on the screen. We only draw
+            # the prefix on the first line, which has offset 0.
             if offset == 0:
                 self._draw_prefix(y, prefix_info, line_idx, color)
             offset += self._vm.hoffset
-            self._draw_content((y, prefix_info.length), text, matching_segments, offset, color)
+            self._draw_content(
+                (y, prefix_info.length),
+                text,
+                matching_segments,
+                offset,
+                color)
 
         self._draw_bar(self._max_visible_lines_count)
 
@@ -377,8 +410,7 @@ class TextView:
 
     def _layout(self, redraw):
         '''Propagate layout changes: evaluates the available space and calls
-layout of the view model.
-
+        layout of the view model.
         '''
 
         # Compute space available for file content
@@ -395,7 +427,8 @@ layout of the view model.
         # constraints which might just have changed.
         self.set_v_offset(self._vm.voffset, False)
 
-        assert self._vm.voffset == 0 or self._vm.voffset < self._vm.lines_count()
+        assert self._vm.voffset == 0 or \
+            self._vm.voffset < self._vm.lines_count()
 
         if redraw:
             self.draw()
@@ -410,8 +443,9 @@ layout of the view model.
         self._sync(False)
 
     def set_lines(self, lines: List[str]) -> None:
-        '''Sets the content of this view. Assumes the view is offscreen and does
-        not trigger a redraw.'''
+        '''Sets the content of this view. Assumes the view is offscreen and
+        does not trigger a redraw.
+        '''
         self._model.set_lines(lines)
         self._sync(False)
 
@@ -455,7 +489,8 @@ layout of the view model.
 
     def get_last_keyword(self) -> Tuple[int, Optional[str]]:
         '''Returns total number of keywords in top level filter (0 if none),
-        and the keyword that was last entered by user.'''
+        and the keyword that was last entered by user.
+        '''
         if not self._config.has_filters():
             return 0, ''
         f = self._config.top_filter()
@@ -482,13 +517,15 @@ layout of the view model.
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
     def _cycle_colorize_mode(self, forward: bool) -> types.Status:
-        f = enums.ColorizeMode.get_next if forward else enums.ColorizeMode.get_prev
+        f = enums.ColorizeMode.get_next if forward \
+            else enums.ColorizeMode.get_prev
         self._config.colorize_mode = f(self._config.colorize_mode)
         self.show()
         return f'Colorize mode: {self._config.colorize_mode}'
 
     def _cycle_line_visibility(self, forward: bool) -> types.Status:
-        f = enums.LineVisibility.get_next if forward else enums.LineVisibility.get_prev
+        f = enums.LineVisibility.get_next if forward \
+            else enums.LineVisibility.get_prev
         self._config.line_visibility = f(self._config.line_visibility)
         self._sync(True)
         return f'{self._config.line_visibility}'
@@ -511,8 +548,9 @@ layout of the view model.
         return f'Lines matching filter are now {action}'
 
     def _apply_palette_and_draw(self) -> None:
-        colors.apply_palette(self._config.palette_index,
-                             self._config.colorize_mode == enums.ColorizeMode.KEYWORD_HIGHLIGHT)
+        colors.apply_palette(
+            self._config.palette_index,
+            self._config.colorize_mode == enums.ColorizeMode.KEYWORD_HIGHLIGHT)
         self.draw()
 
     def show(self) -> None:
@@ -586,7 +624,10 @@ layout of the view model.
         self._sync(True)
         return 'Filters rotated'
 
-    def _vscroll_to_match(self, starting: bool, direction: int) -> types.Status:
+    def _vscroll_to_match(self,
+                          starting: bool,
+                          direction: int
+                          ) -> types.Status:
         iddata = self._vm.voffset
         idatamax = len(self._model.data)
         idata, _ = self._vm.data[iddata]
@@ -624,49 +665,85 @@ layout of the view model.
     def execute(self, command: enums.TextViewCommand) -> types.Status:
         '''Executes the given command.'''
         dispatch = {
-            enums.TextViewCommand.GO_UP:                 lambda: self._vscroll(-1),
-            enums.TextViewCommand.GO_DOWN:               lambda: self._vscroll(1),
-            enums.TextViewCommand.GO_LEFT:               lambda: self._hscroll(-1),
-            enums.TextViewCommand.GO_RIGHT:              lambda: self._hscroll(1),
-            enums.TextViewCommand.GO_HOME:               lambda: self.set_v_offset(0, True),
-            enums.TextViewCommand.GO_END:                lambda: self.set_v_offset(
-                sys.maxsize, True),
-            enums.TextViewCommand.GO_NPAGE:              lambda: self._vpagescroll(1),
-            enums.TextViewCommand.GO_PPAGE:              lambda: self._vpagescroll(-1),
-            enums.TextViewCommand.GO_SLEFT:              lambda: self._hscroll(-20),
-            enums.TextViewCommand.GO_SRIGHT:             lambda: self._hscroll(20),
-            enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH: lambda: self._vscroll_to_match(
-                False, 1),
-            enums.TextViewCommand.VSCROLL_TO_PREV_MATCH: lambda: self._vscroll_to_match(
-                False, -1),
-            enums.TextViewCommand.NEXT_COLORIZE_MODE:    lambda: self._cycle_colorize_mode(True),
-            enums.TextViewCommand.PREV_COLORIZE_MODE:    lambda: self._cycle_colorize_mode(False),
-            enums.TextViewCommand.NEXT_PALETTE:          lambda: self._cycle_palette(True),
-            enums.TextViewCommand.PREV_PALETTE:          lambda: self._cycle_palette(False),
-            enums.TextViewCommand.NEXT_LINE_VISIBILITY:  lambda: self._cycle_line_visibility(True),
-            enums.TextViewCommand.PREV_LINE_VISIBILITY:  lambda: self._cycle_line_visibility(False),
-            enums.TextViewCommand.POP_FILTER:            self._pop_filter,
-            enums.TextViewCommand.POP_KEYWORD:           self._pop_keyword,
-            enums.TextViewCommand.TOGGLE_LINE_NUMBERS:   self._toggle_line_numbers,
-            enums.TextViewCommand.TOGGLE_WRAP:           self._toggle_wrap,
-            enums.TextViewCommand.TOGGLE_BULLETS:        self._toggle_bullets,
-            enums.TextViewCommand.TOGGLE_SHOW_SPACES:    self._toggle_show_spaces,
-            enums.TextViewCommand.TOGGLE_IGNORE_CASE:    self._toggle_ignore_case,
-            enums.TextViewCommand.TOGGLE_HIDING:         self._toggle_hiding,
-            enums.TextViewCommand.SWAP_FILTERS:          self.swap_filters,
-            enums.TextViewCommand.ROTATE_FILTERS_UP:     lambda: self.rotate_filters(True),
-            enums.TextViewCommand.ROTATE_FILTERS_DOWN:   lambda: self.rotate_filters(False),
-            enums.TextViewCommand.SLOT_SAVE:             self._slot_save,
-            enums.TextViewCommand.SLOT_DELETE:           self._slot_delete,
-            enums.TextViewCommand.SLOT_LOAD_NEXT:        lambda: self._slot_load(True),
-            enums.TextViewCommand.SLOT_LOAD_PREV:        lambda: self._slot_load(False),
+            enums.TextViewCommand.GO_UP:
+                lambda: self._vscroll(-1),
+            enums.TextViewCommand.GO_DOWN:
+                lambda: self._vscroll(1),
+            enums.TextViewCommand.GO_LEFT:
+                lambda: self._hscroll(-1),
+            enums.TextViewCommand.GO_RIGHT:
+                lambda: self._hscroll(1),
+            enums.TextViewCommand.GO_HOME:
+                lambda: self.set_v_offset(0, True),
+            enums.TextViewCommand.GO_END:
+                lambda: self.set_v_offset(sys.maxsize, True),
+            enums.TextViewCommand.GO_NPAGE:
+                lambda: self._vpagescroll(1),
+            enums.TextViewCommand.GO_PPAGE:
+                lambda: self._vpagescroll(-1),
+            enums.TextViewCommand.GO_SLEFT:
+                lambda: self._hscroll(-20),
+            enums.TextViewCommand.GO_SRIGHT:
+                lambda: self._hscroll(20),
+            enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH:
+                lambda: self._vscroll_to_match(False, 1),
+            enums.TextViewCommand.VSCROLL_TO_PREV_MATCH:
+                lambda: self._vscroll_to_match(False, -1),
+            enums.TextViewCommand.NEXT_COLORIZE_MODE:
+                lambda: self._cycle_colorize_mode(True),
+            enums.TextViewCommand.PREV_COLORIZE_MODE:
+                lambda: self._cycle_colorize_mode(False),
+            enums.TextViewCommand.NEXT_PALETTE:
+                lambda: self._cycle_palette(True),
+            enums.TextViewCommand.PREV_PALETTE:
+                lambda: self._cycle_palette(False),
+            enums.TextViewCommand.NEXT_LINE_VISIBILITY:
+                lambda: self._cycle_line_visibility(True),
+            enums.TextViewCommand.PREV_LINE_VISIBILITY:
+                lambda: self._cycle_line_visibility(False),
+            enums.TextViewCommand.POP_FILTER:
+                self._pop_filter,
+            enums.TextViewCommand.POP_KEYWORD:
+                self._pop_keyword,
+            enums.TextViewCommand.TOGGLE_LINE_NUMBERS:
+                self._toggle_line_numbers,
+            enums.TextViewCommand.TOGGLE_WRAP:
+                self._toggle_wrap,
+            enums.TextViewCommand.TOGGLE_BULLETS:
+                self._toggle_bullets,
+            enums.TextViewCommand.TOGGLE_SHOW_SPACES:
+                self._toggle_show_spaces,
+            enums.TextViewCommand.TOGGLE_IGNORE_CASE:
+                self._toggle_ignore_case,
+            enums.TextViewCommand.TOGGLE_HIDING:
+                self._toggle_hiding,
+            enums.TextViewCommand.SWAP_FILTERS:
+                self.swap_filters,
+            enums.TextViewCommand.ROTATE_FILTERS_UP:
+                lambda: self.rotate_filters(True),
+            enums.TextViewCommand.ROTATE_FILTERS_DOWN:
+                lambda: self.rotate_filters(False),
+            enums.TextViewCommand.SLOT_SAVE:
+                self._slot_save,
+            enums.TextViewCommand.SLOT_DELETE:
+                self._slot_delete,
+            enums.TextViewCommand.SLOT_LOAD_NEXT:
+                lambda: self._slot_load(True),
+            enums.TextViewCommand.SLOT_LOAD_PREV:
+                lambda: self._slot_load(False),
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()
 
+
 class DebugView:
-    '''Displays few debug lines, convenient to debug layout while curses running.'''
-    def __init__(self, scr, size: types.Size, position: Tuple[int, int]) -> None:
+    '''Displays few debug lines, convenient to debug layout while curses
+    running.'''
+    def __init__(self,
+                 scr,
+                 size: types.Size,
+                 position: Tuple[int, int]
+                 ) -> None:
         self._scr = scr
         self._lines: List[str] = []
         self._size = size
@@ -889,35 +966,58 @@ class Views:
 
         # Map keys to custom functions used to handle more complex commands
         # like ones taking arguments
+
+        # noqa: E272 is "multiple spaces before keyword"
         keys_to_func = {
-            ord('1'):          lambda: self._set_view(0, False),
-            ord('2'):          lambda: self._set_view(1, False),
-            ord('3'):          lambda: self._set_view(2, False),
-            ord('!'):          lambda: self._set_view(0, True),
-            ord('@'):          lambda: self._set_view(1, True),
-            ord('#'):          lambda: self._set_view(2, True),
-            ord('?'):          self._help_view_push,
-            ord('e'):          edit_keyword,
-            ord('f'):          lambda: new_keyword(True),
-            ord('\n'):         lambda: new_keyword(True),
-            ord('r'):          lambda: self._reload(0),
-            ord('R'):          lambda: self._toggle_auto_reload(0),
-            ord('t'):          lambda: self._reload(sys.maxsize),
-            ord('T'):          lambda: self._toggle_auto_reload(sys.maxsize),
-            ord('+'):          lambda: new_keyword(False),
-            ord('='):          lambda: new_keyword(False),
-            ord('/'):          self.try_start_search,
-            curses.ascii.TAB:  goto_line,
-            7:                 goto_line,
+            ord('1'):
+                lambda: self._set_view(0, False),
+            ord('2'):
+                lambda: self._set_view(1, False),
+            ord('3'):
+                lambda: self._set_view(2, False),
+            ord('!'):
+                lambda: self._set_view(0, True),
+            ord('@'):
+                lambda: self._set_view(1, True),
+            ord('#'):
+                lambda: self._set_view(2, True),
+            ord('?'):
+                self._help_view_push,
+            ord('e'):
+                edit_keyword,
+            ord('f'):
+                lambda: new_keyword(True),
+            ord('\n'):
+                lambda: new_keyword(True),
+            ord('r'):
+                lambda: self._reload(0),
+            ord('R'):
+                lambda: self._toggle_auto_reload(0),
+            ord('t'):
+                lambda: self._reload(sys.maxsize),
+            ord('T'):
+                lambda: self._toggle_auto_reload(sys.maxsize),
+            ord('+'):
+                lambda: new_keyword(False),
+            ord('='):
+                lambda: new_keyword(False),
+            ord('/'):
+                self.try_start_search,
+            curses.ascii.TAB:
+                goto_line,
+            7:
+                goto_line,
         }
 
-        intersection = keys_to_command.keys() & keys_to_func.keys()
-        assert len(intersection) == 0, f'Some keys are mapped multiple times {intersection}'
+        inter = keys_to_command.keys() & keys_to_func.keys()
+        assert len(inter) == 0, f'Keys with multiple mapping {inter}'
         status: types.Status = ''
 
-        # If help is shown, we hijack keys closing the view but forward all other keys
-        # as if it is a regular view (which makes help searchable like a file...)
-        if self._hidden_view >= 0 and key in (ord('q'), ord('Q'), curses.ascii.ESC):
+        # If help is shown, we hijack keys closing the view but
+        # forward all other keys as if it is a regular view (which
+        # makes help searchable like a file...)
+        if self._hidden_view >= 0 and key in (
+                ord('q'), ord('Q'), curses.ascii.ESC):
             self._help_view_pop()
         elif key in keys_to_command:
             status = v.execute(keys_to_command[key])
@@ -930,6 +1030,7 @@ class Views:
 
 
 VIEWS = Views()
+
 
 def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
     '''Main loop consuming keys and events.'''
@@ -975,11 +1076,13 @@ def init_env() -> argparse.ArgumentParser:
     os.environ.setdefault('ESCDELAY', '25')
     os.environ['TERM'] = 'screen-256color'
     parser = argparse.ArgumentParser(
-        description='Console application to search into text files and highlight keywords.',
-        epilog='Press ? in the application for more information, or go to\
-        https://github.com/human3/searchf')
+        description='Console application to search into text files and \
+highlight keywords.',
+        epilog='Press ? in the application for more information, or go to \
+https://github.com/human3/searchf')
     parser.add_argument('file')
     return parser
+
 
 def main() -> None:
     '''Application entry point'''
@@ -987,5 +1090,6 @@ def main() -> None:
     args = parser.parse_args()
     utils.wrapper(False, curses.wrapper, main_curses, args.file)
 
-if __name__ == '__main__': # pragma: no cover
+
+if __name__ == '__main__':  # pragma: no cover
     main()

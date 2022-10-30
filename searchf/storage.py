@@ -10,8 +10,10 @@ SUFFIX = '.pickle'
 
 SlotId = int
 
+
 def _slot_id_to_prefix(idx: SlotId) -> str:
     return f'{idx:03}'
+
 
 class Store:
     '''Implement storage of objects into "slots" that are just numbered

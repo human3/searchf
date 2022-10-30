@@ -2,6 +2,7 @@
 
 from .. import storage
 
+
 def test_store():
     '''Test store'''
     store = storage.Store('.searchf.test')

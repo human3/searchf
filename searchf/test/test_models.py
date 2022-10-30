@@ -38,8 +38,13 @@ def test_model():
     assert m.line_count() == 0
     assert m.line_number_length() == 1
 
-    m.set_lines(['A very simple first line', 'Another line', 'And a third one'])
-    assert m.line_count() == 3
+    all_lines = [
+        'A very simple first line',
+        'Another line',
+        'And a third one',
+        'A fourth',
+        'And finally the very last one']
+    m.set_lines(all_lines)
     assert m.line_number_length() == 1
 
     m.sync([], enums.LineVisibility.ALL)
@@ -49,20 +54,45 @@ def test_model():
     f.add('not match')
     m.sync([f], enums.LineVisibility.ALL)
     assert m.hits_count() == 0
-    assert m.line_count() == 3
+    assert m.line_count() == len(all_lines)
+
+    f.pop()
+    f.add('simple')
+    m.sync([f], enums.LineVisibility.ALL)
+    assert m.hits_count() == 1
+    assert m.visible_line_count() == len(all_lines)
+    m.sync([f], enums.LineVisibility.CONTEXT_1)
+    assert m.visible_line_count() == 2
+    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
+    assert m.visible_line_count() == 1
 
     f.pop()
     f.add('line')
     m.sync([f], enums.LineVisibility.ALL)
     assert m.hits_count() == 2
-    assert m.line_count() == 3
+    assert m.visible_line_count() == len(all_lines)
+    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
+    assert m.visible_line_count() == 2
+
+    f.pop()
+    f.add('Another')
+    m.sync([f], enums.LineVisibility.ALL)
+    assert m.hits_count() == 1
+    assert m.visible_line_count() == len(all_lines)
+    m.sync([f], enums.LineVisibility.CONTEXT_1)
+    assert m.visible_line_count() == 3
+    m.sync([f], enums.LineVisibility.CONTEXT_2)
+    assert m.visible_line_count() == 4
+    m.sync([f], enums.LineVisibility.CONTEXT_5)
+    assert m.visible_line_count() == 5
+    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
+    assert m.visible_line_count() == 1
+
+    # Add a ruler
+    f.pop()
+    f.add('very')
     m.sync([f], enums.LineVisibility.CONTEXT_1)
     assert m.hits_count() == 2
-    m.sync([f], enums.LineVisibility.CONTEXT_2)
-    assert m.hits_count() == 2
-    m.sync([f], enums.LineVisibility.CONTEXT_5)
-    assert m.hits_count() == 2
-
 
 def test_view_model():
     '''Test models.ViewModel'''

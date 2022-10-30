@@ -93,7 +93,6 @@ def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
         box.edit(validate=validate)
     return get_text(scr, y, x, text_prompt, handle, text)
 
-
 def clear(scr, y, x, length):
     '''Prints "length" spaces at the given position'''
     _, maxw = get_max_yx(scr)
@@ -974,9 +973,7 @@ def init_env() -> argparse.ArgumentParser:
     '''Initialize environment and return argument parser'''
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
-
     os.environ['TERM'] = 'screen-256color'
-
     parser = argparse.ArgumentParser(
         description='Console application to search into text files and highlight keywords.',
         epilog='Press ? in the application for more information, or go to\
@@ -990,5 +987,5 @@ def main() -> None:
     args = parser.parse_args()
     utils.wrapper(False, curses.wrapper, main_curses, args.file)
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     main()

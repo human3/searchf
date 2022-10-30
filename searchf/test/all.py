@@ -1,6 +1,7 @@
 '''Application end-to-end tests.
 '''
 
+import argparse
 import curses
 import os
 import time
@@ -256,15 +257,54 @@ def _run_unit_tests():
     print('Test models.test_view_model()')
     test_models.test_view_model()
     print('Test keys.test_processor()')
+    test_keys.test_process()
+    print('Test keys.test_process()')
     test_keys.test_processor()
     print('Test storage.test_strore()')
     test_storage.test_store()
+
+def _test_app_main():
+    print('Test app.main()')
+
+    # We use a context manager that replaces app.init_env and keys.Processor in order to
+    # be able to load app.main as if it was invoked by end-user
+
+    def _init_env():
+        parser = argparse.ArgumentParser(description='Dummy parser')
+        parser.add_argument('-file', default=TEST_FILE)
+        print('test_env')
+        return parser
+
+    class _KeysProcessor:
+        def __init__(self, _):
+            self._keys = [-1, ord('<')]
+        def get(self):
+            '''Get next key'''
+            if len(self._keys) <= 0:
+                raise KeyboardInterrupt
+            return self._keys.pop(0)
+
+    @contextmanager
+    def _app_modifier():
+        keys_processor = keys.Processor
+        init_env = app.init_env
+        keys.Processor = _KeysProcessor
+        app.init_env = _init_env
+        try:
+            yield
+        finally:
+            keys.Processor = keys_processor
+            app.init_env = init_env
+
+    with _app_modifier():
+        app.main()
 
 def main():
     '''Test entry point'''
     print('== Tests started ==')
     _run_unit_tests()
     utils.wrapper(True, curses.wrapper, _run_app_tests)
+    _test_app_main()
     print('== Tests passed ==')
 
 if __name__ == '__main__':

@@ -7,6 +7,12 @@ from .. import keys
 
 def test_processor():
     '''Test keys.Processor'''
+    proc = keys.Processor(keys.Provider([ord('a')]))
+    assert proc
+    assert ord('a') == proc.get()
+
+def test_process():
+    '''Test keys.Process'''
     proc = keys.Processor(keys.Provider([]))
     assert proc
 

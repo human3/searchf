@@ -2,6 +2,7 @@
 
 OUT_FUNC = None
 
+
 def out(*argv) -> None:
     '''Outputs the given arguments.'''
     if OUT_FUNC:

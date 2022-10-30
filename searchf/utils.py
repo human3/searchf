@@ -31,7 +31,7 @@ def wrapper(force, func, /, *args):
     # pylint: disable=broad-except
     try:
         func(*args)
-    except Exception as ex: # pragma: no cover
+    except Exception as ex:  # pragma: no cover
         error = ex
 
     sys.stdout = sys.__stdout__
@@ -42,6 +42,6 @@ def wrapper(force, func, /, *args):
         print(buf.get())
         print('== End of bufferized stdout and stderr ==')
 
-    if error: # pragma: no cover
+    if error:  # pragma: no cover
         print('== Exception ==')
         raise error

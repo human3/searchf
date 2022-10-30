@@ -94,12 +94,16 @@ def test_model():
     m.sync([f], enums.LineVisibility.CONTEXT_1)
     assert m.hits_count() == 2
 
+
 def test_view_model():
     '''Test models.ViewModel'''
     vm = models.ViewModel()
 
     m = models.Model()
-    m.set_lines(['A very simple first line', 'Another line', 'And a third one'])
+    m.set_lines([
+        'A very simple first line',
+        'Another line',
+        'And a third one'])
     m.sync([], enums.LineVisibility.ALL)
 
     vm.layout(1, 1, m.data, True)

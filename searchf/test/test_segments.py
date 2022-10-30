@@ -18,7 +18,8 @@ def test_iterate():
     _iterate(0, 20, {segments.Segment(11, 12), segments.Segment(20, 21)},
              [(False, 0, 11), (True, 11, 12), (False, 12, 20)])
     _iterate(0, 50, seg,
-             [(False, 0, 5), (True, 5, 15), (False, 15, 25), (True, 25, 35), (False, 35, 50)])
+             [(False, 0, 5), (True, 5, 15), (False, 15, 25),
+              (True, 25, 35), (False, 35, 50)])
     _iterate(10, 20, seg,
              [(True, 10, 15), (False, 15, 20)])
     _iterate(0, 4, seg,
@@ -28,14 +29,16 @@ def test_iterate():
     _iterate(17, 20, seg,
              [(False, 17, 20)])
     _iterate(10, 50, seg,
-             [(True, 10, 15), (False, 15, 25), (True, 25, 35), (False, 35, 50)])
+             [(True, 10, 15), (False, 15, 25), (True, 25, 35),
+              (False, 35, 50)])
     _iterate(0, 10, {segments.Segment(5, 15)},
              [(False, 0, 5), (True, 5, 10)])
 
 
 def _sort_and_merge(test_segments, expected_segments):
     count = 0
-    for actual, expected in zip(segments.sort_and_merge(test_segments), expected_segments):
+    for actual, expected in zip(
+            segments.sort_and_merge(test_segments), expected_segments):
         assert actual[0] < actual[1]
         assert actual == expected, f'{actual} != {expected}'
         count += 1
@@ -79,7 +82,8 @@ def test_find_matching():
     # Basic matching
     _find_matching('abcde', {'abcde'}, False, (True, [(0, 5)]))
     _find_matching('abcde', {'bcd'}, False, (True, [(1, 4)]))
-    _find_matching('abcde', {'a', 'c', 'e'}, False, (True, [(0, 1), (2, 3), (4, 5)]))
+    _find_matching('abcde', {'a', 'c', 'e'}, False,
+                   (True, [(0, 1), (2, 3), (4, 5)]))
     _find_matching('abcde', {'b', 'd'}, False, (True, [(1, 2), (3, 4)]))
     # Overlapping matches
     _find_matching('abcdef', {'bcd', 'cde'}, False, (True, [(1, 5)]))

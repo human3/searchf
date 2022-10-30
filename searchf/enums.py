@@ -15,7 +15,7 @@ class AutoEnum(Enum):
         return obj
 
     def __str__(self):
-        return f'{self._description}' # f'{self._value_} {self._description}'
+        return f'{self._description}'  # f'{self._value_} {self._description}'
 
     @classmethod
     def from_int(cls, i):
@@ -57,7 +57,8 @@ class ColorizeMode(AutoEnum):
 
 
 class TextViewCommand(Enum):
-    '''Simple commands accepted by TextView class, that do not take any argument.'''
+    '''Simple commands accepted by TextView class, that do not take any
+    argument.'''
     GO_UP = auto()
     GO_DOWN = auto()
     GO_LEFT = auto()

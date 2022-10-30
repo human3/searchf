@@ -24,6 +24,7 @@ type:
 
 lint:
 	pylint searchf
+	flake8
 
 # deps target requires sudo
 deps:

@@ -8,9 +8,11 @@ from .. import colors
 
 DEFAULT_PALETTE = range(16)
 
+
 def _reset():
     for i in range(curses.COLORS-1):
         curses.init_pair(i, i, -1)
+
 
 def _show_all(scr):
     scr.move(0, 0)
@@ -23,12 +25,14 @@ def _show_all(scr):
         scr.addstr(f'{i}', curses.color_pair(i))
     scr.addstr('\n')
 
+
 def _show_palette(scr, name, pal):
     '''Draw sample text on screen using the given palette'''
     scr.addstr(f'{name:12}')
     for _, color in enumerate(pal):
         scr.addstr(f' {color:<3}', curses.color_pair(color))
     scr.addstr('\n')
+
 
 def _wait(scr):
     scr.addstr('\n<Press q to quit, any other key to continue>\n')
@@ -37,9 +41,11 @@ def _wait(scr):
     if key == ord('q'):
         sys.exit(0)
 
+
 def _show_all_and_wait(scr):
     _show_all(scr)
     _wait(scr)
+
 
 def main(scr):
     '''Module entry point'''
@@ -71,5 +77,6 @@ def main(scr):
 
     _show_palette(scr, 'default', DEFAULT_PALETTE)
     _wait(scr)
+
 
 curses.wrapper(main)

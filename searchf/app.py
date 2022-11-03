@@ -13,37 +13,55 @@ from . import views
 VIEWS = views.Views()
 
 
+class StatusView:
+    '''View class for a single status line at the bottom of the screen.'''
+    def __init__(self, scr):
+        self.pos = (0, 0)
+        self._scr = scr
+        self._max_x = 0
+
+    def layout(self) -> None:
+        '''Layout the view.'''
+        max_y, max_x = views.get_max_yx(self._scr)
+        y = max_y - 1
+        x = max(0, min(10, max_x - 50))  # allow for 50 char of status
+        self.pos = (y, x)
+        self._max_x = max_x
+
+    def draw(self, status) -> None:
+        '''Draw the status.'''
+        pos = self.pos
+        self._scr.addstr(pos[0], pos[1], status[:self._max_x-1])
+        self._scr.refresh()
+
+
 def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
     '''Main loop consuming keys and events.'''
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
     store = storage.Store('.searchf')
     VIEWS.create(store, scr, path)
-
-    max_y, max_x = views.get_max_yx(scr)
-
-    status = ''
-    status_x = max(0, min(10, max_x - 50))  # allow for 50 char of status
-    status_y = max_y - 1
+    v = StatusView(scr)
+    v.layout()
 
     scr.timeout(1000)
+    status = ''
     while True:
+        scr.move(v.pos[0], 0)
         try:
             key = keys_processor.get()
         except KeyboardInterrupt:
             break
-        if key == curses.KEY_RESIZE:
-            raise views.ResizeException('Sorry, resizing is not supported')
         handled, new_status = VIEWS.handle_key(key)
         if not handled and key in (ord('q'), ord('Q')):
             break
         if new_status == views.STATUS_UNCHANGED:
             continue
-        views.clear(scr, status_y, status_x, len(status))
+        views.clear(scr, v.pos[0], v.pos[1], len(status))
         status = new_status
-        scr.addstr(status_y, status_x, status[:max_x-1])
-        scr.refresh()
-        scr.move(status_y, 0)
+        if key == curses.KEY_RESIZE:
+            v.layout()
+        v.draw(status)
 
 
 def main_curses(scr, path: str) -> None:

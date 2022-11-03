@@ -8,6 +8,7 @@ import re
 import sys
 
 from curses.textpad import Textbox
+from typing import Any
 from typing import List
 from typing import NamedTuple
 from typing import Optional
@@ -59,10 +60,6 @@ def getmtime(path):
 
 class EscapeException(Exception):
     '''Signals that Escape key has been pressed'''
-
-
-class ResizeException(Exception):
-    '''Signals that unsupported terminal resizing has happened'''
 
 
 def validate(k: int) -> int:
@@ -191,12 +188,17 @@ class TextView:
         return self._name
 
     def layout(self, h: int, w: int, y: int, x: int) -> None:
-        '''Sets dimension of the view. Must be call before everything and
-        only once (no dynamic layout supported)'''
+        '''Sets dimension of the view and recompute underlying view model
+        without redrawing anything.'''
 
         # _size stores number of lines and columns available to draw content
         self._size = (h, w)
-        self._win = curses.newwin(h, w, y, x)
+
+        if not self._win:
+            self._win = curses.newwin(h, w, y, x)
+        else:
+            self._win.resize(h, w)
+            self._layout(False)
 
     def _get_prefix_info(self) -> PrefixInfo:
         if self._config.line_numbers:
@@ -664,17 +666,19 @@ class TextView:
 class DebugView:
     '''Displays few debug lines, convenient to debug layout while curses
     running.'''
-    def __init__(self,
-                 scr,
-                 size: types.Size,
-                 position: Tuple[int, int]
-                 ) -> None:
+    def __init__(self, scr) -> None:
         self._scr = scr
         self._lines: List[str] = []
+        self._size: types.Size = (0, 0)
+        self._position = (0, 0)
+        self._win = curses.newwin(0, 0, 0, 0)
+
+    def layout(self, size: types.Size, position: Tuple[int, int]) -> None:
+        '''Layout the debug view'''
         self._size = size
-        h, w = size
-        y, x = position
-        self._win = curses.newwin(h, w, y, x)
+        self._position = position
+        self._win.resize(size[0], size[1])
+        self._win.mvwin(position[0], position[1])
 
     def draw(self) -> None:
         '''Draws the debug view on the screen'''
@@ -704,8 +708,8 @@ class Views:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self) -> None:
-        self.debug = None
-        self._scr = None
+        self._debug_view: DebugView
+        self._scr: Any = None
         self._path: str = ''
         self._content: List[TextView] = []
         self._current: int = -1
@@ -715,7 +719,8 @@ class Views:
         self._auto_reload: bool = False
         self._auto_reload_anchor: int = 0
 
-    def _layout(self) -> None:
+    def layout(self) -> types.Size:
+        '''Recompute layout'''
         assert self._scr
         scr = self._scr
         maxh, maxw = get_max_yx(scr)
@@ -725,7 +730,7 @@ class Views:
 
         if USE_DEBUG:
             dbg_size = (10, maxw)
-            self.debug = DebugView(scr, dbg_size, (y, x))
+            self._debug_view.layout(dbg_size, (y, x))
             # Just add padding to expose layout issues in the app
             padding = 3
             maxh = max(0, maxh - (2 * padding + dbg_size[0]))
@@ -733,13 +738,13 @@ class Views:
             view_lines_count = maxh
             x = padding
             y = dbg_size[0] + padding
-            debug.OUT_FUNC = self.debug.out
 
         for v in self._content:
             v.layout(view_lines_count, maxw, y, x)
 
         y += view_lines_count
         self._y_get_text = y
+        return maxh, maxw
 
     def _set_view(self, idx: int, propagate_config: bool) -> types.Status:
         assert 0 <= idx < len(self._content)
@@ -783,7 +788,10 @@ class Views:
         self._content.append(TextView(store, scr, 'View 2', path))
         self._content.append(TextView(store, scr, 'View 3', path))
         self._content.append(TextView(store, scr, 'Help', 'Help'))
-        self._layout()
+        if USE_DEBUG:
+            self._debug_view = DebugView(scr)
+            debug.OUT_FUNC = self._debug_view.out
+        self.layout()
         self._reload(0)
         self._set_view(0, False)
 
@@ -823,6 +831,13 @@ class Views:
 
         # Local functions redirecting to current view v
         v = self._content[self._current]
+
+        if key == curses.KEY_RESIZE:
+            self._scr.clear()
+            self._scr.refresh()
+            size = self.layout()
+            v.draw()
+            return True, f'Resized to {size[1]}x{size[0]}'
 
         def new_keyword(new_filter) -> types.Status:
             keyword = self._get_keyword()

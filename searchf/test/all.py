@@ -156,13 +156,8 @@ def _test_app_main_loop(stdscr):
 
 def _test_app_resize(stdscr):
     print('Test app.resize')
-    keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE]))
-    actual = None
-    try:
-        app.main_loop(stdscr, TEST_FILE, keys_processor)
-    except views.ResizeException as ex:
-        actual = ex
-    assert actual
+    keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']))
+    app.main_loop(stdscr, TEST_FILE, keys_processor)
 
 
 def _test_app_debug_view(stdscr):

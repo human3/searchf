@@ -191,9 +191,9 @@ class TextView:
             color = 0 if f.hiding else self._get_color_pair(i)
             self._win.addstr(text, color)
 
-    def _draw_prefix(self, y, prefix_info, line_idx, color):
+    def _draw_prefix(self, y, prefix_info, line_idx, color, is_first_line):
         _, w_index, sep = prefix_info
-        if w_index > 0:
+        if is_first_line and w_index > 0:
             assert line_idx >= 0
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
@@ -231,6 +231,7 @@ class TextView:
         # _content_available_size[1] lines from DisplayContent, possibly
         # less if some content needs multiple lines (wrapping)
 
+        # We iterate over all the display lines using idline
         idline = self._offsets.voffset
         idlinemax = self._display.lines_count()
 
@@ -239,17 +240,20 @@ class TextView:
                 break
             iline, offset = self._display.dlines[idline]
             idline += 1
+
+            # iline is the index of the selected line associated with the
+            # current display line. offset is the horizontal offset in
+            # original content line where this display line starts.  If offset
+            # is not 0, this means the original content line is effectively
+            # being wrapped on to multiple lines on the screen.
+
             line_idx, filter_idx, text, matching_segments = \
                 self._selected.lines[iline]
             if line_idx == models.RULER_INDEX:
                 self._win.addstr(y, 0, self._ruler)
                 continue
             color = self._get_color_pair(filter_idx)
-            # If offset is not 0, this means the original content line is
-            # being wrapped on to multiple lines on the screen. We only draw
-            # the prefix on the first line, which has offset 0.
-            if offset == 0:
-                self._draw_prefix(y, prefix_info, line_idx, color)
+            self._draw_prefix(y, prefix_info, line_idx, color, offset == 0)
             offset += self._offsets.hoffset
             self._draw_content(
                 (y, prefix_info.length),

@@ -110,6 +110,12 @@ def test_display_content():
     dc = sc.layout(1, 1, False)
     assert dc
 
+    f = models.Filter()
+    f.add('third')
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1)
+    dc = sc.layout(1, 1, True)
+    assert dc
+
 
 def test_offsets():
     '''Test models.Offsets'''

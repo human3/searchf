@@ -98,6 +98,9 @@ class AppTest(NamedTuple):
     inputs: List[str]
 
 
+HANDLE_KEY_DELAY = 0.01
+
+
 def _run(stdscr, t: AppTest):
     '''Helper function to run the given AppTest'''
     print(t.description)
@@ -109,8 +112,9 @@ def _run(stdscr, t: AppTest):
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
-            time.sleep(0.01)
-            main.APP.handle_key(key if isinstance(key, int) else ord(key))
+            time.sleep(HANDLE_KEY_DELAY)
+            i = key if isinstance(key, int) else ord(key)
+            main.APP.handle_key(keys.map_key_to_command(i))
     store.destroy()
 
 

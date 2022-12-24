@@ -1,49 +1,64 @@
   Utility to interactively search for keywords in text files.
+  A key preceded by a caret indicates the Ctrl key; thus ^G is Ctrl+G.
 
-  General keys:
-    q          Quit program, or close this help view
-    ?          Show this help
-    1 2 3      Switch to view #1, #2 or #3
-    ! @ #      Switch to view #1, #2 or #3 with current filters
-    r          Reload file
-    R          Toggle auto reload file
-    t          Reload file and scroll to end (tail)
-    T          Toggle auto reload and scroll to end (tail)
-    \          Save filters and modes into next slot on disk
-    |          Delete current (last loaded) slot from disk
-    [/]        Load filters and modes from next/prev slot on disk
 
-  Filters:
-    f ENTER    Enter first keyword of a new filter
-    F          Pop top level filter
-    + =        Add a new keyword to current filter
-    - _        Remove last keyword from filter
-    e          Edit last keyword
-    d          Swap the top 2 filters
-    w/s        Rotate the filters up/down
-    i          Toggle whether or not current filter ignores case
-    x          Toggle whether or not lines matching current filter are shown
+      GENERAL KEYS
 
-  Display modes:
-    l          Toggles line numbers visibility
-    k          Toggles line wrapping
-    *          Toggles diamonds visibility at line starts (when wrapping)
-    .          Toggles whitespace displaying as dot
-    c/C        Next/previous color palette
-    h/H        Next/previous highlight and colorization mode
-    m/M        Next/previous line visibility mode
+  q             Quit program, or close this help view
+  ?             Show this help
+  1 2 3         Switch to view #1, #2 or #3
+  ! @ #         Switch to view #1, #2 or #3 with current filters
+  r             Reload file
+  R             Toggle auto reload file
+  t             Reload file and scroll to end (tail)
+  T             Toggle auto reload and scroll to end (tail)
 
-  Navigation:
-    SPACE      Scroll down a page
-    b          Scroll back a page
-    ARROWS     Scroll up/down/left/right
-    <  g       Scroll to the top
-    >  G       Scroll to the bottom
-    p          Scroll to previous matching line
-    n          Scroll to next matching line
-    TAB  ^g    Goto line number
-    /          Start a search, kinda like "less", but only if
-               there are currently no filter defined...
+
+      FILTERS
+
+  f ENTER       Enter first keyword of a new filter
+  F             Pop top level filter
+  + =           Add a new keyword to current filter
+  - _           Remove last keyword from filter
+  e             Edit last keyword
+  ^UP           Rotate the filters up
+  ^DOWN         Rotate the filters down
+  ^LEFT ^RIGHT  Swap the last 2 filters
+  i             Toggle whether or not current filter ignores case
+  x             Toggle whether or not lines matching current filter are shown
+  \             Save filters and modes into next slot on disk
+  |             Delete current (last loaded) slot from disk
+  [             Load filters and modes from next slot on disk
+  ]             Load filters and modes from previous slot on disk
+
+
+      DISPLAY MODES
+
+  l             Toggles line numbers visibility
+  k             Toggles line wrapping
+  *             Toggles diamonds visibility at line starts (when wrapping)
+  .             Toggles whitespace displaying as dot
+  c             Next color palette
+  C             previous color palette
+  h             Next highlight and colorization mode
+  H             Previous highlight and colorization mode
+  m             Next line visibility mode
+  M             Previous line visibility mode
+
+
+      MOVING
+
+  ARROWS        Scroll up/down/left/right
+  SPACE         Scroll down a page
+  b             Scroll back a page
+  <  g          Scroll to the top
+  >  G          Scroll to the bottom
+  p             Scroll to previous matching line
+  n             Scroll to next matching line
+  TAB  ^G       Goto line number
+  /             Start a search, kinda like "less", but only if
+                there are currently no filter defined...
+
 
 Type 'q' to close this help
 

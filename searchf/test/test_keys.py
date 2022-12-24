@@ -1,9 +1,9 @@
 '''Unit tests for keys'''
 
 import time
-import curses
 
 from .. import keys
+from .. import enums
 
 
 def test_processor():
@@ -28,14 +28,14 @@ def test_process():
 
     for k in '\x1b[1;2C':
         key = proc.process(ord(k))
-        assert key in (-1, curses.KEY_SRIGHT)
+        assert key in (-1, enums.Command.GO_SRIGHT)
 
     key = proc.process(ord('A'))
     assert key == ord('A')
 
     for k in '\x1b[1;2C':
         key = proc.process(ord(k))
-        assert key in (-1, curses.KEY_SRIGHT)
+        assert key in (-1, enums.Command.GO_SRIGHT)
 
     # Make sure we timeout while escaping
     keys.ESCAPE_TIMEOUT = 0.01

@@ -13,6 +13,39 @@ from . import segments
 from . import types
 
 
+class DisplayLine(NamedTuple):
+    '''Holds data associated with a single displayable line on the screen. Each
+    line in the original file might not entirely fit on screen, and can be
+    split into several DisplayLine (when line wrapping is on). In other words,
+    several DisplayLine might refer to same selected line and have the same
+    line_index.
+
+    Attributes:
+        line_index  Index of line in array of SelectedLines
+        offset      Offset in the original line of the first char of this
+                    displayable line.
+    '''
+    line_index: int
+    offset: int
+
+
+class DisplayContent:
+    '''Displayable content. Highest level class not dependent on curses.
+
+    Attributes:
+        firstdlines  First display line of each selected lines.
+        dlines       List of display lines.
+    '''
+    def __init__(self) -> None:
+        self.firstdlines: List[int] = []
+        self.dlines: List[DisplayLine] = []
+
+    def lines_count(self) -> int:
+        '''Gets the number of lines required to display the whole content
+        without clipping any of it.'''
+        return len(self.dlines)
+
+
 class Filter:
     '''Filters are used to select lines and highlight keywords in these
     matching lines. In practice, each filter holds properties defining
@@ -60,19 +93,19 @@ def digits_count(number: int) -> int:
 RULER_INDEX = -1
 
 
-class LineModel(NamedTuple):
-    '''Model data associated with each line.
+class SelectedLine(NamedTuple):
+    '''Data associated with a selected line. A line can be selected either
+    because it directly matches a filter, or because it is in proximity of
+    another matching line and user has speficy a LineVisibility to reveal
+    context.
 
     Attributes:
         line_index    The index of the line in the original content, or -1
                       if this line does not represent original content (like
-                      an horizontal ruler). We need line_index because we
-                      don't always show all lines of the original file.
+                      an horizontal ruler).
         filter_index  The index of the matching filter if any, or -1 otherwise
-                      the text of the line.
         text          The actual raw text of the line.
-        segments      The segments that will be highlighted (and that are
-                      matching keywords in the filter).
+        segments      The segments that will be highlighted.
     '''
     line_index: int
     filter_index: int
@@ -89,21 +122,21 @@ VISIBILITY_TO_SIZE = {
 }
 
 
-class LineModelFilter:
-    '''Class use to filter out LineModel according to a given line
-    visibility mode. LineModels are added sequentially, one by one,
+class SelectedLineQueue:
+    '''Class use to filter out SelectedLine according to a given line
+    visibility mode. SelectedLines are added sequentially, one by one,
     and are then yielded back to caller (or not) so as to reveal the
     desired amount of non-matching lines above and below matching
     lines.
     '''
     def __init__(self, mode: enums.LineVisibility):
-        self._queue: List[LineModel] = []
+        self._queue: List[SelectedLine] = []
         assert mode in VISIBILITY_TO_SIZE
         self._size = VISIBILITY_TO_SIZE[mode]
         self._left = 0
         self._last_line_visible = 0
 
-    def _add(self, model: LineModel) -> bool:
+    def _add(self, model: SelectedLine) -> bool:
         '''Adds model and returns whether or not caller should flush queue.'''
         if self._size == 0:
             return False
@@ -120,16 +153,16 @@ class LineModelFilter:
             self._queue.pop(0)
         return False
 
-    def _flush(self) -> List[LineModel]:
+    def _flush(self) -> List[SelectedLine]:
         models = self._queue
         self._queue = []
         return models
 
-    def _update_last_line_visible(self, model: LineModel):
+    def _update_last_line_visible(self, model: SelectedLine):
         line, _, _, _ = model
         self._last_line_visible = line + 1
 
-    def add_matching(self, model: LineModel) -> List[LineModel]:
+    def add_matching(self, model: SelectedLine) -> List[SelectedLine]:
         '''Adds a line model that matches a filter. Returns
         the list of line models that are visible, if any.'''
 
@@ -139,7 +172,7 @@ class LineModelFilter:
             # Check if we need to add horizontal rule (index -1)
             line, _, _, _ = queued[0]
             if line > self._last_line_visible:
-                models.append(LineModel(RULER_INDEX, -1, '', []))
+                models.append(SelectedLine(RULER_INDEX, -1, '', []))
             models = models + queued
 
         models.append(model)
@@ -151,7 +184,7 @@ class LineModelFilter:
 
         return models
 
-    def add_non_matching(self, model: LineModel) -> List[LineModel]:
+    def add_non_matching(self, model: SelectedLine) -> List[SelectedLine]:
         '''Adds a line model that does not match any filter. Returns
         the list of line models that are visible, if any.'''
         if not self._add(model):
@@ -162,59 +195,101 @@ class LineModelFilter:
         return queued
 
 
-class Model:
-    '''Holds data associated with the content of a file and all the
-    segments that matches filters. set_lines() is used to update the
-    content of the file, while sync() is used to apply filters and
-    recomputes all the line models. sync() can be called to apply a
-    new set of filters, and recompute all line models even if the
-    original file content has not changed. Calling set_lines() always
-    invalidate all previous line models, and sync() must be called
-    after.
+class SelectedContent:
+    '''Holds filtered content of a file, and generates DisplayContent
+    instances according a desired screen layout.
 
-    Atrributes:
-        _lines       Lines of the original file (unfiltered file content).
-        data         List of LideModel that each contains information on
+    Attributes:
+        lines        List of SelectedLine that each contains information on
                      what segments of the original line matches which filter.
         hits         Keeps how many times each filter was matched.
     '''
     def __init__(self) -> None:
-        self._lines: List[str] = []
-        self.data: List[LineModel] = []
+        self.lines: List[SelectedLine] = []
         self.hits: List[int] = []
-
-    def line_count(self) -> int:
-        '''Gets the number of lines in the original file'''
-        return len(self._lines)
 
     def visible_line_count(self) -> int:
         '''Gets the total number of lines that would be visible if not
         limited by screen height'''
-        return len(self.data)
+        return len(self.lines)
+
+    def hits_count(self) -> int:
+        '''Gets the current hits count'''
+        return sum(self.hits)
+
+    def layout(self,
+               height: int,
+               width: int,
+               wrapping: bool
+               ) -> DisplayContent:
+        '''Generate displayable content, breaking the given selected lines
+        into displayable lines taking into account the available space
+        on the screen.'''
+
+        assert height > 0
+        assert width > 0
+
+        dlines: List[DisplayLine] = []
+        firstdlines: List[int] = []
+        if not wrapping:
+            for idata, mdata in enumerate(self.lines):
+                firstdlines.append(len(dlines))
+                dlines.append(DisplayLine(idata, 0))
+        else:
+            for idata, mdata in enumerate(self.lines):
+                firstdlines.append(len(dlines))
+                line_idx, _, text, _ = mdata
+                offset = 0
+                if line_idx == RULER_INDEX:
+                    dlines.append(DisplayLine(idata, offset))
+                    continue
+                left = len(text)
+                while left >= 0:
+                    dlines.append(DisplayLine(idata, offset))
+                    offset += width
+                    left -= width
+
+        assert len(firstdlines) == len(self.lines)
+        dc = DisplayContent()
+        dc.dlines = dlines
+        dc.firstdlines = firstdlines
+        return dc
+
+
+class RawContent:
+    '''Holds raw content of a file and generates instances of
+    SelectedContent from filters.
+
+    Attributes:
+        _lines       Lines of the original file.
+    '''
+    def __init__(self) -> None:
+        self._lines: List[str] = []
+
+    def line_count(self) -> int:
+        '''Gets the number of lines in the original file'''
+        return len(self._lines)
 
     def line_number_length(self) -> int:
         '''Number of digit required to display bigest line number'''
         return digits_count(len(self._lines))
 
     def set_lines(self, lines: List[str]) -> None:
-        '''Sets and stores the file content lines into the data model'''
+        '''Sets and stores the file content lines.'''
         self._lines = lines
-        self.data = []
-        self.hits = []
 
-    def hits_count(self) -> int:
-        '''Gets the current hits count'''
-        return sum(self.hits)
-
-    def sync(self, filters: List[Filter], mode: enums.LineVisibility) -> None:
-        '''Recomputes the data model by applying the given filters to the
-        current file content.
+    def filter(self,
+               filters: List[Filter],
+               mode: enums.LineVisibility
+               ) -> SelectedContent:
+        '''Filters the raw content using the given filters and line visibility
+        mode, and returns an instance of SelectedContent.
         '''
-        data: List[LineModel] = []
+        lines: List[SelectedLine] = []
         hits = [0 for f in filters]
         mode = mode if sum(not f.hiding for f in filters) > 0 \
             else enums.LineVisibility.ALL
-        lmf = LineModelFilter(mode)
+        line_queue = SelectedLineQueue(mode)
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
@@ -227,115 +302,20 @@ class Model:
                 if matching:
                     hits[fidx] += 1
                     if not f.hiding:
-                        lines = lmf.add_matching(
-                            LineModel(i, fidx, line, matching_segments))
-                        data = data + lines
+                        new_lines = line_queue.add_matching(
+                            SelectedLine(i, fidx, line, matching_segments))
+                        lines = lines + new_lines
                     break
             if not matching:
-                lines = lmf.add_non_matching(LineModel(i, -1, line, []))
-                data = data + lines
+                new_lines = line_queue.add_non_matching(
+                    SelectedLine(i, -1, line, []))
+                lines = lines + new_lines
 
-        self.data = data
-        self.hits = hits
-
-
-class LineViewModel(NamedTuple):
-    '''View model data associated with each line'''
-    line_index: int
-    offset: int
-
-
-class ViewModel:
-    '''ViewModel data.
-
-    Attributes:
-        hoffset      Horizontal offset in content (index of first
-                     visible column).
-        voffset      Vertical offset in content (index of first visible
-                     line in data).
-        firstdlines  First display line of each model lines.
-        data         Display line data.
-        size         Number of lines and columns available to display
-                     file content.
-    '''
-    def __init__(self) -> None:
-        self.hoffset: int = 0
-        self.voffset: int = 0
-        self.voffset_desc: str = ''
-        self.firstdlines: List[int] = []
-        self.data: List[LineViewModel] = []
-        self.size = (0, 0)
-
-    def lines_count(self) -> int:
-        '''Gets the number of lines required to display the whole content
-        without clipping any of it.'''
-        return len(self.data)
-
-    def set_h_offset(self, offset: int) -> bool:
-        '''Sets the horizontal offset.
-        Returns True if changed, False otherwise.'''
-        offset = max(offset, 0)
-        if self.hoffset == offset:
-            return False
-        self.hoffset = offset
-        return True
-
-    def set_v_offset(self, offset: int) -> bool:
-        '''Sets the vertical offfset.
-        Returns True if changed, False otherwise.'''
-        assert self.size[0] >= 0
-        ymax = max(0, self.lines_count() - self.size[0])
-        if offset >= ymax:
-            offset = ymax
-            desc = 'BOT'
-        elif offset <= 0:
-            offset = 0
-            desc = 'TOP'
-        else:
-            percent = int(offset * 100 / ymax)
-            desc = f'{percent}%'
-        if self.voffset == offset:
-            return False
-        self.voffset = offset
-        self.voffset_desc = desc
-        return True
-
-    def layout(self,
-               height: int,
-               width: int,
-               model_data: List[LineModel],
-               wrapping: bool
-               ) -> None:
-        '''Computes the view model data, breaking the lines from the
-        data model into displayable lines taking into account the
-        available space on the screen.'''
-
-        assert height > 0
-        assert width > 0
-
-        self.size = (height, width)
-
-        data: List[LineViewModel] = []
-        firstdlines: List[int] = []
-        if not wrapping:
-            for idata, mdata in enumerate(model_data):
-                firstdlines.append(len(data))
-                data.append(LineViewModel(idata, 0))
-        else:
-            for idata, mdata in enumerate(model_data):
-                firstdlines.append(len(data))
-                line_idx, _, text, _ = mdata
-                offset = 0
-                if line_idx == RULER_INDEX:
-                    data.append(LineViewModel(idata, offset))
-                    continue
-                left = len(text)
-                while left >= 0:
-                    data.append(LineViewModel(idata, offset))
-                    offset += width
-                    left -= width
-        self.data = data
-        self.firstdlines = firstdlines
+        assert len(filters) == len(hits)
+        sc = SelectedContent()
+        sc.lines = lines
+        sc.hits = hits
+        return sc
 
 
 class ViewConfig:
@@ -403,3 +383,54 @@ class ViewConfig:
         '''Select the next palette in the given direction'''
         self.dirty = True
         self.palette_id = pid
+
+
+class Offsets:
+    '''Class managing horizontal and vertical offsets in displayable
+    content.
+
+    Attributes:
+        hoffset      Horizontal offset in content (index of first visible
+                     column).
+        voffset      Vertical offset in content (index of first visible
+                     line).
+    '''
+    def __init__(self) -> None:
+        self.hoffset: int = 0
+        self.voffset: int = 0
+        self.voffset_desc: str = ''
+        self._ymax: int = 0
+
+    def layout(self, available_height: int, content_lines_count: int) -> None:
+        '''Layout function defining the space available for the
+        displayable content.'''
+        assert available_height >= 0
+        assert content_lines_count >= 0
+        self._ymax = max(0, content_lines_count - available_height)
+
+    def set_h_offset(self, offset: int) -> bool:
+        '''Sets the horizontal offset.
+        Returns True if changed, False otherwise.'''
+        offset = max(offset, 0)
+        if self.hoffset == offset:
+            return False
+        self.hoffset = offset
+        return True
+
+    def set_v_offset(self, offset: int) -> bool:
+        '''Sets the vertical offfset.
+        Returns True if changed, False otherwise.'''
+        if offset >= self._ymax:
+            offset = self._ymax
+            desc = 'BOT'
+        elif offset <= 0:
+            offset = 0
+            desc = 'TOP'
+        else:
+            percent = int(offset * 100 / self._ymax)
+            desc = f'{percent}%'
+        if self.voffset == offset:
+            return False
+        self.voffset = offset
+        self.voffset_desc = desc
+        return True

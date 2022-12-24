@@ -1,0 +1,59 @@
+@startuml
+class App
+class TextView {
+  Displays portion of a file content, using filters to select visible lines, highlights matching keywords.
+}
+class RawContent {
+  Unfiltered original file content.
+  --
+  +lines
+}
+class SelectedContent {
+  Holds lines selected with filters.
+}
+class SelectedLine {
+  +text
+  +line_index
+  +filter_index
+}
+class DisplayLine {
+  +line_index
+  +offset
+}
+
+'DisplayLine::line_index -l-> SelectedLine
+
+class DisplayContent {
+  Handles line wrapping.
+}
+class ViewConfig {
+  Config that end users can change to match their needs.
+}
+class Filter {
+  Properties and list of keywords defining how line matching is done.
+}
+class Segment {
+  A pair of (start, end) indices that identifies a portion of text displayed with a given style.
+}
+
+namespace Curses #palegreen {}
+
+Curses <.. App : uses
+Curses <.. TextView : uses
+App *- "3" TextView : contains
+TextView *-- "1" DisplayContent
+TextView *-- "1" RawContent
+TextView *-- "1" SelectedContent
+TextView *-- "1" ViewConfig
+SelectedContent *-- "0..*" SelectedLine
+DisplayContent *-- "0..*" DisplayLine
+SelectedLine *-- "0..*" Segment
+ViewConfig *-- "0..*" Filter
+
+RawContent -> SelectedContent : filter()
+SelectedContent -> DisplayContent : layout()
+
+skinparam wrapWidth 200
+hide empty members
+hide empty field
+@enduml

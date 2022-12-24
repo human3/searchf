@@ -2,7 +2,7 @@ RUN_PY_MOD=TERM='screen-256color' python3 -m
 GENERATE_REPORT=python3 -m coverage report -m
 
 run:
-	$(RUN_PY_MOD) searchf.app README.md
+	$(RUN_PY_MOD) searchf.main README.md
 
 tests:
 	$(RUN_PY_MOD) pytest

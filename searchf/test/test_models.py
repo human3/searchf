@@ -29,14 +29,13 @@ def test_digit_count():
 
 
 def test_model():
-    '''Test models.Model'''
-    m = models.Model()
-    assert m.line_count() == 0
-    assert m.hits_count() == 0
+    '''Test models.RawContent'''
+    rc = models.RawContent()
+    assert rc.line_count() == 0
 
-    m.set_lines([])
-    assert m.line_count() == 0
-    assert m.line_number_length() == 1
+    rc.set_lines([])
+    assert rc.line_count() == 0
+    assert rc.line_number_length() == 1
 
     all_lines = [
         'A very simple first line',
@@ -44,76 +43,89 @@ def test_model():
         'And a third one',
         'A fourth',
         'And finally the very last one']
-    m.set_lines(all_lines)
-    assert m.line_number_length() == 1
+    rc.set_lines(all_lines)
+    assert rc.line_count() == len(all_lines)
+    assert rc.line_number_length() == 1
 
-    m.sync([], enums.LineVisibility.ALL)
-    assert m.hits_count() == 0
+    sc = rc.filter([], enums.LineVisibility.ALL)
+    assert sc.hits_count() == 0
 
     f = models.Filter()
     f.add('not match')
-    m.sync([f], enums.LineVisibility.ALL)
-    assert m.hits_count() == 0
-    assert m.line_count() == len(all_lines)
+    sc = rc.filter([f], enums.LineVisibility.ALL)
+    assert sc.hits_count() == 0
 
     f.pop()
     f.add('simple')
-    m.sync([f], enums.LineVisibility.ALL)
-    assert m.hits_count() == 1
-    assert m.visible_line_count() == len(all_lines)
-    m.sync([f], enums.LineVisibility.CONTEXT_1)
-    assert m.visible_line_count() == 2
-    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
-    assert m.visible_line_count() == 1
+    sc = rc.filter([f], enums.LineVisibility.ALL)
+    assert sc.hits_count() == 1
+    assert sc.visible_line_count() == len(all_lines)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1)
+    assert sc.visible_line_count() == 2
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING)
+    assert sc.visible_line_count() == 1
 
     f.pop()
     f.add('line')
-    m.sync([f], enums.LineVisibility.ALL)
-    assert m.hits_count() == 2
-    assert m.visible_line_count() == len(all_lines)
-    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
-    assert m.visible_line_count() == 2
+    sc = rc.filter([f], enums.LineVisibility.ALL)
+    assert sc.hits_count() == 2
+    assert sc.visible_line_count() == len(all_lines)
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING)
+    assert sc.visible_line_count() == 2
 
     f.pop()
     f.add('Another')
-    m.sync([f], enums.LineVisibility.ALL)
-    assert m.hits_count() == 1
-    assert m.visible_line_count() == len(all_lines)
-    m.sync([f], enums.LineVisibility.CONTEXT_1)
-    assert m.visible_line_count() == 3
-    m.sync([f], enums.LineVisibility.CONTEXT_2)
-    assert m.visible_line_count() == 4
-    m.sync([f], enums.LineVisibility.CONTEXT_5)
-    assert m.visible_line_count() == 5
-    m.sync([f], enums.LineVisibility.ONLY_MATCHING)
-    assert m.visible_line_count() == 1
+    sc = rc.filter([f], enums.LineVisibility.ALL)
+    assert sc.hits_count() == 1
+    assert sc.visible_line_count() == len(all_lines)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1)
+    assert sc.visible_line_count() == 3
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_2)
+    assert sc.visible_line_count() == 4
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_5)
+    assert sc.visible_line_count() == 5
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING)
+    assert sc.visible_line_count() == 1
 
     # Add a ruler
     f.pop()
     f.add('very')
-    m.sync([f], enums.LineVisibility.CONTEXT_1)
-    assert m.hits_count() == 2
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1)
+    assert sc.hits_count() == 2
 
 
-def test_view_model():
-    '''Test models.ViewModel'''
-    vm = models.ViewModel()
+def test_display_content():
+    '''Test models.DisplayContent'''
+    dc = models.DisplayContent()
 
-    m = models.Model()
-    m.set_lines([
+    rc = models.RawContent()
+    rc.set_lines([
         'A very simple first line',
         'Another line',
         'And a third one'])
-    m.sync([], enums.LineVisibility.ALL)
+    sc = rc.filter([], enums.LineVisibility.ALL)
 
-    vm.layout(1, 1, m.data, True)
-    vm.layout(1, 1, m.data, False)
+    dc = sc.layout(1, 1, True)
+    assert dc
+    dc = sc.layout(1, 1, False)
+    assert dc
 
-    vm.set_h_offset(0)
-    vm.set_h_offset(100)
-    vm.set_v_offset(0)
-    vm.set_v_offset(1)
-    vm.set_v_offset(100)
+
+def test_offsets():
+    '''Test models.Offsets'''
+
+    co = models.Offsets()
+    co.layout(10, 100)
+
+    co.set_h_offset(0)
+    co.set_h_offset(100)
+
+    co.set_v_offset(0)
+    assert co.voffset == 0
+    co.set_v_offset(1)
+    assert co.voffset == 1
+    co.set_v_offset(200)
+    assert co.voffset == 90
 
 
 def test_view_config():

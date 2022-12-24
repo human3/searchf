@@ -10,13 +10,13 @@ from typing import List
 from typing import NamedTuple
 from contextlib import contextmanager
 
+from .. import main
 from .. import app
 from .. import colors
 from .. import debug
 from .. import keys
 from .. import storage
 from .. import utils
-from .. import views
 
 from . import test_enums
 from . import test_keys
@@ -30,7 +30,7 @@ TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 class KeywordsInjector:
     '''Class that emulates end-user entering keywords. Provides a
-    get_text() function that can replace the one in the app module.
+    get_text() function that can replace the one in the main module.
     '''
     def __init__(self, keywords: List[str]):
         self._keywords = keywords
@@ -40,14 +40,14 @@ class KeywordsInjector:
         return self._keywords.pop(0)
 
     def get_text(self, scr, y, x, text_prompt: str, handler, text: str) -> str:
-        '''Function to replace app.get_next'''
+        '''Function to replace main.get_next'''
         # pylint: disable=unused-argument
         return self.get_next()
 
 
 class MtimeInjector:
     '''Class that emulates end-user externally changing file. Provides
-    a getmtime() function that can replace the one in the app module,
+    a getmtime() function that can replace the one in the main module,
     and that makes sure the file always changes.'''
 
     def __init__(self):
@@ -61,9 +61,9 @@ class MtimeInjector:
 
 
 @contextmanager
-def app_modifier(keywords_injector: KeywordsInjector,
-                 mtime_injector: MtimeInjector):
-    '''Context manager that replaces key and text input methods of the app
+def main_modifier(keywords_injector: KeywordsInjector,
+                  mtime_injector: MtimeInjector):
+    '''Context manager that replaces key and text input methods of the main
     module, and makes sure tests are run always with same screen
     resolution
     '''
@@ -71,18 +71,18 @@ def app_modifier(keywords_injector: KeywordsInjector,
     def _injected_get_max_yx(_):
         return 30, 80
 
-    get_text = views.get_text
-    getmtime = views.getmtime
-    get_max_yx = views.get_max_yx
-    views.get_text = keywords_injector.get_text
-    views.getmtime = mtime_injector.getmtime
-    views.get_max_yx = _injected_get_max_yx
+    get_text = app.get_text
+    getmtime = app.getmtime
+    get_max_yx = app.get_max_yx
+    app.get_text = keywords_injector.get_text
+    app.getmtime = mtime_injector.getmtime
+    app.get_max_yx = _injected_get_max_yx
     try:
         yield
     finally:
-        views.get_text = get_text
-        views.getmtime = getmtime
-        views.get_max_yx = get_max_yx
+        app.get_text = get_text
+        app.getmtime = getmtime
+        app.get_max_yx = get_max_yx
 
 
 class AppTest(NamedTuple):
@@ -104,79 +104,79 @@ def _run(stdscr, t: AppTest):
     stdscr.clear()
     colors.init()
     store = storage.Store('.searchf.test')
-    with app_modifier(KeywordsInjector(t.inputs), MtimeInjector()):
-        app.VIEWS.create(store, stdscr, TEST_FILE)
+    with main_modifier(KeywordsInjector(t.inputs), MtimeInjector()):
+        main.APP.create(store, stdscr, TEST_FILE)
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
             time.sleep(0.01)
-            app.VIEWS.handle_key(key if isinstance(key, int) else ord(key))
+            main.APP.handle_key(key if isinstance(key, int) else ord(key))
     store.destroy()
 
 
-def _test_app_init_env():
-    print('Test app.init_env()')
-    parser = app.init_env()
+def _test_main_init_env():
+    print('Test main.init_env()')
+    parser = main.init_env()
     assert parser
 
 
-def _test_app_get_text(stdscr):
-    print('Test app.get_text()')
+def _test_main_get_text(stdscr):
+    print('Test main.get_text()')
 
     def my_handler(_):
         pass
 
     def my_handler_throwing(_):
-        raise views.EscapeException
+        raise app.EscapeException
 
-    views.get_text(stdscr, 0, 0,
-                   "Testing prompt", my_handler, 'Editable content')
-    views.get_text(stdscr, 0, 0,
-                   "Testing prompt", my_handler_throwing, '')
+    app.get_text(stdscr, 0, 0,
+                 "Testing prompt", my_handler, 'Editable content')
+    app.get_text(stdscr, 0, 0,
+                 "Testing prompt", my_handler_throwing, '')
 
 
 def _test_app_validate():
-    print('Test views.validate()')
-    assert views.validate('a') == 'a'
-    assert views.validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
+    print('Test app.validate()')
+    assert app.validate('a') == 'a'
+    assert app.validate(curses.ascii.DEL) == curses.KEY_BACKSPACE
     actual = None
     try:
-        views.validate(curses.ascii.ESC)
-    except views.EscapeException as ex:
+        app.validate(curses.ascii.ESC)
+    except app.EscapeException as ex:
         actual = ex
     assert actual
 
 
-def _test_app_main_loop(stdscr):
-    print('Test app.main_loop()')
+def _test_main_main_loop(stdscr):
+    print('Test main.main_loop()')
     keys_processor = keys.Processor(keys.Provider(
         [' ', '>', 'l', keys.POLL, 'q']))
-    app.main_loop(stdscr, TEST_FILE, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, keys_processor)
 
 
-def _test_app_resize(stdscr):
-    print('Test app.resize')
+def _test_main_resize(stdscr):
+    print('Test main.resize')
     keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']))
-    app.main_loop(stdscr, TEST_FILE, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, keys_processor)
 
 
-def _test_app_debug_view(stdscr):
+def _test_main_debug_view(stdscr):
     # Test debug mode in a very hacky way by hijacking handle_key function
     # and spitting out a few dummy debug lines per key press
-    views.USE_DEBUG = True
-    original_handle_key = app.VIEWS.handle_key
+    app.USE_DEBUG = True
+    original_handle_key = main.APP.handle_key
 
     def my_handle_key(key):
         for i in range(20):
             debug.out(f'Test {i} dbg {key}')
         return original_handle_key(key)
 
-    app.VIEWS.handle_key = my_handle_key
+    main.APP.handle_key = my_handle_key
     _run(stdscr, AppTest(
         'Test special debug mode',
         ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
-    app.VIEWS.handle_key = original_handle_key
-    views.USE_DEBUG = False
+    main.APP.handle_key = original_handle_key
+    app.USE_DEBUG = False
 
 
 # This is poor man's testing, as we don't validate much other than
@@ -245,12 +245,12 @@ def _run_app_tests(stdscr):
     for test in app_tests:
         _run(stdscr, test)
 
-    _test_app_init_env()
-    _test_app_get_text(stdscr)
+    _test_main_init_env()
+    _test_main_get_text(stdscr)
     _test_app_validate()
-    _test_app_main_loop(stdscr)
-    _test_app_resize(stdscr)
-    _test_app_debug_view(stdscr)
+    _test_main_main_loop(stdscr)
+    _test_main_resize(stdscr)
+    _test_main_debug_view(stdscr)
 
 
 def _run_unit_tests():
@@ -272,8 +272,10 @@ def _run_unit_tests():
     test_models.test_digit_count()
     print('Test models.test_model()')
     test_models.test_model()
-    print('Test models.test_view_model()')
-    test_models.test_view_model()
+    print('Test models.test_display_content()')
+    test_models.test_display_content()
+    print('Test models.test_offsets()')
+    test_models.test_offsets()
     print('Test models.test_view_config()')
     test_models.test_view_config()
     print('Test keys.test_processor()')
@@ -284,11 +286,11 @@ def _run_unit_tests():
     test_storage.test_store()
 
 
-def _test_app_main():
-    print('Test app.main()')
+def _test_main_main():
+    print('Test main.main()')
 
-    # We use a context manager that replaces app.init_env and
-    # keys.Processor in order to be able to load app.main as if it was
+    # We use a context manager that replaces main.init_env and
+    # keys.Processor in order to be able to load main.main as if it was
     # invoked by end-user
 
     def _init_env():
@@ -308,29 +310,29 @@ def _test_app_main():
             return self._keys.pop(0)
 
     @contextmanager
-    def _app_modifier():
+    def _main_modifier():
         keys_processor = keys.Processor
-        init_env = app.init_env
+        init_env = main.init_env
         keys.Processor = _KeysProcessor
-        app.init_env = _init_env
+        main.init_env = _init_env
         try:
             yield
         finally:
             keys.Processor = keys_processor
-            app.init_env = init_env
+            main.init_env = init_env
 
-    with _app_modifier():
-        app.main()
+    with _main_modifier():
+        main.main()
 
 
-def main():
+def test_main():
     '''Test entry point'''
     print('== Tests started ==')
     _run_unit_tests()
     utils.wrapper(True, curses.wrapper, _run_app_tests)
-    _test_app_main()
+    _test_main_main()
     print('== Tests passed ==')
 
 
 if __name__ == '__main__':
-    main()
+    test_main()

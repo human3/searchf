@@ -398,7 +398,7 @@ class TextView:
 
     def _toggle_hiding(self) -> types.Status:
         if not self._config.has_filters():
-            return 'Cannot change case sentitivity (no keyword)'
+            return 'Cannot change filter property (no filter)'
         f = self._config.top_filter()
         f.hiding = not f.hiding
         self._sync(True)
@@ -522,74 +522,74 @@ class TextView:
         self._vscroll(delta * self._content_available_size[0])
         return STATUS_EMPTY
 
-    def execute(self, command: enums.TextViewCommand) -> types.Status:
+    def execute(self, command: enums.Command) -> types.Status:
         '''Executes the given command.'''
         dispatch = {
-            enums.TextViewCommand.GO_UP:
+            enums.Command.GO_UP:
                 lambda: self._vscroll(-1),
-            enums.TextViewCommand.GO_DOWN:
+            enums.Command.GO_DOWN:
                 lambda: self._vscroll(1),
-            enums.TextViewCommand.GO_LEFT:
+            enums.Command.GO_LEFT:
                 lambda: self._hscroll(-1),
-            enums.TextViewCommand.GO_RIGHT:
+            enums.Command.GO_RIGHT:
                 lambda: self._hscroll(1),
-            enums.TextViewCommand.GO_HOME:
+            enums.Command.GO_HOME:
                 lambda: self.set_v_offset(0, True),
-            enums.TextViewCommand.GO_END:
+            enums.Command.GO_END:
                 lambda: self.set_v_offset(sys.maxsize, True),
-            enums.TextViewCommand.GO_NPAGE:
+            enums.Command.GO_NPAGE:
                 lambda: self._vpagescroll(1),
-            enums.TextViewCommand.GO_PPAGE:
+            enums.Command.GO_PPAGE:
                 lambda: self._vpagescroll(-1),
-            enums.TextViewCommand.GO_SLEFT:
+            enums.Command.GO_SLEFT:
                 lambda: self._hscroll(-20),
-            enums.TextViewCommand.GO_SRIGHT:
+            enums.Command.GO_SRIGHT:
                 lambda: self._hscroll(20),
-            enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH:
+            enums.Command.VSCROLL_TO_NEXT_MATCH:
                 lambda: self._vscroll_to_match(False, 1),
-            enums.TextViewCommand.VSCROLL_TO_PREV_MATCH:
+            enums.Command.VSCROLL_TO_PREV_MATCH:
                 lambda: self._vscroll_to_match(False, -1),
-            enums.TextViewCommand.NEXT_COLORIZE_MODE:
+            enums.Command.NEXT_COLORIZE_MODE:
                 lambda: self._cycle_colorize_mode(True),
-            enums.TextViewCommand.PREV_COLORIZE_MODE:
+            enums.Command.PREV_COLORIZE_MODE:
                 lambda: self._cycle_colorize_mode(False),
-            enums.TextViewCommand.NEXT_PALETTE:
+            enums.Command.NEXT_PALETTE:
                 lambda: self._cycle_palette(True),
-            enums.TextViewCommand.PREV_PALETTE:
+            enums.Command.PREV_PALETTE:
                 lambda: self._cycle_palette(False),
-            enums.TextViewCommand.NEXT_LINE_VISIBILITY:
+            enums.Command.NEXT_LINE_VISIBILITY:
                 lambda: self._cycle_line_visibility(True),
-            enums.TextViewCommand.PREV_LINE_VISIBILITY:
+            enums.Command.PREV_LINE_VISIBILITY:
                 lambda: self._cycle_line_visibility(False),
-            enums.TextViewCommand.POP_FILTER:
+            enums.Command.POP_FILTER:
                 self._pop_filter,
-            enums.TextViewCommand.POP_KEYWORD:
+            enums.Command.POP_KEYWORD:
                 self._pop_keyword,
-            enums.TextViewCommand.TOGGLE_LINE_NUMBERS:
+            enums.Command.TOGGLE_LINE_NUMBERS:
                 self._toggle_line_numbers,
-            enums.TextViewCommand.TOGGLE_WRAP:
+            enums.Command.TOGGLE_WRAP:
                 self._toggle_wrap,
-            enums.TextViewCommand.TOGGLE_BULLETS:
+            enums.Command.TOGGLE_BULLETS:
                 self._toggle_bullets,
-            enums.TextViewCommand.TOGGLE_SHOW_SPACES:
+            enums.Command.TOGGLE_SHOW_SPACES:
                 self._toggle_show_spaces,
-            enums.TextViewCommand.TOGGLE_IGNORE_CASE:
+            enums.Command.TOGGLE_IGNORE_CASE:
                 self._toggle_ignore_case,
-            enums.TextViewCommand.TOGGLE_HIDING:
+            enums.Command.TOGGLE_HIDING:
                 self._toggle_hiding,
-            enums.TextViewCommand.SWAP_FILTERS:
+            enums.Command.SWAP_FILTERS:
                 self.swap_filters,
-            enums.TextViewCommand.ROTATE_FILTERS_UP:
+            enums.Command.ROTATE_FILTERS_UP:
                 lambda: self.rotate_filters(True),
-            enums.TextViewCommand.ROTATE_FILTERS_DOWN:
+            enums.Command.ROTATE_FILTERS_DOWN:
                 lambda: self.rotate_filters(False),
-            enums.TextViewCommand.SLOT_SAVE:
+            enums.Command.SLOT_SAVE:
                 self._slot_save,
-            enums.TextViewCommand.SLOT_DELETE:
+            enums.Command.SLOT_DELETE:
                 self._slot_delete,
-            enums.TextViewCommand.SLOT_LOAD_NEXT:
+            enums.Command.SLOT_LOAD_NEXT:
                 lambda: self._slot_load(True),
-            enums.TextViewCommand.SLOT_LOAD_PREV:
+            enums.Command.SLOT_LOAD_PREV:
                 lambda: self._slot_load(False),
         }
         assert command in dispatch, f'command {command}'

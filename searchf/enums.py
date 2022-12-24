@@ -56,9 +56,9 @@ class ColorizeMode(AutoEnum):
     LINE = ('Line')
 
 
-class TextViewCommand(Enum):
-    '''Simple commands accepted by TextView class, that do not take any
-    argument.'''
+class Command(Enum):
+    '''Commands supported by application, and mostly triggered by
+    end-user's key presses.'''
     GO_UP = auto()
     GO_DOWN = auto()
     GO_LEFT = auto()
@@ -92,3 +92,19 @@ class TextViewCommand(Enum):
     SLOT_DELETE = auto()
     SLOT_LOAD_NEXT = auto()
     SLOT_LOAD_PREV = auto()
+    SHOW_VIEW_1 = auto()
+    SHOW_VIEW_2 = auto()
+    SHOW_VIEW_3 = auto()
+    SHOW_VIEW_1_WITH_FILTER = auto()
+    SHOW_VIEW_2_WITH_FILTER = auto()
+    SHOW_VIEW_3_WITH_FILTER = auto()
+    SHOW_HELP = auto()
+    PUSH_KEYWORD = auto()
+    EDIT_KEYWORD = auto()
+    PUSH_FILTER_AND_KEYWORD = auto()
+    RELOAD_HEAD = auto()
+    RELOAD_HEAD_AUTO = auto()
+    RELOAD_TAIL = auto()
+    RELOAD_TAIL_AUTO = auto()
+    TRY_SEARCH = auto()
+    GOTO_LINE = auto()

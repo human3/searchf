@@ -13,6 +13,7 @@ from typing import Tuple
 
 from . import debug
 from . import enums
+from . import keys
 from . import types
 from . import views
 
@@ -206,7 +207,9 @@ class App:
                 return True, self._reload(self._auto_reload_anchor)
         return False, STATUS_UNCHANGED
 
-    def handle_key(self, key) -> Tuple[bool, types.Status]:
+    def handle_key(self,
+                   key: keys.KeyOrCommand
+                   ) -> Tuple[bool, types.Status]:
         '''Handles the given key, propagating it to the proper view.'''
 
         if key == -1:
@@ -238,115 +241,63 @@ class App:
             keyword = self.prompt('Edit: ', keyword if keyword else '')
             if len(keyword) <= 0:
                 return 'No change made'
-            v.execute(enums.TextViewCommand.POP_KEYWORD)
+            v.execute(enums.Command.POP_KEYWORD)
             v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
 
-        # Map keys to simple text view commands that don't take any
-        # argument and that can be directly handled by calling v.execute()
-        keys_to_command = {
-            ord('F'):              enums.TextViewCommand.POP_FILTER,
-            curses.KEY_BACKSPACE:  enums.TextViewCommand.POP_FILTER,
-            ord('-'):              enums.TextViewCommand.POP_KEYWORD,
-            ord('_'):              enums.TextViewCommand.POP_KEYWORD,
-            ord('n'):              enums.TextViewCommand.VSCROLL_TO_NEXT_MATCH,
-            ord('p'):              enums.TextViewCommand.VSCROLL_TO_PREV_MATCH,
-            ord('l'):              enums.TextViewCommand.TOGGLE_LINE_NUMBERS,
-            ord('k'):              enums.TextViewCommand.TOGGLE_WRAP,
-            ord('*'):              enums.TextViewCommand.TOGGLE_BULLETS,
-            ord('.'):              enums.TextViewCommand.TOGGLE_SHOW_SPACES,
-            ord('c'):              enums.TextViewCommand.NEXT_PALETTE,
-            ord('C'):              enums.TextViewCommand.PREV_PALETTE,
-            ord('h'):              enums.TextViewCommand.NEXT_COLORIZE_MODE,
-            ord('H'):              enums.TextViewCommand.PREV_COLORIZE_MODE,
-            ord('m'):              enums.TextViewCommand.NEXT_LINE_VISIBILITY,
-            ord('M'):              enums.TextViewCommand.PREV_LINE_VISIBILITY,
-            ord('i'):              enums.TextViewCommand.TOGGLE_IGNORE_CASE,
-            ord('x'):              enums.TextViewCommand.TOGGLE_HIDING,
-            curses.KEY_UP:         enums.TextViewCommand.GO_UP,
-            curses.KEY_DOWN:       enums.TextViewCommand.GO_DOWN,
-            curses.KEY_LEFT:       enums.TextViewCommand.GO_LEFT,
-            curses.KEY_RIGHT:      enums.TextViewCommand.GO_RIGHT,
-            curses.KEY_HOME:       enums.TextViewCommand.GO_HOME,
-            ord('g'):              enums.TextViewCommand.GO_HOME,
-            ord('<'):              enums.TextViewCommand.GO_HOME,
-            curses.KEY_END:        enums.TextViewCommand.GO_END,
-            ord('G'):              enums.TextViewCommand.GO_END,
-            ord('>'):              enums.TextViewCommand.GO_END,
-            curses.KEY_NPAGE:      enums.TextViewCommand.GO_NPAGE,
-            ord(' '):              enums.TextViewCommand.GO_NPAGE,
-            curses.KEY_PPAGE:      enums.TextViewCommand.GO_PPAGE,
-            ord('b'):              enums.TextViewCommand.GO_PPAGE,
-            curses.KEY_SLEFT:      enums.TextViewCommand.GO_SLEFT,
-            curses.KEY_SRIGHT:     enums.TextViewCommand.GO_SRIGHT,
-            ord('d'):              enums.TextViewCommand.SWAP_FILTERS,
-            ord('w'):              enums.TextViewCommand.ROTATE_FILTERS_UP,
-            ord('s'):              enums.TextViewCommand.ROTATE_FILTERS_DOWN,
-            ord('\\'):             enums.TextViewCommand.SLOT_SAVE,
-            ord('|'):              enums.TextViewCommand.SLOT_DELETE,
-            ord(']'):              enums.TextViewCommand.SLOT_LOAD_NEXT,
-            ord('['):              enums.TextViewCommand.SLOT_LOAD_PREV,
-        }
-
-        # Map keys to custom functions used to handle more complex commands
-        # like ones taking arguments
+        # Map the commands requiring custom functions and that
+        # cannot be directly sent over the current view.
 
         # noqa: E272 is "multiple spaces before keyword"
-        keys_to_func = {
-            ord('1'):
+        cmd_to_func = {
+            enums.Command.SHOW_VIEW_1:
                 lambda: self._set_view(0, False),
-            ord('2'):
+            enums.Command.SHOW_VIEW_2:
                 lambda: self._set_view(1, False),
-            ord('3'):
+            enums.Command.SHOW_VIEW_3:
                 lambda: self._set_view(2, False),
-            ord('!'):
+            enums.Command.SHOW_VIEW_1_WITH_FILTER:
                 lambda: self._set_view(0, True),
-            ord('@'):
+            enums.Command.SHOW_VIEW_2_WITH_FILTER:
                 lambda: self._set_view(1, True),
-            ord('#'):
+            enums.Command.SHOW_VIEW_3_WITH_FILTER:
                 lambda: self._set_view(2, True),
-            ord('?'):
+            enums.Command.SHOW_HELP:
                 self._help_view_push,
-            ord('e'):
+            enums.Command.EDIT_KEYWORD:
                 edit_keyword,
-            ord('f'):
+            enums.Command.PUSH_KEYWORD:
+                lambda: new_keyword(False),
+            enums.Command.PUSH_FILTER_AND_KEYWORD:
                 lambda: new_keyword(True),
-            ord('\n'):
-                lambda: new_keyword(True),
-            ord('r'):
+            enums.Command.RELOAD_HEAD:
                 lambda: self._reload(0),
-            ord('R'):
+            enums.Command.RELOAD_HEAD_AUTO:
                 lambda: self._toggle_auto_reload(0),
-            ord('t'):
+            enums.Command.RELOAD_TAIL:
                 lambda: self._reload(sys.maxsize),
-            ord('T'):
+            enums.Command.RELOAD_TAIL_AUTO:
                 lambda: self._toggle_auto_reload(sys.maxsize),
-            ord('+'):
-                lambda: new_keyword(False),
-            ord('='):
-                lambda: new_keyword(False),
-            ord('/'):
+            enums.Command.TRY_SEARCH:
                 self.try_start_search,
-            curses.ascii.TAB:
-                goto_line,
-            7:
+            enums.Command.GOTO_LINE:
                 goto_line,
         }
 
-        inter = keys_to_command.keys() & keys_to_func.keys()
-        assert len(inter) == 0, f'Keys with multiple mapping {inter}'
         status: types.Status = ''
 
         # If help is shown, we hijack keys closing the view but
         # forward all other keys as if it is a regular view (which
-        # makes help searchable like a file...)
+        # makes help searchable like a file...
+        debug.out(f'key {key}')
         if self._hidden_view >= 0 and key in (
                 ord('q'), ord('Q'), curses.ascii.ESC):
             self._help_view_pop()
-        elif key in keys_to_command:
-            status = v.execute(keys_to_command[key])
-        elif key in keys_to_func:
-            status = types.Status(keys_to_func[key]())
+        elif isinstance(key, enums.Command):
+            if key in cmd_to_func:
+                status = types.Status(cmd_to_func[key]())
+            else:
+                status = v.execute(key)
         else:
             return False, f'Unknown key {key} (? for help, q to quit)'
 

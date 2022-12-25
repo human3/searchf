@@ -244,11 +244,14 @@ class SelectedContent:
                     dlines.append(DisplayLine(idata, offset))
                     continue
                 left = len(text)
-                while left >= 0:
+                # If the line is empty, we still push a DisplayLine for
+                # proper rendering of empty lines
+                while True:
                     dlines.append(DisplayLine(idata, offset))
                     offset += width
                     left -= width
-
+                    if left <= 0:
+                        break
         assert len(firstdlines) == len(self.lines)
         dc = DisplayContent()
         dc.dlines = dlines

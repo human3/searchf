@@ -4,6 +4,9 @@ GENERATE_REPORT=python3 -m coverage report -m
 run:
 	$(RUN_PY_MOD) searchf.main README.md
 
+debug:
+	$(RUN_PY_MOD) searchf.main --debug searchf/test/rulers.txt
+
 tests:
 	$(RUN_PY_MOD) pytest
 	$(RUN_PY_MOD) searchf.test.all

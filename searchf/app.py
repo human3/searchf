@@ -176,6 +176,7 @@ class App:
         self._views.append(views.TextView(store, scr, 'View 3', path))
         self._views.append(views.TextView(store, scr, 'Help', 'Help'))
         self._help_view_index = len(self._views) - 1
+        self._views[self._help_view_index].get_config().line_numbers = False
         if USE_DEBUG:
             self._debug_view = views.DebugView(scr)
             debug.OUT_FUNC = self._debug_view.out

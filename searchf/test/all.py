@@ -155,13 +155,13 @@ def _test_main_main_loop(stdscr):
     print('Test main.main_loop()')
     keys_processor = keys.Processor(keys.Provider(
         [' ', '>', 'l', keys.POLL, 'q']))
-    main.main_loop(stdscr, TEST_FILE, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, keys_processor)
 
 
 def _test_main_resize(stdscr):
     print('Test main.resize')
     keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']))
-    main.main_loop(stdscr, TEST_FILE, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, keys_processor)
 
 
 def _test_main_debug_view(stdscr):
@@ -300,6 +300,7 @@ def _test_main_main():
     def _init_env():
         parser = argparse.ArgumentParser(description='Dummy parser')
         parser.add_argument('-file', default=TEST_FILE)
+        parser.add_argument('-debug', default=False)
         print('test_env')
         return parser
 

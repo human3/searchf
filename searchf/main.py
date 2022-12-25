@@ -49,8 +49,13 @@ class StatusView:
         self._scr.refresh()
 
 
-def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
+def main_loop(scr,
+              path: str,
+              use_debug: bool,
+              keys_processor: keys.Processor
+              ) -> None:
     '''Main loop consuming keys and events.'''
+    app.USE_DEBUG = use_debug
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
     store = storage.Store('.searchf')
@@ -78,9 +83,9 @@ def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
         v.draw(status)
 
 
-def main_curses(scr, path: str) -> None:
+def main_curses(scr, args) -> None:
     '''Main entry point requiring curse environment.'''
-    main_loop(scr, path, keys.Processor(scr))
+    main_loop(scr, args.file, args.debug, keys.Processor(scr))
 
 
 def init_env() -> argparse.ArgumentParser:
@@ -94,6 +99,9 @@ highlight keywords.',
         epilog='Press ? in the application for more information, or go to \
 https://github.com/human3/searchf')
     parser.add_argument('file')
+    parser.add_argument('--debug',
+                        help='Use debug layout',
+                        action='store_true')
     return parser
 
 
@@ -101,7 +109,7 @@ def main() -> None:
     '''Application entry point'''
     parser = init_env()
     args = parser.parse_args()
-    utils.wrapper(False, curses.wrapper, main_curses, args.file)
+    utils.wrapper(False, curses.wrapper, main_curses, args)
 
 
 if __name__ == '__main__':  # pragma: no cover

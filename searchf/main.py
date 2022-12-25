@@ -71,10 +71,10 @@ def main_loop(scr, path: str, keys_processor: keys.Processor) -> None:
             break
         if new_status == app.STATUS_UNCHANGED:
             continue
-        app.clear(scr, v.pos[0], v.pos[1], len(status))
-        status = new_status
         if key == curses.KEY_RESIZE:
             v.layout()
+        app.clear(scr, v.pos[0], v.pos[1], len(status))
+        status = new_status
         v.draw(status)
 
 

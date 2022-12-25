@@ -96,7 +96,8 @@ class App:
         self._debug_view: views.DebugView
         self._scr: Any = None
         self._path: str = ''
-        self._content: List[views.TextView] = []
+        self._views: List[views.TextView] = []
+        self._help_view_index: int = -1
         self._current: int = -1
         self._hidden_view: int = -1
         self._y_get_text: int = 0
@@ -124,7 +125,7 @@ class App:
             x = padding
             y = dbg_size[0] + padding
 
-        for v in self._content:
+        for v in self._views:
             v.layout(view_lines_count, maxw, y, x)
 
         y += view_lines_count
@@ -132,34 +133,35 @@ class App:
         return maxh, maxw
 
     def _set_view(self, idx: int, propagate_config: bool) -> types.Status:
-        assert 0 <= idx < len(self._content)
-        if self._current != idx:
-            config = self._content[self._current].get_config()
-            self._current = idx
-            if propagate_config:
-                self._content[idx].set_config(copy.deepcopy(config))
-            self._content[idx].show()
-        return f'Switched to {self._content[idx].name()}'
+        assert 0 <= idx < len(self._views)
+        if self._current == idx:
+            return f'Current view is already {self._views[idx].name()}'
+        self._hidden_view = \
+            self._current if idx == self._help_view_index else -1
+        config = self._views[self._current].get_config()
+        self._current = idx
+        if propagate_config:
+            self._views[idx].set_config(copy.deepcopy(config))
+        self._views[idx].show()
+        return f'Switched to {self._views[idx].name()}'
 
     def _help_view_push(self) -> types.Status:
-        self._hidden_view = self._current
-        return self._set_view(3, False)
+        return self._set_view(self._help_view_index, False)
 
     def _help_view_pop(self) -> types.Status:
-        idx = self._hidden_view
-        self._hidden_view = -1
-        return self._set_view(idx, False)
+        assert self._hidden_view >= 0
+        return self._set_view(self._hidden_view, False)
 
     def _reload(self, scroll_to: int) -> types.Status:
         with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
-            for i, v in enumerate(self._content):
-                if i == len(self._content) - 1:
+            for i, v in enumerate(self._views):
+                if i == self._help_view_index:
                     v.set_lines(self._help_lines)
                 else:
                     v.set_lines(lines)
                     v.set_v_offset(scroll_to, False)
-        self._content[self._current].draw()
+        self._views[self._current].draw()
         self._mtime = getmtime(self._path)
         return 'File reloaded'
 
@@ -168,11 +170,13 @@ class App:
         the given file.'''
         self._scr = scr
         self._path = path
-        self._content.clear()
-        self._content.append(views.TextView(store, scr, 'View 1', path))
-        self._content.append(views.TextView(store, scr, 'View 2', path))
-        self._content.append(views.TextView(store, scr, 'View 3', path))
-        self._content.append(views.TextView(store, scr, 'Help', 'Help'))
+        self._views.clear()
+        self._views.append(views.TextView(store, scr, 'View 1', path))
+        self._views.append(views.TextView(store, scr, 'View 2', path))
+        self._views.append(views.TextView(store, scr, 'View 3', path))
+        self._views.append(views.TextView(store, scr, 'Help', 'Help'))
+        self._help_view_index = len(self._views) - 1
+        self._views[self._help_view_index].get_config().line_numbers = False
         if USE_DEBUG:
             self._debug_view = views.DebugView(scr)
             debug.OUT_FUNC = self._debug_view.out
@@ -189,7 +193,7 @@ class App:
 
     def try_start_search(self) -> types.Status:
         '''Tries to initiate a less like search.'''
-        v = self._content[self._current]
+        v = self._views[self._current]
         if v.has_filters():
             return 'Cannot start search when filters already defined'
         t = self._get_keyword()
@@ -217,7 +221,7 @@ class App:
             return self._poll()
 
         # Local functions redirecting to current view v
-        v = self._content[self._current]
+        v = self._views[self._current]
 
         if key == curses.KEY_RESIZE:
             self._scr.clear()
@@ -292,10 +296,11 @@ class App:
         debug.out(f'key {key}')
         if self._hidden_view >= 0 and key in (
                 ord('q'), ord('Q'), curses.ascii.ESC):
-            self._help_view_pop()
+            status = self._help_view_pop()
         elif isinstance(key, enums.Command):
             if key in cmd_to_func:
-                status = types.Status(cmd_to_func[key]())
+                # status = types.Status(cmd_to_func[key]())
+                status = cmd_to_func[key]()
             else:
                 status = v.execute(key)
         else:

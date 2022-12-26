@@ -60,16 +60,26 @@ class MtimeInjector:
         return self._time
 
 
+# Screen size used for tests, terminal must be bigger for
+# tests to run
+TEST_SIZE = (30, 60)
+
+
 @contextmanager
-def main_modifier(keywords_injector: KeywordsInjector,
+def main_modifier(stdscr,
+                  keywords_injector: KeywordsInjector,
                   mtime_injector: MtimeInjector):
     '''Context manager that replaces key and text input methods of the main
     module, and makes sure tests are run always with same screen
-    resolution
+    resolution.
     '''
 
+    size = app.get_max_yx(stdscr)
+    assert size[0] >= TEST_SIZE[0], f'{size} < {TEST_SIZE}'
+    assert size[1] >= TEST_SIZE[1], f'{size} < {TEST_SIZE}'
+
     def _injected_get_max_yx(_):
-        return 30, 80
+        return TEST_SIZE
 
     get_text = app.get_text
     getmtime = app.getmtime
@@ -107,7 +117,9 @@ def _run(stdscr, t: AppTest):
     stdscr.clear()
     colors.init()
     store = storage.Store('.searchf.test')
-    with main_modifier(KeywordsInjector(t.inputs), MtimeInjector()):
+    with main_modifier(stdscr,
+                       KeywordsInjector(t.inputs),
+                       MtimeInjector()):
         main.APP.create(store, stdscr, TEST_FILE)
         for key in t.keys:
             stdscr.refresh()

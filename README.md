@@ -6,26 +6,21 @@ Utility program to interactively search keywords in text files. Works in termina
 
 [searchf_1_11.webm](https://user-images.githubusercontent.com/15265841/209586800-ce59aa42-e0de-4602-a928-c7e675feb12b.webm)
 
-Press `ENTER` to define the first keyword of a filter and reveal only the lines containing that keyword. Press `+` to add another keyword to the current filter in order to further narrow down the lines currently displayed.
+## Installation
 
-A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning keywords and lines are shown using the color of the first filter they match.
+`pip install searchf`
+
+Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
 
 ## Features
 
-- Can filter out non matching lines or display everything (you choose with `m`)
-- Supports "reverse matching" mode to hide matching lines (try `M`)
 - Multiple highlight and colorization modes (press `h` to cycle through all modes)
 - Color palettes (press `c` to cycle through all palettes)
 - Various other display modes (`l` toggles line numbers visibility, `k` toggles line wrapping, ...)
 - Multiple views (press `1`, `2`, `3` to switch) with possibility to pass filters of one view to another view (try `!`, `@`, `#`)
 - Common search key bindings (`/`, then `n` for next, `p` for previous)
 - Common key bindings to scroll up/down pages or goto line
-
-## Installation
-
-`pip install searchf`
-
-Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
+- Filters can persist to disk
 
 ## Usage
 
@@ -33,6 +28,10 @@ Please note that your terminal must supports color (`TERM=screen-256color` or `T
 
 - Press `f` to enter keyword in a new filter
 - Press `?` for help
+
+Press `ENTER` to define the first keyword of a filter and reveal only the lines containing that keyword. Press `+` to add another keyword to the current filter in order to further narrow down the lines currently displayed.
+
+A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. By defining multiple filters, you can reveal more content of the file. By default, lines not matching any filter are hidden, but you can progressively reveal context surrounding matching lines by pressing `m` multiple times, all the way to the whole content of the file. Filters can also be used to filter out content you do not want to see (press `x` to toggle this mode).
 
 ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/209476860-4e4e4600-0333-43f2-9cd7-65777448f927.png)
 
@@ -46,4 +45,4 @@ So this tool ends up making little or no assumption on the input file, which can
 
 ## Development
 
-Please refer to [DEV.md](DEV.md) for further information.
+Please refer to [DEV.md](https://github.com/human3/searchf/blob/master/docs/DEV.md) for further information.

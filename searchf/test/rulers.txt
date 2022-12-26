@@ -1,10 +1,8 @@
 012345678901234567890123456789012345678901234567890
 1         1         2         3         4         5
 2
-3
-4
-5
-6
+3 Next line has spaces until there      |
+4                                        
+5 Next line is empty
+
 7
-8
-9

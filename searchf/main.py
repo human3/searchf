@@ -17,8 +17,7 @@ def _load_help_lines():
     help_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'help.txt')
-    with open(help_file, encoding='utf-8') as f:
-        lines += f.readlines()
+    lines += app.load_lines(help_file)
     return lines
 
 

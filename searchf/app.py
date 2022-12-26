@@ -23,6 +23,13 @@ USE_DEBUG = False
 STATUS_UNCHANGED = 'unchanged'
 
 
+def load_lines(path: str) -> List[str]:
+    '''Load all the lines of the given file.'''
+    with open(path, encoding='utf-8') as f:
+        # splitlines() ensures that any newline char is removed
+        return f.read().splitlines()
+
+
 def get_max_yx(scr) -> types.Size:
     '''This function is a test artifact that wraps getmaxyx() from curses so
     that we can overwrite it and test specific dimensions.
@@ -153,14 +160,13 @@ class App:
         return self._set_view(self._hidden_view, False)
 
     def _reload(self, scroll_to: int) -> types.Status:
-        with open(self._path, encoding='utf-8') as f:
-            lines = f.readlines()
-            for i, v in enumerate(self._views):
-                if i == self._help_view_index:
-                    v.set_lines(self._help_lines)
-                else:
-                    v.set_lines(lines)
-                    v.set_v_offset(scroll_to, False)
+        lines = load_lines(self._path)
+        for i, v in enumerate(self._views):
+            if i == self._help_view_index:
+                v.set_lines(self._help_lines)
+            else:
+                v.set_lines(lines)
+                v.set_v_offset(scroll_to, False)
         self._views[self._current].draw()
         self._mtime = getmtime(self._path)
         return 'File reloaded'

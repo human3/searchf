@@ -2,11 +2,11 @@
 
 ![Latest Version](https://img.shields.io/pypi/v/searchf)
 
-Utility program to interactively search and colorize keywords in text files, select relevant lines, remove noise and help you discover the things you should care about. Works in terminals and uses stack-based interactions to minimize the number of key presses (think HP calculators).
+Utility program to interactively search keywords in text files. Works in terminals thanks to curses.
+
+[searchf_1_11.webm](https://user-images.githubusercontent.com/15265841/209586800-ce59aa42-e0de-4602-a928-c7e675feb12b.webm)
 
 Press `ENTER` to define the first keyword of a filter and reveal only the lines containing that keyword. Press `+` to add another keyword to the current filter in order to further narrow down the lines currently displayed.
-
-![Peek 2021-12-31 21-05](https://user-images.githubusercontent.com/15265841/147842653-46e2fc0f-fdac-424e-9e5a-2e806d86440e.gif)
 
 A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. All keywords in the same filter are ANDed together. By defining multiple filters, you can reveal more content of the file (filters are ORed...). By default, lines not matching any filter are hidden, but their visibility can be toggled by pressing `m`. Filters are evaluated in the order that they are defined, meaning keywords and lines are shown using the color of the first filter they match.
 
@@ -25,11 +25,7 @@ A filter is a list of keywords that a line must contain to match and get highlig
 
 `pip install searchf`
 
-then run
-
-`searchf-test`
-
-to run builtin application tests and verify your installation. Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
+Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
 
 ## Usage
 
@@ -40,19 +36,13 @@ to run builtin application tests and verify your installation. Please note that 
 
 ![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/209476860-4e4e4600-0333-43f2-9cd7-65777448f927.png)
 
-When all lines are shown, including the ones not matching any filter, it can be usefull to scroll to next match with `n` or previous one with `p`. When all lines are displayed, it can be hard to identify which ones that are matching which filter, so you can either show the line numbers by pressing `l`, which will show the matching lines with colorized output, or change the highlight mode by pressing `h`, to colorize lines as a whole (and not just keywords). Just try it, as it's likely more understandable by doing than by reading this...
+## Why?
 
-Showing all lines, with wrapping and numbers enabled, colorizing lines as a whole instead of just keywords:
+This tool is born from my need to interactively search into log files, with the ability to backtrack when hitting dead ends (hence the use of push/pop of filter and keyword), and to go down some exploratory paths on the side (hence the support of views). I use it most when I'm not fully aware of what I am searching for...
 
-![Screenshot searchf 2](https://user-images.githubusercontent.com/15265841/147425069-609e346d-c84d-452c-bfb2-8e32cadf10d5.png)
+To be more specific, I often have to dig into build log files, which are a raw aggregate of many heterogenous sources (numerous compiler output, deployment scripts, test run and results, ...) resulting in rather unstructured output. The only commonality being that everything is more or less line-oriented. When a build failure occurs, searchf helps me find hints of the root cause which can be hiding about anywhere.
 
-## Why this utility?
-
-This tool is born from my need to be able to efficiently explore log files in interactive fashion, searching for cues, hitting dead ends and backtracking (hence the use of push/pop of filter and keyword), but also going down some exploratory paths on the side (hence the support of views).
-
-To be more specific, I had to dig into build log files, which were a raw aggregate of many heterogenous sources (numerous compiler output, deployment scripts, test run and results, ...) resulting in rather unstructured output. The only commonality being that everything was somehow and more or less line-oriented... When a build failure occured, hints of the root caused could be hiding about anywhere.
-
-So this tool ended making little or no assumption on the input file, which can be anything, unstructured and heterogenous, as long as it is line oriented.
+So this tool ends up making little or no assumption on the input file, which can be anything, unstructured and heterogenous, as long as it is line oriented.
 
 ## Development
 

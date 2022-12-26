@@ -13,10 +13,10 @@ from typing import Tuple
 
 from . import colors
 from . import enums
+from . import keys
 from . import models
 from . import segments
 from . import types
-
 
 # Do not use curses.A_BOLD on Windows as it just renders horribly when
 # highlighting
@@ -636,3 +636,27 @@ class DebugView:
         if len(self._lines) > h:
             self._lines.pop(0)
         self.draw()
+
+
+class KeyEventView:
+    '''Display KeyEvent pressed by end-user.'''
+    def __init__(self, scr):
+        self._scr = scr
+        self._x = 0
+        self._y = 0
+        self._w = 0
+
+    def layout(self, y: int, x: int, _: int, w: int) -> None:
+        '''Layout view.'''
+        self._x = x
+        self._y = y
+        self._w = w
+
+    def show(self, ev: keys.KeyEvent) -> None:
+        '''Show key pressed'''
+        if not ev.is_poll():
+            text = f'    KEY {ev.text:15} {ev.cmd}'
+            self._scr.addstr(self._y,
+                             self._x,
+                             f'{text:<{self._w}}',
+                             curses.A_BOLD)

@@ -101,7 +101,10 @@ class App:
     def __init__(self, help_lines) -> None:
         self._help_lines = help_lines
         self._debug_view: views.DebugView
+        self._event_view: views.KeyEventView
         self._scr: Any = None
+        self._margins: types.Margins = types.Margins()
+        self._show_events: bool = False
         self._path: str = ''
         self._views: List[views.TextView] = []
         self._help_view_index: int = -1
@@ -117,9 +120,17 @@ class App:
         assert self._scr
         scr = self._scr
         maxh, maxw = get_max_yx(scr)
-        view_lines_count = maxh - 1
-        x = 0
-        y = 0
+        maxh -= (self._margins.top + self._margins.bottom)
+        maxw -= (self._margins.left + self._margins.right)
+        x = self._margins.left
+        y = self._margins.top
+
+        if self._show_events:
+            self._event_view.layout(y, x, 2, maxw)
+            y += 2
+            maxh -= 2
+
+        view_lines_count = maxh
 
         if USE_DEBUG:
             dbg_size = (10, maxw)
@@ -171,10 +182,17 @@ class App:
         self._mtime = getmtime(self._path)
         return 'File reloaded'
 
-    def create(self, store, scr, path: str) -> None:
+    def create(self,
+               store,
+               scr,
+               margins: types.Margins,
+               show_events: bool,
+               path: str) -> None:
         '''Creates all views in the given screen, and loads the content from
         the given file.'''
         self._scr = scr
+        self._margins = margins
+        self._show_events = show_events
         self._path = path
         self._views.clear()
         self._views.append(views.TextView(store, scr, 'View 1', path))
@@ -186,13 +204,18 @@ class App:
         if USE_DEBUG:
             self._debug_view = views.DebugView(scr)
             debug.OUT_FUNC = self._debug_view.out
+        self._event_view = views.KeyEventView(scr)
         self.layout()
         self._reload(0)
         self._set_view(0, False)
 
     def prompt(self, text_prompt: str, text: str) -> str:
         '''Prompts user to enter or edit some text.'''
-        return prompt(self._scr, self._y_get_text, 0, text_prompt, text)
+        return prompt(self._scr,
+                      self._y_get_text,
+                      self._margins.left,
+                      text_prompt,
+                      text)
 
     def _get_keyword(self) -> str:
         return self.prompt('Keyword: ', '')
@@ -217,19 +240,21 @@ class App:
                 return True, self._reload(self._auto_reload_anchor)
         return False, STATUS_UNCHANGED
 
-    def handle_key(self,
-                   key: keys.KeyOrCommand
-                   ) -> Tuple[bool, types.Status]:
+    def handle_event(self,
+                     ev: keys.KeyEvent
+                     ) -> Tuple[bool, types.Status]:
         '''Handles the given key, propagating it to the proper view.'''
 
-        if key == -1:
-            # No key, means we are polling view for any self triggered action
+        if ev.is_poll():
             return self._poll()
+
+        if self._show_events:
+            self._event_view.show(ev)
 
         # Local functions redirecting to current view v
         v = self._views[self._current]
 
-        if key == curses.KEY_RESIZE:
+        if ev.key == curses.KEY_RESIZE:
             self._scr.clear()
             self._scr.refresh()
             size = self.layout()
@@ -299,17 +324,16 @@ class App:
         # If help is shown, we hijack keys closing the view but
         # forward all other keys as if it is a regular view (which
         # makes help searchable like a file...
-        debug.out(f'key {key}')
-        if self._hidden_view >= 0 and key in (
+        if self._hidden_view >= 0 and ev.key in (
                 ord('q'), ord('Q'), curses.ascii.ESC):
             status = self._help_view_pop()
-        elif isinstance(key, enums.Command):
-            if key in cmd_to_func:
-                # status = types.Status(cmd_to_func[key]())
-                status = cmd_to_func[key]()
+        elif ev.cmd:
+            if ev.cmd in cmd_to_func:
+                status = cmd_to_func[ev.cmd]()
             else:
-                status = v.execute(key)
+                status = v.execute(ev.cmd)
         else:
-            return False, f'Unknown key {key} (? for help, q to quit)'
+            status = f'Unknown key {ev.key} (? for help, q to quit)'
+            return False, status
 
         return True, status

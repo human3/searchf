@@ -2,7 +2,7 @@
 
 from typing import Any
 from typing import List
-from typing import Union
+from typing import Optional
 
 import datetime
 import curses
@@ -81,15 +81,50 @@ KEYS_TO_COMMAND = {
     curses.ascii.BEL:      enums.Command.GOTO_LINE,
 }
 
-KeyOrCommand = Union[int, enums.Command]
+KEYS_TO_TEXT = {
+    ord(' '):          'SPACE',
+    ord('\n'):         'ENTER',
+    ord('\t'):         'TAB',
+    curses.KEY_UP:     'UP',
+    curses.KEY_DOWN:   'DOWN',
+    curses.KEY_LEFT:   'LEFT',
+    curses.KEY_RIGHT:  'RIGHT',
+    curses.KEY_HOME:   'HOME',
+    curses.KEY_END:    'END',
+    curses.KEY_PPAGE:  'PGUP',
+    curses.KEY_NPAGE:  'PGDOWN',
+}
 
 
-def map_key_to_command(key: int) -> KeyOrCommand:
-    '''Tries to map given key to a command'''
-    if key in KEYS_TO_COMMAND:
-        return KEYS_TO_COMMAND[key]
-    # debug.out(f'{key} {chr(key)} {str(key)}')
-    return key
+def _key_to_text(key: int) -> str:
+    if key in KEYS_TO_TEXT:
+        return KEYS_TO_TEXT[key]
+    return f'{chr(key)}'
+
+
+class KeyEvent():
+    '''Class representing KeyEvent '''
+    key: int
+    text: str
+    cmd: Optional[enums.Command]
+
+    def is_poll(self) -> bool:
+        '''Returns whether or not this is the poll key/command'''
+        return self.key == POLL
+
+    def __init__(self,
+                 key: int = POLL,
+                 text: str = '',
+                 cmd: Optional[enums.Command] = None):
+        self.key = key
+        self.text = text
+        self.cmd = cmd
+        if not cmd and key in KEYS_TO_COMMAND:
+            self.cmd = KEYS_TO_COMMAND[key]
+        if key == POLL:
+            self.text = 'POLL'
+        elif not text or len(text) <= 0:
+            self.text = _key_to_text(key)
 
 
 class Provider:
@@ -147,20 +182,22 @@ class Processor:
         self.seq_ = ''
         self.start_: datetime.datetime = datetime.datetime.min
 
-    def process(self, key: int) -> KeyOrCommand:
+    def process(self, key: int) -> KeyEvent:
         '''Process given key'''
         if key < 0:
             self.escaping_ = False
-            return key
+            return KeyEvent(key)
         if self.escaping_:
             self.seq_ += chr(key)
             delta = datetime.datetime.now() - self.start_
             # debug.out(f'{key} {chr(key)} {str(key)} {delta.total_seconds()}')
             if self.seq_ in ESCAPED_TO_COMMAND:
                 self.escaping_ = False
-                return ESCAPED_TO_COMMAND[self.seq_]
+                return KeyEvent(key,
+                                self.seq_,
+                                ESCAPED_TO_COMMAND[self.seq_])
             if delta.total_seconds() <= ESCAPE_TIMEOUT:
-                return -1
+                return KeyEvent()
             # Stop escaping regardless of sequence after 200ms
             self.escaping_ = False
             # Note: we might start escaping again right now...
@@ -168,10 +205,10 @@ class Processor:
             self.start_ = datetime.datetime.now()
             self.escaping_ = True
             self.seq_ = ''
-            return -1
+            return KeyEvent()
         assert not self.escaping_
-        return map_key_to_command(key)
+        return KeyEvent(key)
 
-    def get(self) -> KeyOrCommand:
-        '''Returns key typed by user or -1 if none'''
+    def get(self) -> KeyEvent:
+        '''Wait on next key event typed by user or -1 if none'''
         return self.process(self._getch_provider.getch())

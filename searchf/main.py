@@ -9,6 +9,7 @@ from . import app
 from . import colors
 from . import keys
 from . import storage
+from . import types
 from . import utils
 
 
@@ -51,6 +52,7 @@ class StatusView:
 def main_loop(scr,
               path: str,
               use_debug: bool,
+              show_events: bool,
               keys_processor: keys.Processor
               ) -> None:
     '''Main loop consuming keys and events.'''
@@ -58,7 +60,9 @@ def main_loop(scr,
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
     store = storage.Store('.searchf')
-    APP.create(store, scr, path)
+    margins = types.Margins()
+    margins.bottom += 1
+    APP.create(store, scr, margins, show_events, path)
     v = StatusView(scr)
     v.layout()
 
@@ -67,15 +71,15 @@ def main_loop(scr,
     while True:
         scr.move(v.pos[0], 0)
         try:
-            key = keys_processor.get()
+            ev = keys_processor.get()
         except KeyboardInterrupt:
             break
-        handled, new_status = APP.handle_key(key)
-        if not handled and key in (ord('q'), ord('Q')):
+        handled, new_status = APP.handle_event(ev)
+        if not handled and ev.key in (ord('q'), ord('Q')):
             break
         if new_status == app.STATUS_UNCHANGED:
             continue
-        if key == curses.KEY_RESIZE:
+        if ev.key == curses.KEY_RESIZE:
             v.layout()
         app.clear(scr, v.pos[0], v.pos[1], len(status))
         status = new_status
@@ -84,7 +88,11 @@ def main_loop(scr,
 
 def main_curses(scr, args) -> None:
     '''Main entry point requiring curse environment.'''
-    main_loop(scr, args.file, args.debug, keys.Processor(scr))
+    main_loop(scr,
+              args.file,
+              args.debug,
+              args.show_events,
+              keys.Processor(scr))
 
 
 def init_env() -> argparse.ArgumentParser:
@@ -100,6 +108,9 @@ https://github.com/human3/searchf')
     parser.add_argument('file')
     parser.add_argument('--debug',
                         help='Use debug layout',
+                        action='store_true')
+    parser.add_argument('--show-events',
+                        help='Show events like key presses',
                         action='store_true')
     return parser
 

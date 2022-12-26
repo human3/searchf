@@ -10,12 +10,13 @@ from typing import List
 from typing import NamedTuple
 from contextlib import contextmanager
 
-from .. import main
 from .. import app
 from .. import colors
 from .. import debug
 from .. import keys
+from .. import main
 from .. import storage
+from .. import types
 from .. import utils
 
 from . import test_enums
@@ -108,7 +109,7 @@ class AppTest(NamedTuple):
     inputs: List[str]
 
 
-HANDLE_KEY_DELAY = 0.01
+HANDLE_EVENT_DELAY = 0.01
 
 
 def _run(stdscr, t: AppTest):
@@ -120,13 +121,15 @@ def _run(stdscr, t: AppTest):
     with main_modifier(stdscr,
                        KeywordsInjector(t.inputs),
                        MtimeInjector()):
-        main.APP.create(store, stdscr, TEST_FILE)
+        margins = types.Margins()
+        margins.bottom += 1
+        main.APP.create(store, stdscr, margins, True, TEST_FILE)
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
-            time.sleep(HANDLE_KEY_DELAY)
+            time.sleep(HANDLE_EVENT_DELAY)
             i = key if isinstance(key, int) else ord(key)
-            main.APP.handle_key(keys.map_key_to_command(i))
+            main.APP.handle_event(keys.KeyEvent(i))
     store.destroy()
 
 
@@ -167,31 +170,31 @@ def _test_main_main_loop(stdscr):
     print('Test main.main_loop()')
     keys_processor = keys.Processor(keys.Provider(
         [' ', '>', 'l', keys.POLL, 'q']))
-    main.main_loop(stdscr, TEST_FILE, False, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
 
 
 def _test_main_resize(stdscr):
     print('Test main.resize')
     keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']))
-    main.main_loop(stdscr, TEST_FILE, False, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
 
 
 def _test_main_debug_view(stdscr):
-    # Test debug mode in a very hacky way by hijacking handle_key function
+    # Test debug mode in a very hacky way by hijacking handle_event function
     # and spitting out a few dummy debug lines per key press
     app.USE_DEBUG = True
-    original_handle_key = main.APP.handle_key
+    original_handle_event = main.APP.handle_event
 
-    def my_handle_key(key):
+    def my_handle_event(key):
         for i in range(20):
             debug.out(f'Test {i} dbg {key}')
-        return original_handle_key(key)
+        return original_handle_event(key)
 
-    main.APP.handle_key = my_handle_key
+    main.APP.handle_event = my_handle_event
     _run(stdscr, AppTest(
         'Test special debug mode',
         ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
-    main.APP.handle_key = original_handle_key
+    main.APP.handle_event = original_handle_event
     app.USE_DEBUG = False
 
 
@@ -313,6 +316,7 @@ def _test_main_main():
         parser = argparse.ArgumentParser(description='Dummy parser')
         parser.add_argument('-file', default=TEST_FILE)
         parser.add_argument('-debug', default=False)
+        parser.add_argument('-show-events', default=False)
         print('test_env')
         return parser
 
@@ -320,11 +324,11 @@ def _test_main_main():
         def __init__(self, _):
             self._keys = [-1, ord('<')]
 
-        def get(self):
-            '''Get next key'''
+        def get(self) -> keys.KeyEvent:
+            '''Get next key event from processor'''
             if len(self._keys) <= 0:
                 raise KeyboardInterrupt
-            return self._keys.pop(0)
+            return keys.KeyEvent(self._keys.pop(0))
 
     @contextmanager
     def _main_modifier():

@@ -25,6 +25,9 @@ cover_unit:
 test_color:
 	$(RUN_PY_MOD) searchf.test.color
 
+profile:
+	$(RUN_PY_MOD) cProfile -s cumtime -m searchf.test.all
+
 type:
 	mypy searchf
 

@@ -4,23 +4,27 @@
 
 Utility program to interactively search keywords in text files. Works in terminals thanks to curses.
 
-[searchf_1_11.webm](https://user-images.githubusercontent.com/15265841/209586800-ce59aa42-e0de-4602-a928-c7e675feb12b.webm)
+![Peek 2022-12-26 19-53](https://user-images.githubusercontent.com/15265841/209608799-c1db8f61-bfad-49ca-8f1e-fe12637f80cb.gif)
 
 ## Installation
 
 `pip install searchf`
 
-Please note that your terminal must supports color (`TERM=screen-256color` or `TERM=xterm-256color`) and must be UTF-8 enabled (eg. start tmux with "tmux -u").
+Requirements:
+- Python 3.6 or greater
+- Terminal with color support (ie. `TERM=screen-256color` or `TERM=xterm-256color`).
 
 ## Features
 
+- Filters can either include or exclude file content
+- Filters can persist to disk
 - Multiple highlight and colorization modes (press `h` to cycle through all modes)
 - Color palettes (press `c` to cycle through all palettes)
 - Various other display modes (`l` toggles line numbers visibility, `k` toggles line wrapping, ...)
 - Multiple views (press `1`, `2`, `3` to switch) with possibility to pass filters of one view to another view (try `!`, `@`, `#`)
 - Common search key bindings (`/`, then `n` for next, `p` for previous)
 - Common key bindings to scroll up/down pages or goto line
-- Filters can persist to disk
+- Terminal resizing
 
 ## Usage
 

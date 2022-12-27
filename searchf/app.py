@@ -38,7 +38,7 @@ def get_max_yx(scr) -> types.Size:
 
 
 def getmtime(path):
-    '''Wraps os.getmtime() for testing'''
+    '''Wraps os.getmtime() for testing.'''
     return os.path.getmtime(path)
 
 
@@ -47,7 +47,7 @@ class EscapeException(Exception):
 
 
 def validate(k: int) -> int:
-    '''Validates key'''
+    '''Validates key.'''
     if k == curses.ascii.DEL:
         k = curses.KEY_BACKSPACE
     elif k == curses.ascii.ESC:
@@ -56,7 +56,7 @@ def validate(k: int) -> int:
 
 
 def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
-    '''Gets text interactively from end user'''
+    '''Gets text interactively from end user.'''
     scr.addstr(y, x, text_prompt)
     x += len(text_prompt)
     editwin = curses.newwin(1, 30, y, x)
@@ -282,8 +282,6 @@ class App:
 
         # Map the commands requiring custom functions and that
         # cannot be directly sent over the current view.
-
-        # noqa: E272 is "multiple spaces before keyword"
         cmd_to_func = {
             enums.Command.SHOW_VIEW_1:
                 lambda: self._set_view(0, False),

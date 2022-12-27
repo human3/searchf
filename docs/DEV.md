@@ -31,7 +31,7 @@ Provided that your terminal as the appropriate color settings
 
 ## What about coverage?
 
-The numbers below are as of version `1.11`.
+The numbers below are as of version `1.13`.
 
 ### Unit tests
 

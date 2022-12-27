@@ -15,12 +15,14 @@ The code in this project tries to abide by the following principles:
 
 If working from the sources (ie not an installed package), the application can be launched as a module:
 
-`python3 -m searchf.app <FILE>`
+`python3 -m searchf.main <FILE>`
+
+I also use `make run` a lot as a shortcut while testing.
 
 ## How to run test?
 
-- First install dependencies with `make deps` (once)
-- Then run `make tests`
+- First install dependencies with `sudo make deps` (once)
+- `make tests`
 
 Provided that your terminal as the appropriate color settings
 (eg TERM=screen-256color), you can also use:
@@ -28,6 +30,21 @@ Provided that your terminal as the appropriate color settings
 - `pytest` to run the unit tests
 - `python3 -m searchf.test.all` runs the application tests
 - `python3 -m searchf.test.color` shows current palettes definition, and bridges gaps in colors unit tests which do not evaluate side-effects
+
+All the test commands I use can found in the `Makefile`.
+
+## How to build the package from sources
+
+The following `Makefile` targets can help with this:
+- `sudo make deps` to install all dependencies (if not done already)
+- `make build` to build the package
+- `make install` to install package on your system
+
+Then, you should be able to use `searchf` on your system as if you had downloaded from `pypi.org` and installed it through regular `pip`.
+
+To uninstall: `pip uninstall -y searchf`
+
+WARNING: the instructions in the Makefile might need to be adapted according to platform.
 
 ## What about coverage?
 
@@ -89,17 +106,3 @@ TOTAL                            1685      1    99%
 ```
 
 Run `make cover_all` for updated numbers.
-
-## How to build the package from sources
-
-WARNING: instructions below must be adapted according to platform
-
-First install build dependencies (once) with something like
-
-`python3 -m pip install build`
-
-Then:
-
-- Go to root of project
-- `python3 -m build`
-- Then, you can install with `python3 -m pip install dist/searchf-*.tar.gz`

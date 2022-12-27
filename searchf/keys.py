@@ -82,17 +82,18 @@ KEYS_TO_COMMAND = {
 }
 
 KEYS_TO_TEXT = {
-    ord(' '):          'SPACE',
-    ord('\n'):         'ENTER',
-    ord('\t'):         'TAB',
-    curses.KEY_UP:     'UP',
-    curses.KEY_DOWN:   'DOWN',
-    curses.KEY_LEFT:   'LEFT',
-    curses.KEY_RIGHT:  'RIGHT',
-    curses.KEY_HOME:   'HOME',
-    curses.KEY_END:    'END',
-    curses.KEY_PPAGE:  'PGUP',
-    curses.KEY_NPAGE:  'PGDOWN',
+    ord(' '):             'SPACE',
+    ord('\n'):            'ENTER',
+    ord('\t'):            'TAB',
+    curses.KEY_BACKSPACE: 'BACKSPACE',
+    curses.KEY_UP:        'UP',
+    curses.KEY_DOWN:      'DOWN',
+    curses.KEY_LEFT:      'LEFT',
+    curses.KEY_RIGHT:     'RIGHT',
+    curses.KEY_HOME:      'HOME',
+    curses.KEY_END:       'END',
+    curses.KEY_PPAGE:     'PGUP',
+    curses.KEY_NPAGE:     'PGDOWN',
 }
 
 

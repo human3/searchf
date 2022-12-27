@@ -17,7 +17,7 @@
       FILTERS
 
   f ENTER       Enter first keyword of a new filter
-  F             Pop top level filter
+  F BACKSPACE   Pop top level filter
   + =           Add a new keyword to current filter
   - _           Remove last keyword from filter
   e             Edit last keyword

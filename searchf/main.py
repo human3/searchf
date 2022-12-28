@@ -96,7 +96,7 @@ def main_curses(scr, args) -> None:
 
 
 def init_env() -> argparse.ArgumentParser:
-    '''Initialize environment and return argument parser'''
+    '''Initialize environment and return argument parser.'''
     # https://stackoverflow.com/questions/27372068/why-does-the-escape-key-have-a-delay-in-python-curses
     os.environ.setdefault('ESCDELAY', '25')
     os.environ['TERM'] = 'screen-256color'
@@ -116,7 +116,7 @@ https://github.com/human3/searchf')
 
 
 def main() -> None:
-    '''Application entry point'''
+    '''Application entry point.'''
     parser = init_env()
     args = parser.parse_args()
     utils.wrapper(False, curses.wrapper, main_curses, args)

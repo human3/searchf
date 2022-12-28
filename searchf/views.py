@@ -76,11 +76,11 @@ class TextView:
         self._ruler: str = ''
 
     def get_config(self) -> models.ViewConfig:
-        '''Gets the config'''
+        '''Gets the config.'''
         return self._config
 
     def _slot_save(self) -> types.Status:
-        '''Save the config'''
+        '''Save the config.'''
         if not self._config.has_filters():
             return 'No filters to save'
         if not self._config.dirty:
@@ -138,7 +138,7 @@ class TextView:
         return colors.get_color_pair(self._config.palette_id, i)
 
     def _draw_bar(self, y):
-        '''Draws the status bar and the filter stack underneath'''
+        '''Draws the status bar and the filter stack underneath.'''
 
         _, w = self._size
         style = curses.color_pair(colors.BAR_COLOR_PAIR_ID)
@@ -220,7 +220,7 @@ class TextView:
                 x += length
 
     def draw(self):
-        '''Draws the view'''
+        '''Draws the view.'''
         # debug.out(f'{self._name} draw {self._offsets.voffset}')
         self._win.clear()
 
@@ -472,7 +472,7 @@ class TextView:
         return self._config.has_filters()
 
     def swap_filters(self) -> types.Status:
-        '''Swaps the top 2 filters'''
+        '''Swaps the top 2 filters.'''
         count = self._config.get_filters_count()
         if self._config.get_filters_count() < 2:
             return 'Not enough filters'
@@ -481,7 +481,7 @@ class TextView:
         return 'Filters swapped'
 
     def rotate_filters(self, go_up: bool) -> types.Status:
-        '''Rotate the filters'''
+        '''Rotate the filters.'''
         if self._config.get_filters_count() < 2:
             return 'Not enough filters'
         self._config.rotate_filters(go_up)

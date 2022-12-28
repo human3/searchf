@@ -1,4 +1,12 @@
-'''Provides various model classes for searchf application.'''
+'''Provides various model classes for searchf application.
+
+Model classes are used to organize content processing. The main
+classes are:
+- RawContent: holds the unfiltered original file content.
+- SelectedContent: holds all the lines that got selected either because
+  they match a filter or because of additional context being revealed.
+- DisplayContent: line-wrapped version of SelectedContent.
+'''
 
 import math
 
@@ -30,7 +38,14 @@ class DisplayLine(NamedTuple):
 
 
 class DisplayContent:
-    '''Displayable content. Highest level class not dependent on curses.
+    '''Displayable content. Highest level content related class that is not
+    dependent on curses. DisplayContent instances are created by layout
+    operations applied to SelectedContent, which basically boils down to
+    performing line wrapping.
+
+    For each selected line we need to identify the first display line
+    associated with it, and we use firstdlines for this. So there is
+    exactly one element in firstdlines for each SelectedLine.
 
     Attributes:
         firstdlines  First display line of each selected lines.
@@ -67,11 +82,11 @@ class Filter:
         self.keywords: Dict[str, None] = {}
 
     def add(self, keyword: str) -> None:
-        '''Adds given keyword to this filter'''
+        '''Adds given keyword to this filter.'''
         self.keywords[keyword] = None
 
     def pop(self) -> Tuple[str, None]:
-        '''Removes most recently added keyword from this filter'''
+        '''Removes most recently added keyword from this filter.'''
         return self.keywords.popitem()
 
     def get_count_and_last_keyword(self) -> Tuple[int, Optional[str]]:
@@ -86,7 +101,7 @@ class Filter:
 
 
 def digits_count(number: int) -> int:
-    '''Returns the number of digits required to display given number'''
+    '''Returns the number of digits required to display given number.'''
     return math.floor(math.log10(max(1, number))+1)
 
 
@@ -96,7 +111,7 @@ RULER_INDEX = -1
 class SelectedLine(NamedTuple):
     '''Data associated with a selected line. A line can be selected either
     because it directly matches a filter, or because it is in proximity of
-    another matching line and user has speficy a LineVisibility to reveal
+    another matching line and user has specify a LineVisibility to reveal
     context.
 
     Attributes:
@@ -123,7 +138,7 @@ VISIBILITY_TO_SIZE = {
 
 
 class SelectedLineQueue:
-    '''Class use to filter out SelectedLine according to a given line
+    '''Class used to filter out SelectedLine according to a given line
     visibility mode. SelectedLines are added sequentially, one by one,
     and are then yielded back to caller (or not) so as to reveal the
     desired amount of non-matching lines above and below matching
@@ -133,14 +148,15 @@ class SelectedLineQueue:
         self._queue: List[SelectedLine] = []
         assert mode in VISIBILITY_TO_SIZE
         self._size = VISIBILITY_TO_SIZE[mode]
-        self._left = 0
-        self._last_line_visible = 0
+        self._left: int = 0
+        self._last_line_visible: int = 0
 
-    def _add(self, model: SelectedLine) -> bool:
-        '''Adds model and returns whether or not caller should flush queue.'''
+    def _add(self, selected_line: SelectedLine) -> bool:
+        '''Adds the given selected line and returns whether or not
+        the caller should flush the queue.'''
         if self._size == 0:
             return False
-        self._queue.append(model)
+        self._queue.append(selected_line)
         if self._size < 0:
             # Infinite capacity, never queueing anything...
             return True
@@ -154,44 +170,48 @@ class SelectedLineQueue:
         return False
 
     def _flush(self) -> List[SelectedLine]:
-        models = self._queue
+        lines = self._queue
         self._queue = []
-        return models
+        return lines
 
-    def _update_last_line_visible(self, model: SelectedLine):
-        line, _, _, _ = model
-        self._last_line_visible = line + 1
+    def _update_last_line_visible(self, selected_line: SelectedLine):
+        idx, _, _, _ = selected_line
+        self._last_line_visible = idx + 1
 
-    def add_matching(self, model: SelectedLine) -> List[SelectedLine]:
-        '''Adds a line model that matches a filter. Returns
-        the list of line models that are visible, if any.'''
-
-        models = []
+    def add_matching(self, selected_line: SelectedLine) -> List[SelectedLine]:
+        '''Adds a line that matches a filter and returns the list of lines
+        that are visible as a result of this operation. At a minimum, the
+        returned list of lines only contains the added line. But if more
+        context is revealed with LineVisibility setting, more lines can
+        be returned.'''
+        lines = []
         queued = self._flush()
         if len(queued) > 0:
             # Check if we need to add horizontal rule (index -1)
-            line, _, _, _ = queued[0]
-            if line > self._last_line_visible:
-                models.append(SelectedLine(RULER_INDEX, -1, '', []))
-            models = models + queued
+            idx, _, _, _ = queued[0]
+            if idx > self._last_line_visible:
+                lines.append(SelectedLine(RULER_INDEX, -1, '', []))
+            lines = lines + queued
 
-        models.append(model)
-        self._update_last_line_visible(model)
+        lines.append(selected_line)
+        self._update_last_line_visible(selected_line)
 
         # Make sure we are going to bufferize the appropriate amount
         # of subsequent non-matching lines, if we encounter any.
         self._left = self._size
 
-        return models
+        return lines
 
-    def add_non_matching(self, model: SelectedLine) -> List[SelectedLine]:
-        '''Adds a line model that does not match any filter. Returns
-        the list of line models that are visible, if any.'''
-        if not self._add(model):
+    def add_non_matching(self,
+                         selected_line: SelectedLine
+                         ) -> List[SelectedLine]:
+        '''Adds a line that does not match any filter. Returns the list of
+        lines that are visible as a result of this operation, if any.'''
+        if not self._add(selected_line):
             return []
         queued = self._flush()
         assert len(queued) == 1
-        self._update_last_line_visible(model)
+        self._update_last_line_visible(selected_line)
         return queued
 
 
@@ -286,8 +306,7 @@ class RawContent:
                mode: enums.LineVisibility
                ) -> SelectedContent:
         '''Filters the raw content using the given filters and line visibility
-        mode, and returns an instance of SelectedContent.
-        '''
+        mode, and returns an instance of SelectedContent.'''
         lines: List[SelectedLine] = []
         hits = [0 for f in filters]
         mode = mode if sum(not f.hiding for f in filters) > 0 \
@@ -346,26 +365,26 @@ class ViewConfig:
         self.filters: List[Filter] = []
 
     def get_filters_count(self) -> int:
-        '''Returns the number of filters currently defined'''
+        '''Returns the number of filters currently defined.'''
         return len(self.filters)
 
     def has_filters(self) -> bool:
-        '''Returns whether or not there is any filter'''
+        '''Returns whether or not there is any filter.'''
         return len(self.filters) > 0
 
     def top_filter(self) -> Filter:
-        '''Returns top level filter (most recently added)'''
+        '''Returns top level filter (most recently added).'''
         count = len(self.filters)
         assert count > 0
         return self.filters[count-1]
 
     def push_filter(self, f: Filter) -> None:
-        '''Pushes the given filter'''
+        '''Pushes the given filter.'''
         self.dirty = True
         self.filters.append(f)
 
     def swap_filters(self, i, j) -> None:
-        '''Swaps the given filters'''
+        '''Swaps the given filters.'''
         self.dirty = True
         count = len(self.filters)
         assert 0 <= i < count
@@ -373,7 +392,7 @@ class ViewConfig:
         self.filters[i], self.filters[j] = self.filters[j], self.filters[i]
 
     def rotate_filters(self, go_up: bool) -> None:
-        '''Rotates filters'''
+        '''Rotates filters.'''
         self.dirty = True
         count = len(self.filters)
         assert count >= 2
@@ -383,7 +402,7 @@ class ViewConfig:
             self.filters = self.filters[-1:] + self.filters[:-1]
 
     def set_palette(self, pid: types.PaletteId) -> None:
-        '''Select the next palette in the given direction'''
+        '''Select the next palette in the given direction.'''
         self.dirty = True
         self.palette_id = pid
 

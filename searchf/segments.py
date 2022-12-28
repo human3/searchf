@@ -10,8 +10,6 @@ from typing import Iterable
 from typing import Set
 from typing import Tuple
 
-# We want one letter variable name in simple functions.
-
 
 class Segment(NamedTuple):
     '''A segment is a pair of indices (start, end) that identifies a

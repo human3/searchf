@@ -1,7 +1,8 @@
 RUN_PY_MOD=TERM='screen-256color' python3 -m
 GENERATE_REPORT=python3 -m coverage report -m
 
-FILE=README.md
+FILE=searchf/test/lorem_ipsum.txt
+#FILE=README.md
 #FILE=searchf/test/rulers.txt
 
 run:

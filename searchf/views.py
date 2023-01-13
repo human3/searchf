@@ -5,6 +5,7 @@ import curses.ascii
 import os
 import re
 import sys
+import time
 
 from typing import List
 from typing import NamedTuple
@@ -12,6 +13,7 @@ from typing import Optional
 from typing import Tuple
 
 from . import colors
+from . import debug
 from . import enums
 from . import keys
 from . import models
@@ -294,10 +296,13 @@ class TextView:
             self.draw()
 
     def _sync(self, redraw: bool) -> None:
+        start = time.time()
         self._selected = self._raw.filter(
             self._config.filters,
             self._config.line_visibility)
         self._layout(redraw)
+        dt = time.time() - start
+        debug.out(f'{dt}')
 
     def set_config(self, config: models.ViewConfig) -> None:
         '''Sets the configuration.'''

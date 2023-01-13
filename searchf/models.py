@@ -9,6 +9,7 @@ classes are:
 '''
 
 import math
+import multiprocessing
 
 from typing import Dict
 from typing import List
@@ -16,6 +17,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 
+from . import debug
 from . import enums
 from . import segments
 from . import types
@@ -242,6 +244,17 @@ class SelectedContent:
                width: int,
                wrapping: bool
                ) -> DisplayContent:
+        n = math.floor(len(self.lines) / 1)
+        # debug.out(f'n = {n}')
+        return self.layoutP(self.lines[:n], height, width, wrapping)
+    
+    def layoutP(self,
+                lines: List[SelectedLine],
+                height: int,
+                width: int,
+                wrapping: bool
+                ) -> DisplayContent:
+
         '''Generate displayable content, breaking the given selected lines
         into displayable lines taking into account the available space
         on the screen.'''
@@ -252,11 +265,11 @@ class SelectedContent:
         dlines: List[DisplayLine] = []
         firstdlines: List[int] = []
         if not wrapping:
-            for idata, mdata in enumerate(self.lines):
+            for idata, mdata in enumerate(lines):
                 firstdlines.append(len(dlines))
                 dlines.append(DisplayLine(idata, 0))
         else:
-            for idata, mdata in enumerate(self.lines):
+            for idata, mdata in enumerate(lines):
                 firstdlines.append(len(dlines))
                 line_idx, _, text, _ = mdata
                 offset = 0
@@ -272,11 +285,22 @@ class SelectedContent:
                     left -= width
                     if left <= 0:
                         break
-        assert len(firstdlines) == len(self.lines)
+        assert len(firstdlines) == len(lines)
         dc = DisplayContent()
         dc.dlines = dlines
         dc.firstdlines = firstdlines
         return dc
+
+
+def list_append(count, id, out_list):
+    """
+    Creates an empty list and then appends a 
+    random number to the list 'count' number
+    of times. A CPU-heavy operation!
+    """
+    debug.out(f'Job {id}')
+    for i in range(count):
+        out_list.append(random.random())
 
 
 class RawContent:
@@ -301,10 +325,39 @@ class RawContent:
         '''Sets and stores the file content lines.'''
         self._lines = lines
 
+        
     def filter(self,
                filters: List[Filter],
                mode: enums.LineVisibility
                ) -> SelectedContent:
+        n = math.floor(len(self._lines) / 1)
+        # debug.out(f'n = {n}')
+
+        size = 10000000   # Number of random numbers to add
+        procs = 4
+        jobs = []
+        for i in range(0, procs):
+            out_list = list()
+            process = multiprocessing.Process(target=list_append, 
+                                              args=(size, i, out_list))
+            jobs.append(process)
+
+        # Start the processes (i.e. calculate the random number lists)      
+        for j in jobs:
+            j.start()
+
+        # Ensure all of the processes have finished
+        for j in jobs:
+            j.join()
+
+        debug.out(f'DONE {len(out_list)}')
+        return self.filterP(self._lines[:n], filters, mode)
+
+    def filterP(self,
+                raw_lines: List[str],
+                filters: List[Filter],
+                mode: enums.LineVisibility
+                ) -> SelectedContent:
         '''Filters the raw content using the given filters and line visibility
         mode, and returns an instance of SelectedContent.'''
         lines: List[SelectedLine] = []
@@ -312,7 +365,7 @@ class RawContent:
         mode = mode if sum(not f.hiding for f in filters) > 0 \
             else enums.LineVisibility.ALL
         line_queue = SelectedLineQueue(mode)
-        for i, line in enumerate(self._lines):
+        for i, line in enumerate(raw_lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
             assert len(line) <= 0 or ord(line[0]) != 0, \

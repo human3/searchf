@@ -7,6 +7,7 @@ import curses
 from . import __version__
 from . import app
 from . import colors
+from . import enums
 from . import keys
 from . import storage
 from . import types
@@ -66,7 +67,7 @@ def main_loop(scr,
     v = StatusView(scr)
     v.layout()
 
-    scr.timeout(1000)
+    scr.timeout(200)
     status = ''
     while True:
         scr.move(v.pos[0], 0)
@@ -75,7 +76,7 @@ def main_loop(scr,
         except KeyboardInterrupt:
             break
         handled, new_status = APP.handle_event(ev)
-        if not handled and ev.key in (ord('q'), ord('Q')):
+        if not handled and ev.cmd == enums.Command.QUIT:
             break
         if new_status == app.STATUS_UNCHANGED:
             continue

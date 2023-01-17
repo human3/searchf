@@ -245,11 +245,11 @@ class App:
                      ) -> Tuple[bool, types.Status]:
         '''Handles the given key, propagating it to the proper view.'''
 
-        if ev.is_poll():
-            return self._poll()
-
         if self._show_events:
             self._event_view.show(ev)
+
+        if ev.is_poll():
+            return self._poll()
 
         # Local functions redirecting to current view v
         v = self._views[self._current]
@@ -317,21 +317,19 @@ class App:
                 goto_line,
         }
 
+        handled: bool = True  # Assumed until otherwise
         status: types.Status = ''
-
-        # If help is shown, we hijack keys closing the view but
-        # forward all other keys as if it is a regular view (which
-        # makes help searchable like a file...
-        if self._hidden_view >= 0 and ev.key in (
-                ord('q'), ord('Q'), curses.ascii.ESC):
-            status = self._help_view_pop()
-        elif ev.cmd:
-            if ev.cmd in cmd_to_func:
-                status = cmd_to_func[ev.cmd]()
+        if ev.cmd == enums.Command.QUIT or ev.key == curses.ascii.ESC:
+            if self._hidden_view < 0:
+                handled = False
             else:
-                status = v.execute(ev.cmd)
+                status = self._help_view_pop()
+        elif ev.cmd in cmd_to_func:
+            status = cmd_to_func[ev.cmd]()
+        elif ev.cmd:
+            status = v.execute(ev.cmd)
         else:
-            status = f'Unknown key {ev.key} (? for help, q to quit)'
-            return False, status
+            handled = False
+            status = f'Unknown key {ev.text} (? for help, q to quit)'
 
-        return True, status
+        return handled, status

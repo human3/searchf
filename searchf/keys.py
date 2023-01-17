@@ -12,9 +12,10 @@ from . import enums
 
 # Special key that will result in app being polled
 POLL = -1
+UNMAP = -2
 
 # Number of seconds to wait before canceling key escape sequence
-ESCAPE_TIMEOUT = 0.2
+ESCAPE_TIMEOUT = 0.1
 
 
 # Map keys to simple text view commands
@@ -79,9 +80,14 @@ KEYS_TO_COMMAND = {
     ord('/'):              enums.Command.TRY_SEARCH,
     curses.ascii.TAB:      enums.Command.GOTO_LINE,
     curses.ascii.BEL:      enums.Command.GOTO_LINE,
+    ord('q'):              enums.Command.QUIT,
+    ord('Q'):              enums.Command.QUIT,
 }
 
 KEYS_TO_TEXT = {
+    POLL:                 'POLL',
+    UNMAP:                'UNMAP',
+    curses.ascii.ESC:     'ESC',
     ord(' '):             'SPACE',
     ord('\n'):            'ENTER',
     ord('\t'):            'TAB',
@@ -122,9 +128,7 @@ class KeyEvent():
         self.cmd = cmd
         if not cmd and key in KEYS_TO_COMMAND:
             self.cmd = KEYS_TO_COMMAND[key]
-        if key == POLL:
-            self.text = 'POLL'
-        elif not text or len(text) <= 0:
+        if not text or len(text) <= 0:
             self.text = _key_to_text(key)
 
 
@@ -152,21 +156,31 @@ DOWN = 'B'
 RIGHT = 'C'
 LEFT = 'D'
 
+
+# Some OS are eating up lots of dead key + arrow combinations
 ESCAPED_TO_COMMAND = {
-    CTRL + UP:     enums.Command.ROTATE_FILTERS_UP,
-    ALT + UP:      enums.Command.ROTATE_FILTERS_UP,
-    CTRL + DOWN:   enums.Command.ROTATE_FILTERS_DOWN,
-    ALT + DOWN:    enums.Command.ROTATE_FILTERS_DOWN,
-    CTRL + LEFT:   enums.Command.SWAP_FILTERS,
-    ALT + LEFT:    enums.Command.SWAP_FILTERS,
-    CTRL + RIGHT:  enums.Command.SWAP_FILTERS,
-    ALT + RIGHT:   enums.Command.SWAP_FILTERS,
-    SHIFT + UP:    enums.Command.GO_PPAGE,
-    SHIFT + DOWN:  enums.Command.GO_NPAGE,
-    SHIFT + LEFT:  enums.Command.GO_SLEFT,
-    SHIFT + RIGHT: enums.Command.GO_SRIGHT,
-    'OH':          enums.Command.GO_HOME,
-    'OF':          enums.Command.GO_END,
+    chr(curses.KEY_UP):    enums.Command.ROTATE_FILTERS_UP,
+    CTRL + UP:             enums.Command.ROTATE_FILTERS_UP,
+    CTRL_SHIFT + UP:       enums.Command.ROTATE_FILTERS_UP,
+    ALT + UP:              enums.Command.ROTATE_FILTERS_UP,
+    chr(curses.KEY_DOWN):  enums.Command.ROTATE_FILTERS_DOWN,
+    CTRL + DOWN:           enums.Command.ROTATE_FILTERS_DOWN,
+    ALT + DOWN:            enums.Command.ROTATE_FILTERS_DOWN,
+    CTRL_SHIFT + DOWN:     enums.Command.ROTATE_FILTERS_DOWN,
+    chr(curses.KEY_LEFT):  enums.Command.SWAP_FILTERS,
+    CTRL + LEFT:           enums.Command.SWAP_FILTERS,
+    CTRL_SHIFT + LEFT:     enums.Command.SWAP_FILTERS,
+    ALT + LEFT:            enums.Command.SWAP_FILTERS,
+    chr(curses.KEY_RIGHT): enums.Command.SWAP_FILTERS,
+    CTRL + RIGHT:          enums.Command.SWAP_FILTERS,
+    CTRL_SHIFT + RIGHT:    enums.Command.SWAP_FILTERS,
+    ALT + RIGHT:           enums.Command.SWAP_FILTERS,
+    SHIFT + UP:            enums.Command.GO_PPAGE,
+    SHIFT + DOWN:          enums.Command.GO_NPAGE,
+    SHIFT + LEFT:          enums.Command.GO_SLEFT,
+    SHIFT + RIGHT:         enums.Command.GO_SRIGHT,
+    'OH':                  enums.Command.GO_HOME,
+    'OF':                  enums.Command.GO_END,
 }
 
 
@@ -179,36 +193,58 @@ class Processor:
         assert getch_attr
         assert callable(getch_attr)
         self._getch_provider = getch_provider
-        self.escaping_ = False
-        self.seq_ = ''
+        self._escaping = False
+        self._seq = ''
         self.start_: datetime.datetime = datetime.datetime.min
+
+    def _start_esc(self) -> None:
+        self.start_ = datetime.datetime.now()
+        self._escaping = True
+        self._seq = ''
+
+    def _stop_esc(self) -> str:
+        seq = self._seq
+        self._escaping = False
+        self._seq = ''
+        return seq
 
     def process(self, key: int) -> KeyEvent:
         '''Process given key'''
-        if key < 0:
-            self.escaping_ = False
+        if not self._escaping:
+            if key == curses.ascii.ESC:
+                self._start_esc()
+                key = POLL
             return KeyEvent(key)
-        if self.escaping_:
-            self.seq_ += chr(key)
-            delta = datetime.datetime.now() - self.start_
-            # debug.out(f'{key} {chr(key)} {str(key)} {delta.total_seconds()}')
-            if self.seq_ in ESCAPED_TO_COMMAND:
-                self.escaping_ = False
-                return KeyEvent(key,
-                                self.seq_,
-                                ESCAPED_TO_COMMAND[self.seq_])
-            if delta.total_seconds() <= ESCAPE_TIMEOUT:
-                return KeyEvent()
-            # Stop escaping regardless of sequence after 200ms
-            self.escaping_ = False
-            # Note: we might start escaping again right now...
+
+        assert self._escaping
         if key == curses.ascii.ESC:
-            self.start_ = datetime.datetime.now()
-            self.escaping_ = True
-            self.seq_ = ''
-            return KeyEvent()
-        assert not self.escaping_
-        return KeyEvent(key)
+            # Trash unrecognized sequence, and start again
+            self._start_esc()
+            return KeyEvent(POLL)
+        if key < 0:
+            # Assume sequence timed out
+            seq = self._stop_esc()
+            if len(seq) <= 0:
+                # Emtpy escaped sequence, we remit the ESC key we swallowed
+                key = curses.ascii.ESC
+            else:
+                # The sequence we captured is unrecognised
+                key = UNMAP
+            return KeyEvent(key, seq, None)
+        delta = datetime.datetime.now() - self.start_
+        if delta.total_seconds() > ESCAPE_TIMEOUT:
+            # Stop escaping regardless of sequence after 200ms
+            seq = self._stop_esc()
+            return KeyEvent(key)
+
+        # Ok to store key in sequence
+        self._seq += chr(key)
+        # debug.out(f'{key} {chr(key)} {str(key)} {delta.total_seconds()}')
+        if self._seq not in ESCAPED_TO_COMMAND:
+            return KeyEvent(POLL)
+        seq = self._stop_esc()
+        cmd = ESCAPED_TO_COMMAND[seq]
+        return KeyEvent(key, seq, cmd)
 
     def get(self) -> KeyEvent:
         '''Wait on next key event typed by user or -1 if none'''

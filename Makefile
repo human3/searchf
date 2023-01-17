@@ -10,6 +10,9 @@ run:
 debug:
 	$(RUN_PY_MOD) searchf.main --debug $(FILE)
 
+debug+:
+	$(RUN_PY_MOD) searchf.main --debug --show-events $(FILE)
+
 tests:
 	$(RUN_PY_MOD) pytest
 	$(RUN_PY_MOD) searchf.test.all

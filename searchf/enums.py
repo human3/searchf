@@ -59,6 +59,7 @@ class ColorizeMode(AutoEnum):
 class Command(Enum):
     '''Commands supported by application, and mostly triggered by
     end-user's key presses.'''
+    QUIT = auto()
     GO_UP = auto()
     GO_DOWN = auto()
     GO_LEFT = auto()

@@ -22,6 +22,7 @@ ESCAPE_TIMEOUT = 0.1
 KEYS_TO_COMMAND = {
     ord('F'):              enums.Command.POP_FILTER,
     curses.KEY_BACKSPACE:  enums.Command.POP_FILTER,
+    curses.ascii.DEL:      enums.Command.POP_FILTER,
     ord('-'):              enums.Command.POP_KEYWORD,
     ord('_'):              enums.Command.POP_KEYWORD,
     ord('n'):              enums.Command.VSCROLL_TO_NEXT_MATCH,
@@ -88,6 +89,7 @@ KEYS_TO_TEXT = {
     POLL:                 'POLL',
     UNMAP:                'UNMAP',
     curses.ascii.ESC:     'ESC',
+    curses.ascii.DEL:     'DELETE',
     ord(' '):             'SPACE',
     ord('\n'):            'ENTER',
     ord('\t'):            'TAB',

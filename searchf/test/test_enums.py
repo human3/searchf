@@ -5,9 +5,9 @@ from .. import enums
 
 class DummyEnum(enums.AutoEnum):
     '''Test enum.'''
-    FIRST_VALUE = ('First')
-    MIDDLE_VALUE = ('Middle')
-    LAST_VALUE = ('Last')
+    FIRST_VALUE = 'First'
+    MIDDLE_VALUE = 'Middle'
+    LAST_VALUE = 'Last'
 
 
 def test_get_next_prev():

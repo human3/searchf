@@ -33,20 +33,24 @@ class StatusView:
     def __init__(self, scr):
         self.pos = (0, 0)
         self._scr = scr
-        self._max_x = 0
+        self._width = 0
 
     def layout(self) -> None:
         '''Layout the view.'''
         max_y, max_x = app.get_max_yx(self._scr)
+        # We use padding to workaround addstr() throwing exception
+        # when printing outside of the screen boundaries with
+        # some utf-8 encoded char
+        padding = 5
+        self._width = max(0, max_x - 1 - 2 * padding)
         y = max_y - 1
-        x = max(0, min(10, max_x - 50))  # allow for 50 char of status
+        x = min(padding, max_x - 1)
         self.pos = (y, x)
-        self._max_x = max_x
 
     def draw(self, status) -> None:
         '''Draw the status.'''
         pos = self.pos
-        self._scr.addstr(pos[0], pos[1], status[:self._max_x-1])
+        self._scr.addstr(pos[0], pos[1], f'{status:^{self._width}}')
         self._scr.refresh()
 
 

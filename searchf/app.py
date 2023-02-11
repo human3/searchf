@@ -57,9 +57,11 @@ def validate(k: int) -> int:
 
 def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
     '''Gets text interactively from end user.'''
+    _, maxw = get_max_yx(scr)
     scr.addstr(y, x, text_prompt)
     x += len(text_prompt)
-    editwin = curses.newwin(1, 30, y, x)
+    width = max(0, maxw - x)
+    editwin = curses.newwin(1, width, y, x)
     scr.refresh()
     box = Textbox(editwin)
     for c in text:

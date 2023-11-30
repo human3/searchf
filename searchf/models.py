@@ -9,6 +9,7 @@ classes are:
 '''
 
 import math
+import re
 
 from typing import Dict
 from typing import List
@@ -303,7 +304,8 @@ class RawContent:
 
     def filter(self,
                filters: List[Filter],
-               mode: enums.LineVisibility
+               mode: enums.LineVisibility,
+               remove_csi: bool,
                ) -> SelectedContent:
         '''Filters the raw content using the given filters and line visibility
         mode, and returns an instance of SelectedContent.'''
@@ -315,6 +317,9 @@ class RawContent:
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
+            # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
+            if remove_csi:
+                line = re.sub(r'\x1b\[[0-?]*[!-/]*[@-~]', '', line)
             assert len(line) <= 0 or ord(line[0]) != 0, \
                 f'Line {i} has embedded null character'
             matching = False
@@ -357,6 +362,7 @@ class ViewConfig:
     line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
     show_all_lines: bool = True
     show_spaces: bool = False
+    remove_csi: bool = False
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_id: types.PaletteId = 0
     dirty: bool = False

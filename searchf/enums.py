@@ -78,6 +78,7 @@ class Command(Enum):
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
+    TOGGLE_REMOVE_CSI = auto()
     NEXT_COLORIZE_MODE = auto()
     PREV_COLORIZE_MODE = auto()
     NEXT_LINE_VISIBILITY = auto()

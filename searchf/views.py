@@ -296,7 +296,8 @@ class TextView:
     def _sync(self, redraw: bool) -> None:
         self._selected = self._raw.filter(
             self._config.filters,
-            self._config.line_visibility)
+            self._config.line_visibility,
+            self._config.remove_csi)
         self._layout(redraw)
 
     def set_config(self, config: models.ViewConfig) -> None:
@@ -377,6 +378,11 @@ class TextView:
         self._config.show_spaces = not self._config.show_spaces
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
+
+    def _toggle_remove_csi(self) -> types.Status:
+        self._config.remove_csi = not self._config.remove_csi
+        self._sync(True)
+        return f'Remove CSI {bool_to_text(self._config.remove_csi)}'
 
     def _cycle_colorize_mode(self, forward: bool) -> types.Status:
         f = enums.ColorizeMode.get_next if forward \
@@ -577,6 +583,8 @@ class TextView:
                 self._toggle_bullets,
             enums.Command.TOGGLE_SHOW_SPACES:
                 self._toggle_show_spaces,
+            enums.Command.TOGGLE_REMOVE_CSI:
+                self._toggle_remove_csi,
             enums.Command.TOGGLE_IGNORE_CASE:
                 self._toggle_ignore_case,
             enums.Command.TOGGLE_HIDING:

@@ -1,0 +1,12 @@
+Some lines colorized with CSI
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mExpected ";" but found "nst"[0m
+
+    src/core/broken_file.ts:58:15:
+[37m      58 │             co [32mnst[37m bindLeft: number = await this.state.storage.get...
+         │                [32m~~~[37m
+         ╵                [32m;[0m
+
+Other CSI sequences
+
+[2K[1A[2K[G

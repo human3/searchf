@@ -31,6 +31,7 @@ KEYS_TO_COMMAND = {
     ord('k'):              enums.Command.TOGGLE_WRAP,
     ord('*'):              enums.Command.TOGGLE_BULLETS,
     ord('.'):              enums.Command.TOGGLE_SHOW_SPACES,
+    ord('^'):              enums.Command.TOGGLE_REMOVE_CSI,
     ord('c'):              enums.Command.NEXT_PALETTE,
     ord('C'):              enums.Command.PREV_PALETTE,
     ord('h'):              enums.Command.NEXT_COLORIZE_MODE,

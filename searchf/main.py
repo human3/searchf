@@ -5,6 +5,7 @@ import argparse
 import curses
 
 from . import __version__
+from . import __url__
 from . import app
 from . import colors
 from . import enums
@@ -20,6 +21,9 @@ def _load_help_lines():
         os.path.dirname(os.path.abspath(__file__)),
         'help.txt')
     lines += app.load_lines(help_file)
+    lines += ['More info']
+    lines += [f'  {__url__}']
+    lines += [f'  {__url__}/releases/tag/{__version__}']
     return lines
 
 

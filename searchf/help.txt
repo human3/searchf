@@ -63,4 +63,3 @@
 
 Type 'q' to close this help
 
-More info: https://github.com/human3/searchf

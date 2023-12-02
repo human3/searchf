@@ -198,8 +198,12 @@ class TextView:
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
-    def _draw_content(self, position, text, matching_segments, offset, color):
-        y, x = position
+    def _draw_content(self,
+                      pos,
+                      text,
+                      matching_segments,
+                      offset,
+                      ffcolor):
         _, width = self._content_available_size
         vend = offset + width
         if self._config.show_spaces:
@@ -207,16 +211,19 @@ class TextView:
         if self._config.colorize_mode == enums.ColorizeMode.LINE:
             text = text[offset:vend]
             text = f'{text:<{width}}'
-            self._win.addnstr(y, x, text, self._size[1], color)
+            self._win.addnstr(pos.y, pos.x, text, self._size[1], ffcolor)
         else:
-            for match, start, end in segments.iterate(
+            x = pos.x
+            for match, start, end, filter_idx in segments.iterate(
                     offset, vend, matching_segments):
+                assert match or filter_idx == -1
                 assert start < end
                 length = end - start
-                self._win.addnstr(y, x,
+                fcolor = self._get_color_pair(filter_idx)
+                self._win.addnstr(pos.y, x,
                                   text[start:end],
                                   length,
-                                  color if match else 0)
+                                  fcolor if match else 0)
                 x += length
 
     def draw(self):
@@ -252,18 +259,20 @@ class TextView:
             if line_idx == models.RULER_INDEX:
                 self._win.addstr(y, 0, self._ruler)
                 continue
-            color = self._get_color_pair(filter_idx)
-            self._draw_prefix(y, prefix_info, line_idx, color, offset == 0)
+
+            # filter_idx is the index of the first filter that is matching
+            # current line
+            ffcolor = self._get_color_pair(filter_idx)
+            self._draw_prefix(y, prefix_info, line_idx, ffcolor, offset == 0)
             offset += self._offsets.hoffset
             self._draw_content(
-                (y, prefix_info.length),
+                types.Position(prefix_info.length, y),
                 text,
                 matching_segments,
                 offset,
-                color)
+                ffcolor)
 
         self._draw_bar(self._content_available_size[0])
-
         self._win.refresh()
 
     def _layout(self, redraw):
@@ -617,6 +626,7 @@ class DebugView:
         self._size: types.Size = (0, 0)
         self._position = (0, 0)
         self._win = curses.newwin(0, 0, 0, 0)
+        # self._f = open('.searchf/debug.txt', 'w+')
 
     def layout(self, size: types.Size, position: Tuple[int, int]) -> None:
         '''Layout the debug view'''
@@ -641,6 +651,9 @@ class DebugView:
         assert self._scr
         h, _ = self._size
         self._lines.append(*argv)
+        # self._f.write(*argv)
+        # self._f.write('\n')
+        # self._f.flush()
         if len(self._lines) > h:
             self._lines.pop(0)
         self.draw()

@@ -18,14 +18,84 @@ class Segment(NamedTuple):
     '''
     start: int
     end: int
+    f_idx: int
+
+
+def merge(bottom: List[Segment], top: List[Segment]) -> List[Segment]:
+    '''Merge a bottom and a top layers of segments into one single layer,
+    leaving segments on top always visible.
+
+    '''
+    merged: List[Segment] = []
+
+    # Logic of this function is to primarily iterate over each bottom segment
+    # and then consume all the top segments (if any) that are overlapping the
+    # current bottom segment.
+    i_b = 0
+    i_t = 0
+    while i_b < len(bottom):
+        assert bottom[i_b].start < bottom[i_b].end
+        if i_t >= len(top):
+            # we consumed all tops, so just add all the bottoms
+            merged.append(bottom[i_b])
+            i_b += 1
+            continue
+        assert top[i_t].start < top[i_t].end
+        if top[i_t].end <= bottom[i_b].start:
+            # top is clear ahead
+            merged.append(top[i_t])
+            i_t += 1
+            continue
+        if top[i_t].start >= bottom[i_b].end:
+            # bottom is clear ahead
+            merged.append(bottom[i_b])
+            i_b += 1
+            continue
+        # we have some overlap
+        bot = bottom[i_b]
+        i_bnext = bot.start
+        while i_bnext < bot.end:
+            if i_t >= len(top):
+                # we consumed all tops, so just add last segment of bottom
+                if i_bnext < bot.end:
+                    merged.append(Segment(i_bnext, bot.end, bot.f_idx))
+                break
+            assert top[i_t].start < top[i_t].end
+            if top[i_t].start <= i_bnext:
+                merged.append(top[i_t])
+                i_bnext = top[i_t].end
+                i_t += 1
+                continue
+
+            merged.append(Segment(i_bnext, top[i_t].start, bot.f_idx))
+            i_bnext = top[i_t].end
+        i_b += 1
+
+    assert i_b >= len(bottom)
+
+    while i_t < len(top):
+        merged.append(top[i_t])
+        i_t += 1
+
+    return merged
+
+
+def flatten(layers: List[List[Segment]]) -> List[Segment]:
+    '''Flatten the array of layers into one single layers.'''
+    assert len(layers) > 0
+    merged = layers[0]
+    for i in range(1, len(layers)):
+        merged = merge(merged, layers[i])
+    return merged
 
 
 def sort_and_merge(segments: Set[Segment]) -> List[Segment]:
-    '''Merges overlapping segments, sorts them, and returns a clean sorted
-    list of non overlapping segments. For instance, in "abcde" the 2
-    keywords "abc" and "cde" are repectively matching segments (0,3)
-    and (2,5) which are overlapping. This function would merge them as
+    '''Merges overlapping segments beloging to the same filter, sort them, and
+    returns a clean sorted list of non overlapping segments. For instance, in
+    "abcde" the 2 keywords "abc" and "cde" are repectively matching segments
+    (0,3) and (2,5) which are overlapping. This function would merge them as
     one segment (0,5).
+
     '''
     merged: Set[Segment] = set()
     pending: Optional[Segment] = None
@@ -34,7 +104,9 @@ def sort_and_merge(segments: Set[Segment]) -> List[Segment]:
         if not pending:
             pending = cur
         elif pending.end >= cur.start:
-            pending = Segment(pending.start, max(pending.end, cur.end))
+            assert pending.f_idx == cur.f_idx
+            pending = Segment(
+                pending.start, max(pending.end, cur.end), cur.f_idx)
         else:
             merged.add(pending)
             pending = cur
@@ -46,7 +118,8 @@ def sort_and_merge(segments: Set[Segment]) -> List[Segment]:
 def find_matching(
         text: str,
         keywords,
-        ignore_case: bool
+        ignore_case: bool,
+        f_idx: int,
         ) -> Tuple[bool, List[Segment]]:
     '''Returns True and the segments matching any of the given keywords if
     each keyword is found at least once in the given text, False and
@@ -62,7 +135,7 @@ def find_matching(
             if match.start() >= match.end():
                 continue
             is_matching = True
-            matching.add(Segment(match.start(), match.end()))
+            matching.add(Segment(match.start(), match.end(), f_idx))
         if not is_matching:
             # Bail out early as soon as one keyword has no match
             return False, []
@@ -75,7 +148,7 @@ def iterate(
         start: int,
         end: int,
         matching_segments: List[Segment]
-        ) -> Iterable[Tuple[bool, int, int]]:
+        ) -> Iterable[Tuple[bool, int, int, int]]:
     '''This function is used to build the list of text draw commands to
     display a line containing highlighted keywords. Text draws
     commands are yielded for left to right drawing, alternating
@@ -113,16 +186,16 @@ def iterate(
         if start < cur.start:
             # There is a non-matching segment before s that we must
             # yield now
-            yield (False, start, cur.start)
+            yield (False, start, cur.start, -1)
             start = cur.start
         # Take care of matching segment within s (if any)
         matching_end = min(cur.end, end)
         if start < matching_end:
-            yield (True, start, matching_end)
+            yield (True, start, matching_end, cur.f_idx)
         # s has been entirely consumed
         start = cur.end
 
     # We walked through all matching_segments (if any), we now need to
     # address any non-matching segment that has been left out
     if start < end:
-        yield (False, start, end)
+        yield (False, start, end, -1)

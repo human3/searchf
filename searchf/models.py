@@ -302,6 +302,40 @@ class RawContent:
         '''Sets and stores the file content lines.'''
         self._lines = lines
 
+    def filter_line(self,
+                    filters: List[Filter],
+                    line: str,
+                    hits: List[int],
+                    ) -> Tuple[bool, int, List[segments.Segment]]:
+        '''Apply filters to the line and return the list of matching segments
+        if any..
+        '''
+        first_show_idx = -1
+        hide_count = 0
+        show_count = 0
+        all_matching_segments = []
+        for fidx, f in enumerate(filters):
+            matching, matching_segments = \
+                segments.find_matching(line, f.keywords, f.ignore_case, fidx)
+            if matching:
+                hits[fidx] += 1
+                if f.hiding:
+                    hide_count += 1
+                else:
+                    show_count += 1
+                    all_matching_segments.append(matching_segments)
+                    if first_show_idx < 0:
+                        first_show_idx = fidx
+        if show_count > 0:
+            assert first_show_idx >= 0
+            assert len(all_matching_segments) > 0
+            matching_segments = segments.flatten(all_matching_segments)
+            fidx = first_show_idx
+            return True, fidx, matching_segments
+        if hide_count <= 0:
+            return True, -1, []
+        return False, -1, []
+
     def filter(self,
                filters: List[Filter],
                mode: enums.LineVisibility,
@@ -318,25 +352,23 @@ class RawContent:
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
             # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
+            # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
             if remove_csi:
                 line = re.sub(r'\x1b\[[0-?]*[!-/]*[@-~]', '', line)
+
             assert len(line) <= 0 or ord(line[0]) != 0, \
                 f'Line {i} has embedded null character'
-            matching = False
-            for fidx, f in enumerate(filters):
-                matching, matching_segments = \
-                    segments.find_matching(line, f.keywords, f.ignore_case)
-                if matching:
-                    hits[fidx] += 1
-                    if not f.hiding:
-                        new_lines = line_queue.add_matching(
-                            SelectedLine(i, fidx, line, matching_segments))
-                        lines = lines + new_lines
-                    break
-            if not matching:
-                new_lines = line_queue.add_non_matching(
-                    SelectedLine(i, -1, line, []))
-                lines = lines + new_lines
+
+            # Iterate over all filters to get all matching segments
+            include, fidx, matching = self.filter_line(filters, line, hits)
+
+            if include:
+                if fidx >= 0:
+                    lines += line_queue.add_matching(
+                        SelectedLine(i, fidx, line, matching))
+                else:
+                    lines += line_queue.add_non_matching(
+                        SelectedLine(i, -1, line, []))
 
         assert len(filters) == len(hits)
         sc = SelectedContent()

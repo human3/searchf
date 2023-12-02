@@ -4,7 +4,11 @@ import curses
 
 from . import types
 
-BAR_COLOR_PAIR_ID = 1
+# We leave the first 16 colors pair untouched to preserve colors
+# used by any SGR colors
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+
+BAR_COLOR_PAIR_ID = 16 + 1
 BAR_COLOR_BG = 39  # 249
 
 FIRST_FILTER_COLOR_PAIR_ID = BAR_COLOR_PAIR_ID + 1

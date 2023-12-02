@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Tuple
+from typing import NamedTuple
 
 
 @dataclass
@@ -17,6 +18,12 @@ class Margins():
         self.bottom = 0
         self.left = 0
         self.right = 0
+
+
+class Position(NamedTuple):
+    '''Defining text cursor position'''
+    x: int
+    y: int
 
 
 Size = Tuple[int, int]

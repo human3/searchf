@@ -285,6 +285,8 @@ def _run_unit_tests():
     test_segments.test_sort_and_merge()
     print('Test segments.find_matching()')
     test_segments.test_find_matching()
+    print('Test segments.test_merge()')
+    test_segments.test_merge()
     print('Test models.test_filter()')
     test_models.test_filter()
     print('Test models.test_digit_count()')

@@ -1,5 +1,8 @@
-RUN_PY_MOD=TERM='screen-256color' python3 -m
-GENERATE_REPORT=python3 -m coverage report -m
+VENV_DIR=.venv
+PY=$(VENV_DIR)/bin/python3
+PIP=$(VENV_DIR)/bin/pip
+RUN_PY_MOD=TERM='screen-256color' $(PY) -m
+GENERATE_REPORT=$(PY) -m coverage report -m
 
 FILE=README.md
 #FILE=searchf/test/rulers.txt
@@ -17,7 +20,7 @@ debug+:
 	$(RUN_PY_MOD) searchf.main --debug --show-events $(FILE)
 
 tests:
-	$(RUN_PY_MOD) pytest
+	$(RUN_PY_MOD) pytest searchf
 	$(RUN_PY_MOD) searchf.test.all
 
 cover_all:
@@ -25,7 +28,7 @@ cover_all:
 	$(GENERATE_REPORT)
 
 cover_unit:
-	$(RUN_PY_MOD) coverage run -m pytest
+	$(RUN_PY_MOD) coverage run -m pytest searchf
 	$(GENERATE_REPORT)
 
 test_color:
@@ -41,20 +44,31 @@ lint:
 	pylint searchf
 	flake8
 
-# deps target requires sudo
+checks: type lint
+
+# sudo_deps target must be invoked with "sudo make sudo_deps"...
+sudo_deps:
+	apt-get -y install python3 python3-venv mypy pip pylint
+
 deps:
-	apt install mypy pylint python3-venv
-	python3 -m pip install build pytest pytest-cov flake8
+	# Install a virtual env
+	python3 -m venv $(VENV_DIR)
+	# Install python packages in venv
+	$(PIP) install build pytest pytest-cov flake8
+
+deps-clean:
+	rm -Rf $(VENV_DIR)
 
 # Build package locally
 build:
-	python3 -m build
+	$(PY) -m build
 
+# Install package in local venv
 install: build
-	python3 -m pip install dist/searchf-*.tar.gz
+	$(PY) -m pip install dist/searchf-*.tar.gz
 
 clean:
-	pip uninstall -y searchf
+	$(PIP) uninstall -y searchf
 	find -type f -name "*~" -print -delete
 	rm -Rf dist
 

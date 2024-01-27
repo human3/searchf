@@ -11,24 +11,42 @@ The code in this project tries to abide by the following principles:
 - Don't Repeat Yourself
 - no-use-before-define
 
+## Dependencies
+
+First, you will need to pick a computer with a keyboard and some OS on it... The next steps will vary depending on that. So, assuming a fresh debian-based machine, here are the steps I usually perform:
+- `sudo apt-get install make git python3`
+- `sudo apt-get install emacs tmux ripgrep` (these are my personal editor and env choices...)
+- `make -p ~/repos/searchf`
+- `cd ~/repos/searchf`
+- `git clone git@github.com:human3/searchf.git`
+
+Then, run
+- `sudo make sudo_deps`
+- `make deps`
+
 ## How to run the application?
 
-If working from the sources (ie not an installed package), the application can be launched as a module:
+To launch the application with a default sample file, use:
+
+`make run`
+
+To launch application with another file:
 
 `python3 -m searchf.main <FILE>`
 
-I also use `make run` a lot as a shortcut while testing.
+To launch in debug mode:
+
+`make debug`
+
+Debug mode will change UI layout to make room for a few print statements emitted by the application at runtime.
+
+Notes:
+- please explore the `Makefile` to discover more ways to run
+- all the above steps describe how to run the application while working on it... This is different from how end-user run it as `searchf` is packaged and installed on their system using `pip`.
 
 ## How to run test?
 
-- First install dependencies with `sudo make deps` (once)
 - `make tests`
-
-Provided that your terminal as the appropriate color settings
-(eg TERM=screen-256color), you can also use:
-
-- `pytest` to run the unit tests
-- `python3 -m searchf.test.all` runs the application tests
 - `python3 -m searchf.test.color` shows current palettes definition, and bridges gaps in colors unit tests which do not evaluate side-effects
 
 All the test commands I use can found in the `Makefile`.
@@ -36,7 +54,6 @@ All the test commands I use can found in the `Makefile`.
 ## How to build the package from sources
 
 The following `Makefile` targets can help with this:
-- `sudo make deps` to install all dependencies (if not done already)
 - `make build` to build the package
 - `make install` to install package on your system
 

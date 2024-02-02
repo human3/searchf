@@ -17,6 +17,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 
+from . import debug
 from . import enums
 from . import segments
 from . import types
@@ -354,8 +355,13 @@ class RawContent:
             # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
             # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
             if remove_csi:
+                for m in re.finditer(r'\x1b\[([0-9]+)(;([0-9]+))?m', line):
+                    s,e = m.start(),m.end()
+                    debug.out(
+                        f'line-{i} {s:2} {e:2} {m.group(1):>2} {m.group(3)} {m.group(0)}')
                 line = re.sub(r'\x1b\[[0-?]*[!-/]*[@-~]', '', line)
 
+            # csi_segments: List[Segment] = [ segments.Segment(5, 15, 1) ]
             assert len(line) <= 0 or ord(line[0]) != 0, \
                 f'Line {i} has embedded null character'
 

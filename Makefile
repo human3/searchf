@@ -42,7 +42,7 @@ type:
 
 lint:
 	pylint searchf
-	flake8
+	$(RUN_PY_MOD) flake8 searchf
 
 checks: type lint
 

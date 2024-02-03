@@ -289,6 +289,8 @@ def _run_unit_tests():
     print('Test segments.find_matching()')
     test_segments.test_find_matching()
     print('Test segments.test_merge()')
+    test_segments.test_flatten()
+    print('Test segments.test_flatten()')
     test_segments.test_merge()
     print('Test models.test_filter()')
     test_models.test_filter()

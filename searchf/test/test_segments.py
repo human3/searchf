@@ -92,11 +92,13 @@ def test_find_matching():
                    (True, [(1, 5, -1)]))
 
 
+def make_s(args):
+    '''Helper function to make segment'''
+    return segments.Segment._make(args)
+
+
 def test_merge():
     '''Test segments.merge()'''
-
-    def make_s(args):
-        return segments.Segment._make(args)
 
     merged = segments.merge([], [])
     assert len(merged) == 0
@@ -108,6 +110,12 @@ def test_merge():
     merged = segments.merge([], [make_s((1, 2, 3))])
     assert len(merged) == 1
     assert merged[0] == (1, 2, 3)
+
+    # bottom clear ahead
+    merged = segments.merge([make_s((1, 2, 0))], [make_s((10, 20, 1))])
+    assert len(merged) == 2
+    assert merged[0] == (1, 2, 0)
+    assert merged[1] == (10, 20, 1)
 
     # top covers whole bottom
     merged = segments.merge([make_s((10, 20, 0))], [make_s((0, 30, 1))])
@@ -145,3 +153,21 @@ def test_merge():
     assert merged[0] == (0, 1, 1)
     assert merged[1] == (2, 3, 1)
     assert merged[2] == (10, 20, 0)
+
+
+def test_flatten():
+    '''Test segments.flatten()'''
+
+    merged = segments.flatten(
+        [
+            [make_s((0, 30, 0))],
+            [make_s((5, 25, 1))],
+            [make_s((10, 20, 2))]
+        ]
+    )
+    assert len(merged) == 5
+    assert merged[0] == (0, 5, 0)
+    assert merged[1] == (5, 10, 1)
+    assert merged[2] == (10, 20, 2)
+    assert merged[3] == (20, 25, 1)
+    assert merged[4] == (25, 30, 0)

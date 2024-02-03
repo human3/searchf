@@ -65,7 +65,7 @@ WARNING: the instructions in the Makefile might need to be adapted according to 
 
 ## What about coverage?
 
-The numbers below are as of version `1.14`.
+The numbers below are as of version `1.16`.
 
 ### Unit tests
 

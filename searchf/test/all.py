@@ -259,6 +259,9 @@ def _run_app_tests(stdscr):
         AppTest('Test save/load/delete slots',
                 ['[', '\\', '|', 'f', 'f', '\\', '\\', '[', ']', '|'],
                 ['key', 'python']),
+        AppTest('Test show/hide CSI characters',
+                ['^', '^'],
+                ['', '']),
     ]
 
     for test in app_tests:

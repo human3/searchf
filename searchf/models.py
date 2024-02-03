@@ -392,7 +392,7 @@ class ViewConfig:
     line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
     show_all_lines: bool = True
     show_spaces: bool = False
-    remove_csi: bool = False
+    remove_csi: bool = True
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_id: types.PaletteId = 0
     dirty: bool = False

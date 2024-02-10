@@ -23,10 +23,13 @@ from . import test_enums
 from . import test_keys
 from . import test_models
 from . import test_segments
+from . import test_sgr
 from . import test_storage
 
 TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'sample.txt')
+TEST_FILE_C = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'sample_with_colors.txt')
 
 
 class KeywordsInjector:
@@ -112,18 +115,18 @@ class AppTest(NamedTuple):
 HANDLE_EVENT_DELAY = 0.01
 
 
-def _run(stdscr, t: AppTest):
+def _run(stdscr, t: AppTest, f: str):
     '''Helper function to run the given AppTest'''
     print(t.description)
     stdscr.clear()
     colors.init()
     store = storage.Store('.searchf.test')
     with main_modifier(stdscr,
-                       KeywordsInjector(t.inputs),
+                       KeywordsInjector(t.inputs.copy()),
                        MtimeInjector()):
         margins = types.Margins()
         margins.bottom += 1
-        main.APP.create(store, stdscr, margins, True, TEST_FILE)
+        main.APP.create(store, stdscr, margins, True, f)
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
@@ -191,9 +194,10 @@ def _test_main_debug_view(stdscr):
         return original_handle_event(key)
 
     main.APP.handle_event = my_handle_event
-    _run(stdscr, AppTest(
+    app_test = AppTest(
         'Test special debug mode',
-        ['/', 'n', 'n', 'n', 'p', 'p'], ['filter']))
+        ['/', 'n', 'n', 'n', 'p', 'p'], ['filter'])
+    _run(stdscr, app_test, TEST_FILE)
     main.APP.handle_event = original_handle_event
     app.USE_DEBUG = False
 
@@ -246,10 +250,10 @@ def _run_app_tests(stdscr):
                 ['filter']),
         AppTest('Test case sensitive search',
                 ['i', '/', 'i', 'i'],
-                ['Show']),
+                ['python']),
         AppTest('Test toggling hiden/shown filter',
                 ['x', 'f', 'x', 'x'],
-                ['Show']),
+                ['python']),
         AppTest('Test swapping filters',
                 ['d', 'f', 'f', 'd'],
                 ['key', 'python']),
@@ -259,13 +263,15 @@ def _run_app_tests(stdscr):
         AppTest('Test save/load/delete slots',
                 ['[', '\\', '|', 'f', 'f', '\\', '\\', '[', ']', '|'],
                 ['key', 'python']),
-        AppTest('Test show/hide CSI characters',
-                ['^', '^'],
+        AppTest('Test SGR Processing modes',
+                ['`', '`', '`', '~', '~', '~'],
                 ['', '']),
     ]
 
     for test in app_tests:
-        _run(stdscr, test)
+        _run(stdscr, test, TEST_FILE)
+    for test in app_tests:
+        _run(stdscr, test, TEST_FILE_C)
 
     _test_main_init_env()
     _test_main_get_text(stdscr)
@@ -310,6 +316,8 @@ def _run_unit_tests():
     test_keys.test_processor()
     print('Test storage.test_strore()')
     test_storage.test_store()
+    print('Test sgr.test_processor()')
+    test_sgr.test_processor()
 
 
 def _test_main_main():

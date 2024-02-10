@@ -29,4 +29,3 @@ class Position(NamedTuple):
 Size = Tuple[int, int]
 Status = str
 PaletteId = int
-ColorPair = int

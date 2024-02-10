@@ -38,13 +38,14 @@
   k             Toggles line wrapping
   *             Toggles diamonds visibility at line starts (when wrapping)
   .             Toggles whitespace displaying as dot
-  ^             Toggles removal of CSI sequences
   c             Next color palette
   C             previous color palette
   h             Next highlight and colorization mode
   H             Previous highlight and colorization mode
   m             Next line visibility mode
   M             Previous line visibility mode
+  `             Next SGR processing mode
+  ~             Prev SGR processing mode
 
 
       MOVING

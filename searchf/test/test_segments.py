@@ -122,6 +122,13 @@ def test_merge():
     assert len(merged) == 1
     assert merged[0] == (0, 30, 1)
 
+    # top covers middle of bottom
+    merged = segments.merge([make_s((0, 30, 0))], [make_s((10, 20, 1))])
+    assert len(merged) == 3
+    assert merged[0] == (0, 10, 0)
+    assert merged[1] == (10, 20, 1)
+    assert merged[2] == (20, 30, 0)
+
     # top covers only start of bottom
     merged = segments.merge([make_s((10, 20, 0))], [make_s((5, 15, 1))])
     assert len(merged) == 2
@@ -171,3 +178,18 @@ def test_flatten():
     assert merged[2] == (10, 20, 2)
     assert merged[3] == (20, 25, 1)
     assert merged[4] == (25, 30, 0)
+
+    merged = segments.flatten(
+        [
+            [make_s((0, 5, 1))],
+            [
+                make_s((3, 4, 0)),
+                make_s((10, 11, 0))
+            ]
+        ]
+    )
+    assert len(merged) == 4, merged
+    assert merged[0] == (0, 3, 1)
+    assert merged[1] == (3, 4, 0)
+    assert merged[2] == (4, 5, 1)
+    assert merged[3] == (10, 11, 0)

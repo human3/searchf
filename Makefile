@@ -11,7 +11,7 @@ run:
 	$(RUN_PY_MOD) searchf.main $(FILE)
 
 runc:
-	$(RUN_PY_MOD) searchf.main searchf/test/sample_with_colors.txt --debug
+	$(RUN_PY_MOD) searchf.main searchf/test/sample_with_colors.txt
 
 debug:
 	$(RUN_PY_MOD) searchf.main --debug $(FILE)

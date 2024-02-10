@@ -59,3 +59,10 @@ def test_get_color_pair():
     # we are not validating
     colors.get_color_pair(0, -1)
     colors.get_color_pair(0, 0)
+
+
+def test_get_fg_bg_color_pair():
+    '''Tests colors.get_fg_bg_color_pair()'''
+    if not _setup():
+        return
+    colors.get_fg_bg_color_pair(-1, 0)

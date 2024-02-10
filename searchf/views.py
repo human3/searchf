@@ -134,7 +134,7 @@ class TextView:
             sep = ''
         return PrefixInfo(number_length + len(sep), number_length, sep)
 
-    def _get_color_pair(self, i: int) -> int:
+    def _get_color_pair(self, i: int) -> colors.Pair:
         return colors.get_color_pair(self._config.palette_id, i)
 
     def _draw_bar(self, y):
@@ -201,30 +201,31 @@ class TextView:
     def _draw_content(self,
                       pos,
                       text,
-                      matching_segments,
+                      segs,
                       offset,
-                      ffcolor):
+                      ffidx,
+                      ffcolor,
+                      ):
         _, width = self._content_available_size
         vend = offset + width
         if self._config.show_spaces:
             text = text.replace(' ', '·')  # Note: this is curses.ACS_BULLET
-        if self._config.colorize_mode == enums.ColorizeMode.LINE:
-            text = text[offset:vend]
-            text = f'{text:<{width}}'
-            self._win.addnstr(pos.y, pos.x, text, self._size[1], ffcolor)
-        else:
-            x = pos.x
-            for match, start, end, filter_idx in segments.iterate(
-                    offset, vend, matching_segments):
-                assert match or filter_idx == -1
-                assert start < end
-                length = end - start
-                fcolor = self._get_color_pair(filter_idx)
-                self._win.addnstr(pos.y, x,
-                                  text[start:end],
-                                  length,
-                                  fcolor if match else 0)
-                x += length
+
+        x = pos.x
+        for match, start, end, attr in segments.iterate(
+                offset, vend, segs):
+            assert match or attr == -1
+            assert start < end
+            length = end - start
+            if ffidx != -1 and \
+               self._config.colorize_mode == enums.ColorizeMode.LINE:
+                attr = ffcolor
+            elif attr == -1 or (attr & curses.A_ATTRIBUTES) == 0:
+                # Assume attr is a filter index
+                attr = self._get_color_pair(attr)
+            # otherwise use attributes from segment as is
+            self._win.addnstr(pos.y, x, text[start:end], length, attr)
+            x += length
 
     def draw(self):
         '''Draws the view.'''
@@ -254,7 +255,7 @@ class TextView:
             # is not 0, this means the original content line is effectively
             # being wrapped on to multiple lines on the screen.
 
-            line_idx, filter_idx, text, matching_segments = \
+            line_idx, filter_idx, text, segs = \
                 self._selected.lines[iline]
             if line_idx == models.RULER_INDEX:
                 self._win.addstr(y, 0, self._ruler)
@@ -268,8 +269,9 @@ class TextView:
             self._draw_content(
                 types.Position(prefix_info.length, y),
                 text,
-                matching_segments,
+                segs,
                 offset,
+                filter_idx,
                 ffcolor)
 
         self._draw_bar(self._content_available_size[0])
@@ -306,7 +308,7 @@ class TextView:
         self._selected = self._raw.filter(
             self._config.filters,
             self._config.line_visibility,
-            self._config.remove_csi)
+            self._config.sgr_mode)
         self._layout(redraw)
 
     def set_config(self, config: models.ViewConfig) -> None:
@@ -388,11 +390,6 @@ class TextView:
         self.draw()
         return f'Show spaces {bool_to_text(self._config.show_spaces)}'
 
-    def _toggle_remove_csi(self) -> types.Status:
-        self._config.remove_csi = not self._config.remove_csi
-        self._sync(True)
-        return f'Remove CSI {bool_to_text(self._config.remove_csi)}'
-
     def _cycle_colorize_mode(self, forward: bool) -> types.Status:
         f = enums.ColorizeMode.get_next if forward \
             else enums.ColorizeMode.get_prev
@@ -406,6 +403,13 @@ class TextView:
         self._config.line_visibility = f(self._config.line_visibility)
         self._sync(True)
         return f'{self._config.line_visibility}'
+
+    def _cycle_sgr_mode(self, forward: bool) -> types.Status:
+        f = enums.SgrMode.get_next if forward \
+            else enums.SgrMode.get_prev
+        self._config.sgr_mode = f(self._config.sgr_mode)
+        self._sync(True)
+        return f'{self._config.sgr_mode}'
 
     def _toggle_ignore_case(self) -> types.Status:
         if not self._config.has_filters():
@@ -580,6 +584,10 @@ class TextView:
                 lambda: self._cycle_line_visibility(True),
             enums.Command.PREV_LINE_VISIBILITY:
                 lambda: self._cycle_line_visibility(False),
+            enums.Command.NEXT_SGR_MODE:
+                lambda: self._cycle_sgr_mode(True),
+            enums.Command.PREV_SGR_MODE:
+                lambda: self._cycle_sgr_mode(False),
             enums.Command.POP_FILTER:
                 self._pop_filter,
             enums.Command.POP_KEYWORD:
@@ -592,8 +600,6 @@ class TextView:
                 self._toggle_bullets,
             enums.Command.TOGGLE_SHOW_SPACES:
                 self._toggle_show_spaces,
-            enums.Command.TOGGLE_REMOVE_CSI:
-                self._toggle_remove_csi,
             enums.Command.TOGGLE_IGNORE_CASE:
                 self._toggle_ignore_case,
             enums.Command.TOGGLE_HIDING:

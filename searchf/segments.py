@@ -18,7 +18,7 @@ class Segment(NamedTuple):
     '''
     start: int
     end: int
-    f_idx: int
+    attr: int  # Filter index if < 256, or raw curses attributes
 
 
 def merge(bottom: List[Segment], top: List[Segment]) -> List[Segment]:
@@ -60,7 +60,7 @@ def merge(bottom: List[Segment], top: List[Segment]) -> List[Segment]:
             if i_t >= len(top):
                 # we consumed all tops, so just add last segment of bottom
                 if i_bnext < bot.end:
-                    merged.append(Segment(i_bnext, bot.end, bot.f_idx))
+                    merged.append(Segment(i_bnext, bot.end, bot.attr))
                 break
             assert top[i_t].start < top[i_t].end
             if top[i_t].start <= i_bnext:
@@ -69,7 +69,7 @@ def merge(bottom: List[Segment], top: List[Segment]) -> List[Segment]:
                 i_t += 1
                 continue
             end = min(top[i_t].start, bot.end)
-            merged.append(Segment(i_bnext, end, bot.f_idx))
+            merged.append(Segment(i_bnext, end, bot.attr))
             i_bnext = end
         i_b += 1
 
@@ -105,9 +105,9 @@ def sort_and_merge(segments: Set[Segment]) -> List[Segment]:
         if not pending:
             pending = cur
         elif pending.end >= cur.start:
-            assert pending.f_idx == cur.f_idx
+            assert pending.attr == cur.attr
             pending = Segment(
-                pending.start, max(pending.end, cur.end), cur.f_idx)
+                pending.start, max(pending.end, cur.end), cur.attr)
         else:
             merged.add(pending)
             pending = cur
@@ -120,7 +120,7 @@ def find_matching(
         text: str,
         keywords,
         ignore_case: bool,
-        f_idx: int,
+        attr: int,
         ) -> Tuple[bool, List[Segment]]:
     '''Returns True and the segments matching any of the given keywords if
     each keyword is found at least once in the given text, False and
@@ -136,7 +136,7 @@ def find_matching(
             if match.start() >= match.end():
                 continue
             is_matching = True
-            matching.add(Segment(match.start(), match.end(), f_idx))
+            matching.add(Segment(match.start(), match.end(), attr))
         if not is_matching:
             # Bail out early as soon as one keyword has no match
             return False, []
@@ -192,7 +192,7 @@ def iterate(
         # Take care of matching segment within s (if any)
         matching_end = min(cur.end, end)
         if start < matching_end:
-            yield (True, start, matching_end, cur.f_idx)
+            yield (True, start, matching_end, cur.attr)
         # s has been entirely consumed
         start = cur.end
 

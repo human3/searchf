@@ -28,6 +28,9 @@ def test_digit_count():
     assert models.digits_count(123456) == 6
 
 
+SGR_MODE = enums.SgrMode.REMOVE
+
+
 def test_model():
     '''Test models.RawContent'''
     rc = models.RawContent()
@@ -47,50 +50,50 @@ def test_model():
     assert rc.line_count() == len(all_lines)
     assert rc.line_number_length() == 1
 
-    sc = rc.filter([], enums.LineVisibility.ALL, True)
+    sc = rc.filter([], enums.LineVisibility.ALL, SGR_MODE)
     assert sc.hits_count() == 0
 
     f = models.Filter()
     f.add('not match')
-    sc = rc.filter([f], enums.LineVisibility.ALL, True)
+    sc = rc.filter([f], enums.LineVisibility.ALL, SGR_MODE)
     assert sc.hits_count() == 0
 
     f.pop()
     f.add('simple')
-    sc = rc.filter([f], enums.LineVisibility.ALL, True)
+    sc = rc.filter([f], enums.LineVisibility.ALL, SGR_MODE)
     assert sc.hits_count() == 1
     assert sc.visible_line_count() == len(all_lines)
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, SGR_MODE)
     assert sc.visible_line_count() == 2
-    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, True)
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, SGR_MODE)
     assert sc.visible_line_count() == 1
 
     f.pop()
     f.add('line')
-    sc = rc.filter([f], enums.LineVisibility.ALL, True)
+    sc = rc.filter([f], enums.LineVisibility.ALL, SGR_MODE)
     assert sc.hits_count() == 2
     assert sc.visible_line_count() == len(all_lines)
-    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, True)
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, SGR_MODE)
     assert sc.visible_line_count() == 2
 
     f.pop()
     f.add('Another')
-    sc = rc.filter([f], enums.LineVisibility.ALL, True)
+    sc = rc.filter([f], enums.LineVisibility.ALL, SGR_MODE)
     assert sc.hits_count() == 1
     assert sc.visible_line_count() == len(all_lines)
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, SGR_MODE)
     assert sc.visible_line_count() == 3
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_2, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_2, SGR_MODE)
     assert sc.visible_line_count() == 4
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_5, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_5, SGR_MODE)
     assert sc.visible_line_count() == 5
-    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, True)
+    sc = rc.filter([f], enums.LineVisibility.ONLY_MATCHING, SGR_MODE)
     assert sc.visible_line_count() == 1
 
     # Add a ruler
     f.pop()
     f.add('very')
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, SGR_MODE)
     assert sc.hits_count() == 2
 
 
@@ -103,7 +106,7 @@ def test_display_content():
         'A very simple first line',
         'Another line',
         'And a third one'])
-    sc = rc.filter([], enums.LineVisibility.ALL, True)
+    sc = rc.filter([], enums.LineVisibility.ALL, SGR_MODE)
 
     dc = sc.layout(1, 1, True)
     assert dc
@@ -112,7 +115,7 @@ def test_display_content():
 
     f = models.Filter()
     f.add('third')
-    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, True)
+    sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, SGR_MODE)
     dc = sc.layout(1, 1, True)
     assert dc
 

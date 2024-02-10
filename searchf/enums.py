@@ -56,6 +56,13 @@ class ColorizeMode(AutoEnum):
     LINE = 'Line'
 
 
+class SgrMode(AutoEnum):
+    '''Select Graphic Rendition processing modes.'''
+    PROCESS = 'Process SGR (ie colorize)'
+    REMOVE = 'Remove SGR (ie do not colorize)'
+    NONE = 'Do not process SGR (ie passthrough)'
+
+
 class Command(Enum):
     '''Commands supported by application, and mostly triggered by
     end-user's key presses.'''
@@ -78,7 +85,8 @@ class Command(Enum):
     TOGGLE_WRAP = auto()
     TOGGLE_BULLETS = auto()
     TOGGLE_SHOW_SPACES = auto()
-    TOGGLE_REMOVE_CSI = auto()
+    NEXT_SGR_MODE = auto()
+    PREV_SGR_MODE = auto()
     NEXT_COLORIZE_MODE = auto()
     PREV_COLORIZE_MODE = auto()
     NEXT_LINE_VISIBILITY = auto()

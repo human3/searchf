@@ -9,7 +9,6 @@ classes are:
 '''
 
 import math
-import re
 
 from typing import Dict
 from typing import List
@@ -20,6 +19,7 @@ from typing import Tuple
 from . import enums
 from . import segments
 from . import types
+from . import sgr
 
 
 class DisplayLine(NamedTuple):
@@ -119,7 +119,8 @@ class SelectedLine(NamedTuple):
         line_index    The index of the line in the original content, or -1
                       if this line does not represent original content (like
                       an horizontal ruler).
-        filter_index  The index of the matching filter if any, or -1 otherwise
+        filter_index  The index of the first matching filter if any, or -1
+                      otherwise
         text          The actual raw text of the line.
         segments      The segments that will be highlighted.
     '''
@@ -219,24 +220,41 @@ class SelectedLineQueue:
 class SelectedContent:
     '''Holds filtered content of a file, and generates DisplayContent
     instances according a desired screen layout.
-
-    Attributes:
-        lines        List of SelectedLine that each contains information on
-                     what segments of the original line matches which filter.
-        hits         Keeps how many times each filter was matched.
     '''
+
+    def reset(self,
+              lines: List[SelectedLine],
+              hits: List[int]
+              ) -> None:
+        '''Reset the selected content with given selected lines and hits
+        count.
+
+        '''
+        self._lines = lines
+        self._hits = hits
+
+    @property
+    def hits(self) -> List[int]:
+        '''How many times each filter was matched'''
+        return self._hits
+
+    @property
+    def lines(self) -> List[SelectedLine]:
+        '''List of SelectedLine that each contains information on what segment
+        of the original line matches which filter.'''
+        return self._lines
+
     def __init__(self) -> None:
-        self.lines: List[SelectedLine] = []
-        self.hits: List[int] = []
+        self.reset([], [])
 
     def visible_line_count(self) -> int:
         '''Gets the total number of lines that would be visible if not
         limited by screen height'''
-        return len(self.lines)
+        return len(self._lines)
 
     def hits_count(self) -> int:
         '''Gets the current hits count'''
-        return sum(self.hits)
+        return sum(self._hits)
 
     def layout(self,
                height: int,
@@ -253,11 +271,11 @@ class SelectedContent:
         dlines: List[DisplayLine] = []
         firstdlines: List[int] = []
         if not wrapping:
-            for idata, mdata in enumerate(self.lines):
+            for idata, mdata in enumerate(self._lines):
                 firstdlines.append(len(dlines))
                 dlines.append(DisplayLine(idata, 0))
         else:
-            for idata, mdata in enumerate(self.lines):
+            for idata, mdata in enumerate(self._lines):
                 firstdlines.append(len(dlines))
                 line_idx, _, text, _ = mdata
                 offset = 0
@@ -273,24 +291,30 @@ class SelectedContent:
                     left -= width
                     if left <= 0:
                         break
-        assert len(firstdlines) == len(self.lines)
+        assert len(firstdlines) == len(self._lines)
         dc = DisplayContent()
         dc.dlines = dlines
         dc.firstdlines = firstdlines
         return dc
 
 
-def filter_line(filters: List[Filter],
-                line: str,
-                hits: List[int],
-                ) -> Tuple[bool, int, List[segments.Segment]]:
-    '''Apply filters to the line and return the list of matching segments
-    if any..
+def apply_filters(
+        line: str,
+        background: List[segments.Segment],
+        filters: List[Filter],
+        hits: List[int],
+) -> Tuple[bool, int, List[segments.Segment]]:
+    '''Apply filters to the line and return true if the line should be
+    displayed, with the index of first filter that has been match (or -1 if
+    none) and the list of segments to colorize the line with. This function
+    increments the hit count of each matching filter.
+
     '''
     first_show_idx = -1
     hide_count = 0
     show_count = 0
-    all_matching_segments = []
+    segs = []
+    segs.append(background)
     for fidx, f in enumerate(filters):
         matching, matching_segments = \
             segments.find_matching(line, f.keywords, f.ignore_case, fidx)
@@ -300,18 +324,16 @@ def filter_line(filters: List[Filter],
                 hide_count += 1
             else:
                 show_count += 1
-                all_matching_segments.append(matching_segments)
+                segs.append(matching_segments)
                 if first_show_idx < 0:
                     first_show_idx = fidx
     if show_count > 0:
         assert first_show_idx >= 0
-        assert len(all_matching_segments) > 0
-        matching_segments = segments.flatten(all_matching_segments)
-        fidx = first_show_idx
-        return True, fidx, matching_segments
+        assert len(segs) > 0
+        return True, first_show_idx, segments.flatten(segs)
     if hide_count <= 0:
-        return True, -1, []
-    return False, -1, []
+        return True, -1, background
+    return False, -1, background
 
 
 class RawContent:
@@ -323,6 +345,7 @@ class RawContent:
     '''
     def __init__(self) -> None:
         self._lines: List[str] = []
+        self._sgr = sgr.Processor()
 
     def line_count(self) -> int:
         '''Gets the number of lines in the original file'''
@@ -338,40 +361,35 @@ class RawContent:
 
     def filter(self,
                filters: List[Filter],
-               mode: enums.LineVisibility,
-               remove_csi: bool,
+               line_mode: enums.LineVisibility,
+               sgr_mode: enums.SgrMode,
                ) -> SelectedContent:
-        '''Filters the raw content using the given filters and line visibility
-        mode, and returns an instance of SelectedContent.'''
+        '''Filters the raw content using the given filters and processing modes
+        (line visibility, SGR) and returns an instance of SelectedContent.
+
+        '''
         lines: List[SelectedLine] = []
         hits = [0 for f in filters]
-        mode = mode if sum(not f.hiding for f in filters) > 0 \
+        line_mode = line_mode if sum(not f.hiding for f in filters) > 0 \
             else enums.LineVisibility.ALL
-        line_queue = SelectedLineQueue(mode)
+        line_queue = SelectedLineQueue(line_mode)
         for i, line in enumerate(self._lines):
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
-            # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
-            # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
-            if remove_csi:
-                line = re.sub(r'\x1b\[[0-?]*[!-/]*[@-~]', '', line)
-
+            background, line = self._sgr.filter(line, sgr_mode)
             assert len(line) <= 0 or ord(line[0]) != 0, \
                 f'Line {i} has embedded null character'
-
-            shown, fidx, matching = filter_line(filters, line, hits)
+            shown, fidx, segs = apply_filters(line, background, filters, hits)
             if shown:
                 if fidx >= 0:
                     lines += line_queue.add_matching(
-                        SelectedLine(i, fidx, line, matching))
+                        SelectedLine(i, fidx, line, segs))
                 else:
                     lines += line_queue.add_non_matching(
-                        SelectedLine(i, -1, line, []))
-
+                        SelectedLine(i, -1, line, segs))
         assert len(filters) == len(hits)
         sc = SelectedContent()
-        sc.lines = lines
-        sc.hits = hits
+        sc.reset(lines, hits)
         return sc
 
 
@@ -392,7 +410,7 @@ class ViewConfig:
     line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
     show_all_lines: bool = True
     show_spaces: bool = False
-    remove_csi: bool = True
+    sgr_mode: enums.SgrMode = enums.SgrMode.PROCESS
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_id: types.PaletteId = 0
     dirty: bool = False

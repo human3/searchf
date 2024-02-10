@@ -68,9 +68,9 @@ def merge(bottom: List[Segment], top: List[Segment]) -> List[Segment]:
                 i_bnext = top[i_t].end
                 i_t += 1
                 continue
-
-            merged.append(Segment(i_bnext, top[i_t].start, bot.f_idx))
-            i_bnext = top[i_t].end
+            end = min(top[i_t].start, bot.end)
+            merged.append(Segment(i_bnext, end, bot.f_idx))
+            i_bnext = end
         i_b += 1
 
     assert i_b >= len(bottom)

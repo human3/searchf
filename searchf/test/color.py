@@ -7,11 +7,16 @@ from .. import colors
 # https://stackoverflow.com/questions/18551558/how-to-use-terminal-color-palette-with-curses
 
 DEFAULT_PALETTE = range(16)
+DEFAULT_PALETTE_EXT = range(16, 32)
 
 
 def _reset():
     for i in range(curses.COLORS-1):
         curses.init_pair(i, i, -1)
+    for i in range(16):
+        curses.init_pair(i + 16, -1, i)
+        curses.init_pair(i + 32, i, i)
+        curses.init_pair(i + 48, 15, i)
 
 
 def _show_all(scr):
@@ -47,24 +52,19 @@ def _show_all_and_wait(scr):
     _wait(scr)
 
 
-def main(scr):
-    '''Module entry point'''
-    assert curses.has_colors()
-
-    colors.init()
+def _show_all_palettes(scr):
     _reset()
-
     _show_all_and_wait(scr)
-
-    for i, pal in enumerate(colors.PALETTES):
+    for i, _ in enumerate(colors.PALETTES):
         colors.apply_palette(i, False)
         _show_all_and_wait(scr)
 
         colors.apply_palette(i, True)
         _show_all_and_wait(scr)
 
-    _reset()
 
+def _one_screen(scr):
+    _reset()
     scr.move(0, 0)
     name = 'Palette/idx'
     scr.addstr(f'{name:12}')
@@ -76,7 +76,16 @@ def main(scr):
         _show_palette(scr, f'{i}', pal)
 
     _show_palette(scr, 'default', DEFAULT_PALETTE)
+    _show_palette(scr, '', DEFAULT_PALETTE_EXT)
     _wait(scr)
+
+
+def main(scr):
+    '''Module entry point'''
+    assert curses.has_colors()
+    colors.init()
+    _show_all_palettes(scr)
+    _one_screen(scr)
 
 
 curses.wrapper(main)

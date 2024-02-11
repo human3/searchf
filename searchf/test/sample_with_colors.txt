@@ -1,13 +1,32 @@
-Some lines colorized with CSI
-          1         2         3         4         5
-012345678901234567890123456789012345678901234567890
+          1         2         3         4         5         6
+0123456789012345678901234567890123456789012345678901234567890
+
+    Default  [1mbold[0m [2mdim[0m [4munderline[0m [40mreverse[0m [40;97mreverse[0m
+
+[30m 30 Black[0m    [30;1mbold[0m [30;2mdim[0m [30;4munderline[0m [40mreverse[0m [40;97mreverse[0m [40;30mreverse[0m
+[90m 90 Black[0m    [90;1mbold[0m [90;2mdim[0m [90;4munderline[0m [100mreverse[0m [100;97mreverse[0m [100;90mreverse[0m
+[31m 31 Red[0m      [31;1mbold[0m [31;2mdim[0m [31;4munderline[0m [41mreverse[0m [41;97mreverse[0m [41;31mreverse[0m
+[91m 91 Red[0m      [91;1mbold[0m [91;2mdim[0m [91;4munderline[0m [101mreverse[0m [101;97mreverse[0m [101;91mreverse[0m
+[32m 32 Green[0m    [32;1mbold[0m [32;2mdim[0m [32;4munderline[0m [42mreverse[0m [42;97mreverse[0m [42;32mreverse[0m
+[92m 92 Green[0m    [92;1mbold[0m [92;2mdim[0m [92;4munderline[0m [102mreverse[0m [102;97mreverse[0m [102;92mreverse[0m
+[33m 33 Yellow[0m   [33;1mbold[0m [33;2mdim[0m [33;4munderline[0m [43mreverse[0m [43;97mreverse[0m [43;33mreverse[0m
+[93m 93 Yellow[0m   [93;1mbold[0m [93;2mdim[0m [93;4munderline[0m [103mreverse[0m [103;97mreverse[0m [103;93mreverse[0m
+[34m 34 Blue[0m     [34;1mbold[0m [34;2mdim[0m [34;4munderline[0m [44mreverse[0m [44;97mreverse[0m [44;34mreverse[0m
+[94m 94 Blue[0m     [94;1mbold[0m [94;2mdim[0m [94;4munderline[0m [104mreverse[0m [104;97mreverse[0m [104;94mreverse[0m
+[35m 35 Magenta[0m  [35;1mbold[0m [35;2mdim[0m [35;4munderline[0m [45mreverse[0m [45;97mreverse[0m [45;35mreverse[0m
+[95m 95 Magenta[0m  [95;1mbold[0m [95;2mdim[0m [95;4munderline[0m [105mreverse[0m [105;97mreverse[0m [105;95mreverse[0m
+[36m 36 Cyan[0m     [36;1mbold[0m [36;2mdim[0m [36;4munderline[0m [46mreverse[0m [46;97mreverse[0m [46;36mreverse[0m
+[96m 96 Cyan[0m     [96;1mbold[0m [96;2mdim[0m [96;4munderline[0m [106mreverse[0m [106;97mreverse[0m [106;96mreverse[0m
+[37m 37 White[0m    [37;1mbold[0m [37;2mdim[0m [37;4munderline[0m [47mreverse[0m [47;97mreverse[0m [47;37mreverse[0m
+[97m 97 White[0m    [97;1mbold[0m [97;2mdim[0m [97;4munderline[0m [107mreverse[0m [107;97mreverse[0m [107;97mreverse[0m
+
+Real life sample:
+
 [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mExpected ";" but found "nst"[0m
-
     src/core/broken_file.ts:58:15:
-[37m      58 │             co [32mnst[37m bindLeft: number = await this.state.storage.get...
-         │                [32m~~~[37m
-         ╵                [32m;[0m
+[37m      58 │  co [32mnst[37m bindLeft: number = await this.state.storage.get()
+         │     [32m~~~[37m
+         ╵     [32m;[0m
 
-Other CSI sequences
-
+Other CSI sequences:
 [2K[1A[2K[G

@@ -6,6 +6,7 @@ import os
 import re
 import sys
 
+from typing import Any
 from typing import List
 from typing import NamedTuple
 from typing import Optional
@@ -69,8 +70,9 @@ class TextView:
         self._store = store
         self._scr = scr
         self._name: str = name
-        self._basename = os.path.basename(path)
-        self._win: Optional[curses._CursesWindow] = None
+        self._basename: str = os.path.basename(path)
+        # self._win: Optional[curses._CursesWindow]
+        self._win: Any = None
         self._size: types.Size = (0, 0)
         self._content_available_size: types.Size = (0, 0)
         self._ruler: str = ''
@@ -137,7 +139,7 @@ class TextView:
     def _get_color_pair(self, i: int) -> colors.Pair:
         return colors.get_color_pair(self._config.palette_id, i)
 
-    def _draw_bar(self, y):
+    def _draw_bar(self, y: int) -> None:
         '''Draws the status bar and the filter stack underneath.'''
 
         _, w = self._size
@@ -191,21 +193,29 @@ class TextView:
             color = 0 if f.hiding else self._get_color_pair(i)
             self._win.addstr(text, color)
 
-    def _draw_prefix(self, y, prefix_info, line_idx, color, is_first_line):
+    def _draw_prefix(
+            self,
+            y: int,
+            prefix_info: PrefixInfo,
+            line_idx: int,
+            color: int,
+            is_first_line: bool,
+    ) -> None:
         _, w_index, sep = prefix_info
         if is_first_line and w_index > 0:
             assert line_idx >= 0
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
-    def _draw_content(self,
-                      pos,
-                      text,
-                      segs,
-                      offset,
-                      ffidx,
-                      ffcolor,
-                      ):
+    def _draw_content(
+            self,
+            pos: types.Position,
+            text: str,
+            segs: List[segments.Segment],
+            offset: int,
+            ffidx: int,
+            ffcolor: int,
+    ) -> None:
         _, width = self._content_available_size
         vend = offset + width
         if self._config.show_spaces:
@@ -227,7 +237,7 @@ class TextView:
             self._win.addnstr(pos.y, x, text[start:end], length, attr)
             x += length
 
-    def draw(self):
+    def draw(self) -> None:
         '''Draws the view.'''
         # debug.out(f'{self._name} draw {self._offsets.voffset}')
         self._win.clear()
@@ -277,7 +287,7 @@ class TextView:
         self._draw_bar(self._content_available_size[0])
         self._win.refresh()
 
-    def _layout(self, redraw):
+    def _layout(self, redraw: bool) -> None:
         '''Propagate layout changes: evaluates the available space and
         recompute displayable content from the selected lines.
         '''
@@ -507,10 +517,11 @@ class TextView:
         self._sync(True)
         return 'Filters rotated'
 
-    def _vscroll_to_match(self,
-                          starting: bool,
-                          direction: int
-                          ) -> types.Status:
+    def _vscroll_to_match(
+            self,
+            starting: bool,
+            direction: int,
+    ) -> types.Status:
         idline = self._offsets.voffset
         ilinemax = len(self._selected.lines)
         iline, _ = self._display.dlines[idline]

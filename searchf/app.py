@@ -43,7 +43,7 @@ def getmtime(path):
 
 
 class EscapeException(Exception):
-    '''Signals that Escape key has been pressed'''
+    '''Signals that Escape key has been pressed.'''
 
 
 def validate(k: int) -> int:
@@ -55,7 +55,7 @@ def validate(k: int) -> int:
     return k
 
 
-def get_text(scr, y, x, text_prompt: str, handler, text: str) -> str:
+def get_text(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
     '''Gets text interactively from end user.'''
     _, maxw = get_max_yx(scr)
     scr.addstr(y, x, text_prompt)
@@ -86,8 +86,8 @@ def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
     return get_text(scr, y, x, text_prompt, handle, text)
 
 
-def clear(scr, y, x, length):
-    '''Prints "length" spaces at the given position'''
+def clear(scr, y: int, x: int, length: int):
+    '''Prints "length" spaces at the given position.'''
     _, maxw = get_max_yx(scr)
     blank = f'{" ":>{length}}'
     scr.addstr(y, x, blank[:maxw-(x+1)])
@@ -100,8 +100,8 @@ class App:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, help_lines) -> None:
-        self._help_lines = help_lines
+    def __init__(self, help_lines: List[str]) -> None:
+        self._help_lines: List[str] = help_lines
         self._debug_view: views.DebugView
         self._event_view: views.KeyEventView
         self._scr: Any = None
@@ -184,12 +184,14 @@ class App:
         self._mtime = getmtime(self._path)
         return 'File reloaded'
 
-    def create(self,
-               store,
-               scr,
-               margins: types.Margins,
-               show_events: bool,
-               path: str) -> None:
+    def create(
+            self,
+            store,
+            scr,
+            margins: types.Margins,
+            show_events: bool,
+            path: str,
+    ) -> None:
         '''Creates all views in the given screen, and loads the content from
         the given file.'''
         self._scr = scr
@@ -230,7 +232,7 @@ class App:
         t = self._get_keyword()
         return v.search(t)
 
-    def _toggle_auto_reload(self, anchor: int):
+    def _toggle_auto_reload(self, anchor: int) -> types.Status:
         self._auto_reload = not self._auto_reload
         self._auto_reload_anchor = anchor
         return f'Auto reload {self._auto_reload}'
@@ -242,9 +244,10 @@ class App:
                 return True, self._reload(self._auto_reload_anchor)
         return False, STATUS_UNCHANGED
 
-    def handle_event(self,
-                     ev: keys.KeyEvent
-                     ) -> Tuple[bool, types.Status]:
+    def handle_event(
+            self,
+            ev: keys.KeyEvent,
+    ) -> Tuple[bool, types.Status]:
         '''Handles the given key, propagating it to the proper view.'''
 
         if self._show_events:

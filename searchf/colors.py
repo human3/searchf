@@ -89,7 +89,7 @@ def cycle_palette(
         palette_id: types.PaletteId,
         forward: bool,
 ) -> types.PaletteId:
-    '''Select the palette index after the given one in the given direction'''
+    '''Returns the palette index after the given one in the given direction.'''
     assert palette_id >= 0
     assert palette_id < len(PALETTES)
     incr = 1 if forward else -1
@@ -100,7 +100,7 @@ def apply_palette(
         palette_id: types.PaletteId,
         reverse: bool,
 ) -> None:
-    '''Apply given palette to curses.'''
+    '''Applies given palette to curses.'''
     # Note: python raises IndexError for us if palette_index is out of range
     pal = PALETTES[palette_id]
     for i, color in enumerate(pal):
@@ -115,7 +115,7 @@ def get_color_pair(
         palette_id: types.PaletteId,
         filter_index: int,
 ) -> Pair:
-    '''Gets the curses.color_pair associated with given palette and filter'''
+    '''Gets the curses.color_pair associated with given palette and filter.'''
     if filter_index < 0:
         return curses.color_pair(0)
     colors_count = len(PALETTES[palette_id])
@@ -144,12 +144,12 @@ def get_fg_bg_color_pair(
         fg: ColorId,
         bg: ColorId
 ) -> Pair:
-    '''Returns the color pair use to display the given fg and bg colors'''
+    '''Returns the color pair use to display the given fg and bg colors.'''
     return curses.color_pair(get_color_pair_id(fg, bg))
 
 
 def init_color_pairs():
-    '''Initiliazes the color pairs we depend about.'''
+    '''Initiliazes the color pairs we depend on.'''
     curses.init_pair(BAR_COLOR_PAIR_ID, 0, BAR_COLOR_BG)
     for i in range(16):
         curses.init_pair(i, i, -1)

@@ -65,7 +65,7 @@ WARNING: the instructions in the Makefile might need to be adapted according to 
 
 ## What about coverage?
 
-The numbers below are as of version `1.16`.
+The numbers below are as of version `1.17`.
 
 ### Unit tests
 
@@ -73,22 +73,24 @@ The numbers below are as of version `1.16`.
 Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 2      0   100%
-searchf/colors.py                  30      0   100%
-searchf/enums.py                   87      0   100%
+searchf/colors.py                  54      0   100%
+searchf/enums.py                   92      0   100%
 searchf/keys.py                    92      2    98%
-searchf/models.py                 249      3    99%
-searchf/segments.py               105      0   100%
+searchf/models.py                 255      5    98%
+searchf/segments.py               106      0   100%
+searchf/sgr.py                     69      0   100%
 searchf/storage.py                 62      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/test_colors.py        32      4    88%
+searchf/test/test_colors.py        36      5    86%
 searchf/test/test_enums.py         19      0   100%
 searchf/test/test_keys.py          44      0   100%
-searchf/test/test_models.py       111      0   100%
-searchf/test/test_segments.py      97      0   100%
+searchf/test/test_models.py       112      0   100%
+searchf/test/test_segments.py     108      0   100%
+searchf/test/test_sgr.py           31      0   100%
 searchf/test/test_storage.py       22      0   100%
-searchf/types.py                   21      4    81%
+searchf/types.py                   20      4    80%
 ---------------------------------------------------
-TOTAL                             973     13    99%
+TOTAL                            1124     16    99%
 ```
 
 Run `make cover_unit` for updated numbers.
@@ -100,26 +102,28 @@ Name                            Stmts   Miss  Cover
 ---------------------------------------------------
 searchf/__init__.py                 2      0   100%
 searchf/app.py                    210      1    99%
-searchf/colors.py                  30      0   100%
+searchf/colors.py                  54      1    98%
 searchf/debug.py                    5      0   100%
-searchf/enums.py                   87      0   100%
+searchf/enums.py                   92      0   100%
 searchf/keys.py                    92      0   100%
 searchf/main.py                    80      0   100%
-searchf/models.py                 249      0   100%
-searchf/segments.py               105      0   100%
+searchf/models.py                 255      0   100%
+searchf/segments.py               106      0   100%
+searchf/sgr.py                     69      0   100%
 searchf/storage.py                 62      0   100%
 searchf/test/__init__.py            0      0   100%
-searchf/test/all.py               198      0   100%
+searchf/test/all.py               205      0   100%
 searchf/test/test_enums.py         19      0   100%
 searchf/test/test_keys.py          44      0   100%
-searchf/test/test_models.py       111      0   100%
-searchf/test/test_segments.py      97      0   100%
+searchf/test/test_models.py       112      0   100%
+searchf/test/test_segments.py     108      0   100%
+searchf/test/test_sgr.py           31      0   100%
 searchf/test/test_storage.py       22      0   100%
-searchf/types.py                   21      0   100%
+searchf/types.py                   20      0   100%
 searchf/utils.py                   21      0   100%
-searchf/views.py                  402      0   100%
+searchf/views.py                  403      0   100%
 ---------------------------------------------------
-TOTAL                            1857      1    99%
+TOTAL                            2012      2    99%
 ```
 
 Run `make cover_all` for updated numbers.

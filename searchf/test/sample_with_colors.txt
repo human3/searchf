@@ -29,4 +29,7 @@ Real life sample:
          ╵     [32m;[0m
 
 Other CSI sequences:
+
+  [32mSome color [39mthen back to default color
+
 [2K[1A[2K[G

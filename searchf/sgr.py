@@ -24,6 +24,7 @@ SGR_COLOR_TO_COLOR_ID: Dict[int, colors.ColorId] = {
     35: 5,
     36: 6,
     37: 7,
+    39: 0,
     90: 8,
     91: 9,
     92: 10,

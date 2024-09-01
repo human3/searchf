@@ -7,16 +7,23 @@ from .. import keys
 from .. import enums
 
 
+class MouseProvider:
+    '''Class providing a getmouse() function similar to curses.getmouse().'''
+    def getmouse(self):
+        '''Mocks curses.getmouse().'''
+        assert False  # pragma: no cover
+
+
 def test_processor():
     '''Test keys.Processor'''
-    proc = keys.Processor(keys.Provider([ord('a')]))
+    proc = keys.Processor(keys.Provider([ord('a')]), MouseProvider())
     assert proc
     assert ord('a') == proc.get().key
 
 
 def test_process():
     '''Test keys.Process'''
-    proc = keys.Processor(keys.Provider([]))
+    proc = keys.Processor(keys.Provider([]), MouseProvider())
     assert proc
 
     key = proc.process(-1)

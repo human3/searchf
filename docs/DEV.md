@@ -63,6 +63,10 @@ To uninstall: `pip uninstall -y searchf`
 
 WARNING: the instructions in the Makefile might need to be adapted according to platform.
 
+## Testing with older python version
+
+https://bgasparotto.com/install-pyenv-ubuntu-debian
+
 ## What about coverage?
 
 The numbers below are as of version `1.17`.

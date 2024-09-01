@@ -68,6 +68,7 @@ def main_loop(scr,
     app.USE_DEBUG = use_debug
     colors.init()
     scr.refresh()  # Must be call once on empty screen?
+    curses.mousemask(-1)
     store = storage.Store('.searchf')
     margins = types.Margins()
     margins.bottom += 1
@@ -88,7 +89,7 @@ def main_loop(scr,
             break
         if new_status == app.STATUS_UNCHANGED:
             continue
-        if ev.key == curses.KEY_RESIZE:
+        if ev.cmd == enums.Command.RESIZE:
             v.layout()
         app.clear(scr, v.pos[0], v.pos[1], len(status))
         status = new_status
@@ -101,7 +102,7 @@ def main_curses(scr, args) -> None:
               args.file,
               args.debug,
               args.show_events,
-              keys.Processor(scr))
+              keys.Processor(scr, curses))
 
 
 def init_env() -> argparse.ArgumentParser:

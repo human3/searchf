@@ -43,7 +43,7 @@ class KeywordsInjector:
         '''Returns the next keyword'''
         return self._keywords.pop(0)
 
-    def get_text(self, scr, y, x, text_prompt: str, handler, text: str) -> str:
+    def get_text(self, scr, y, x, text_prompt, handler, text) -> str:
         '''Function to replace main.get_next'''
         # pylint: disable=unused-argument
         return self.get_next()
@@ -62,6 +62,16 @@ class MtimeInjector:
         # pylint: disable=unused-argument
         self._time += 1
         return self._time
+
+
+class MouseProvider:
+    '''Class providing a getmouse() function similar to curses.getmouse()'''
+    def __init__(self, states: List[int]) -> None:
+        self._states: List[int] = states
+
+    def getmouse(self):
+        '''Mocks curses.getmouse().'''
+        return None, 0, 0, 0, self._states.pop(0)
 
 
 # Screen size used for tests, terminal must be bigger for
@@ -172,13 +182,24 @@ def _test_app_validate():
 def _test_main_main_loop(stdscr):
     print('Test main.main_loop()')
     keys_processor = keys.Processor(keys.Provider(
-        [' ', '>', 'l', keys.POLL, 'q']))
+        [' ', '>', 'l', keys.POLL, 'q']),
+                                    MouseProvider([]))
     main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
 
 
 def _test_main_resize(stdscr):
     print('Test main.resize')
-    keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']))
+    keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']),
+                                    MouseProvider([]))
+    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
+
+
+def _test_main_mouse(stdscr):
+    print('Test main.mouse')
+    keys_processor = keys.Processor(keys.Provider(
+        [curses.KEY_MOUSE, curses.KEY_MOUSE, curses.KEY_MOUSE, 'q']),
+                                    MouseProvider(
+        [curses.BUTTON4_PRESSED, curses.BUTTON5_PRESSED, 123]))
     main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
 
 
@@ -278,6 +299,7 @@ def _run_app_tests(stdscr):
     _test_app_validate()
     _test_main_main_loop(stdscr)
     _test_main_resize(stdscr)
+    _test_main_mouse(stdscr)
     _test_main_debug_view(stdscr)
 
 
@@ -336,7 +358,7 @@ def _test_main_main():
         return parser
 
     class _KeysProcessor:
-        def __init__(self, _):
+        def __init__(self, _getch, _getmouse):
             self._keys = [-1, ord('<')]
 
         def get(self) -> keys.KeyEvent:

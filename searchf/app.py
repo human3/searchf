@@ -259,13 +259,6 @@ class App:
         # Local functions redirecting to current view v
         v = self._views[self._current]
 
-        if ev.key == curses.KEY_RESIZE:
-            self._scr.clear()
-            self._scr.refresh()
-            size = self.layout()
-            v.draw()
-            return True, f'Resized to {size[1]}x{size[0]}'
-
         def new_keyword(new_filter) -> types.Status:
             keyword = self._get_keyword()
             return v.push_keyword(keyword, new_filter)
@@ -284,6 +277,13 @@ class App:
             v.execute(enums.Command.POP_KEYWORD)
             v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
+
+        def resize() -> types.Status:
+            self._scr.clear()
+            self._scr.refresh()
+            size = self.layout()
+            v.draw()
+            return f'Resized to {size[1]}x{size[0]}'
 
         # Map the commands requiring custom functions and that
         # cannot be directly sent over the current view.
@@ -320,6 +320,8 @@ class App:
                 self.try_start_search,
             enums.Command.GOTO_LINE:
                 goto_line,
+            enums.Command.RESIZE:
+                resize,
         }
 
         handled: bool = True  # Assumed until otherwise

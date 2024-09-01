@@ -85,7 +85,16 @@ KEYS_TO_COMMAND = {
     curses.ascii.BEL:      enums.Command.GOTO_LINE,
     ord('q'):              enums.Command.QUIT,
     ord('Q'):              enums.Command.QUIT,
+    curses.KEY_RESIZE:     enums.Command.RESIZE,
 }
+
+MOUSE_STATE_TO_CMD = {}
+
+if getattr(curses, 'BUTTON4_PRESSED', None):
+    MOUSE_STATE_TO_CMD[curses.BUTTON4_PRESSED] = enums.Command.GO_UP
+if getattr(curses, 'BUTTON5_PRESSED', None):
+    MOUSE_STATE_TO_CMD[curses.BUTTON5_PRESSED] = enums.Command.GO_DOWN
+
 
 KEYS_TO_TEXT = {
     POLL:                 'POLL',
@@ -104,6 +113,8 @@ KEYS_TO_TEXT = {
     curses.KEY_END:       'END',
     curses.KEY_PPAGE:     'PGUP',
     curses.KEY_NPAGE:     'PGDOWN',
+    curses.KEY_MOUSE:     'MOUSE',
+    curses.KEY_RESIZE:    'RESIZE',
 }
 
 
@@ -192,11 +203,15 @@ class Processor:
     '''Class that returns key pressed by end-user, handling any required
     decoding of escape sequences.
     '''
-    def __init__(self, getch_provider) -> None:
+    def __init__(self, getch_provider, getmouse_provider) -> None:
         getch_attr = getattr(getch_provider, 'getch', None)
         assert getch_attr
         assert callable(getch_attr)
         self._getch_provider = getch_provider
+        getmouse_attr = getattr(getmouse_provider, 'getmouse', None)
+        assert getmouse_attr
+        assert callable(getmouse_attr)
+        self._getmouse_provider = getmouse_provider
         self._escaping = False
         self._seq = ''
         self.start_: datetime.datetime = datetime.datetime.min
@@ -214,8 +229,15 @@ class Processor:
 
     def process(self, key: int) -> KeyEvent:
         '''Process given key'''
+        # pylint: disable=too-many-return-statements
+
         if not self._escaping:
-            if key == curses.ascii.ESC:
+            if key == curses.KEY_MOUSE:
+                state = self._getmouse_provider.getmouse()[4]
+                if state in MOUSE_STATE_TO_CMD:
+                    return KeyEvent(key, '', MOUSE_STATE_TO_CMD[state])
+                key = POLL
+            elif key == curses.ascii.ESC:
                 self._start_esc()
                 key = POLL
             return KeyEvent(key)

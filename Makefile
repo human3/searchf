@@ -1,5 +1,5 @@
 VENV_DIR=.venv
-PY=$(VENV_DIR)/bin/python3
+PY=$(VENV_DIR)/bin/python
 PIP=$(VENV_DIR)/bin/pip
 RUN_PY_MOD=TERM='screen-256color' $(PY) -m
 GENERATE_REPORT=$(PY) -m coverage report -m
@@ -47,12 +47,16 @@ lint:
 checks: type lint
 
 # sudo_deps target must be invoked with "sudo make sudo_deps"...
-sudo_deps:
+sudo-deps:
 	apt-get -y install python3 python3-venv mypy pip pylint
 
-deps:
-	# Install a virtual env
+sudo-deps-clean:
+	apt-get purge python3 python3-venv pip pylint
+
+$(VENV_DIR):
 	python3 -m venv $(VENV_DIR)
+
+deps: $(VENV_DIR)
 	# Install python packages in venv
 	$(PIP) install build pytest pytest-cov flake8
 

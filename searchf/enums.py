@@ -118,3 +118,4 @@ class Command(Enum):
     RELOAD_TAIL_AUTO = auto()
     TRY_SEARCH = auto()
     GOTO_LINE = auto()
+    RESIZE = auto()

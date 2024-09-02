@@ -197,9 +197,9 @@ def _test_main_resize(stdscr):
 def _test_main_mouse(stdscr):
     print('Test main.mouse')
     keys_processor = keys.Processor(keys.Provider(
-        [curses.KEY_MOUSE, curses.KEY_MOUSE, curses.KEY_MOUSE, 'q']),
+        [curses.KEY_MOUSE, curses.KEY_MOUSE, 'q']),
                                     MouseProvider(
-        [curses.BUTTON4_PRESSED, curses.BUTTON5_PRESSED, 123]))
+        [curses.BUTTON4_PRESSED, 123456]))
     main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
 
 

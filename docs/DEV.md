@@ -14,15 +14,12 @@ The code in this project tries to abide by the following principles:
 ## Dependencies
 
 First, you will need to pick a computer with a keyboard and some OS on it... The next steps will vary depending on that. So, assuming a fresh debian-based machine, here are the steps I usually perform:
-- `sudo apt-get install make git python3`
-- `sudo apt-get install emacs tmux ripgrep` (these are my personal editor and env choices...)
-- `make -p ~/repos/searchf`
-- `cd ~/repos/searchf`
+- `sudo apt-get install git make`
 - `git clone git@github.com:human3/searchf.git`
 
 Then, run
+- `cd searchf`
 - `sudo make sudo_deps`
-- `make deps`
 
 ## How to run the application?
 
@@ -42,7 +39,7 @@ Debug mode will change UI layout to make room for a few print statements emitted
 
 Notes:
 - please explore the `Makefile` to discover more ways to run
-- all the above steps describe how to run the application while working on it... This is different from how end-user run it as `searchf` is packaged and installed on their system using `pip`.
+- all the above steps describe how to run the application while working on it... This is different from how end-user run it as `searchf` is packaged and installed on their system using `pip` or `pipx`.
 
 ## How to run test?
 
@@ -57,7 +54,7 @@ The following `Makefile` targets can help with this:
 - `make build` to build the package
 - `make install` to install package on your system
 
-Then, you should be able to use `searchf` on your system as if you had downloaded from `pypi.org` and installed it through regular `pip`.
+Then, you should be able to use `searchf` on your system as if you had downloaded from `pypi.org` and installed it through regular `pip` or `pipx`.
 
 To uninstall: `pip uninstall -y searchf`
 
@@ -97,7 +94,7 @@ searchf/types.py                   20      4    80%
 TOTAL                            1124     16    99%
 ```
 
-Run `make cover_unit` for updated numbers.
+Run `make cover-unit` for updated numbers.
 
 ### Application tests
 
@@ -130,4 +127,4 @@ searchf/views.py                  403      0   100%
 TOTAL                            2012      2    99%
 ```
 
-Run `make cover_all` for updated numbers.
+Run `make cover-all` for updated numbers.

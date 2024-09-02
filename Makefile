@@ -1,40 +1,50 @@
+PIP=$(VENV_DIR)/bin/pip
 VENV_DIR=.venv
 PY=$(VENV_DIR)/bin/python
-PIP=$(VENV_DIR)/bin/pip
 RUN_PY_MOD=TERM='screen-256color' $(PY) -m
+RUN_SEARCHF=$(RUN_PY_MOD) searchf.main
 GENERATE_REPORT=$(PY) -m coverage report -m
 
 FILE=README.md
-#FILE=searchf/test/rulers.txt
 
-run:
-	$(RUN_PY_MOD) searchf.main $(FILE)
+$(VENV_DIR):
+	python3 -m venv $(VENV_DIR)
+	# Install python packages in venv
+	$(PIP) install build pytest pytest-cov flake8
 
-runc:
-	$(RUN_PY_MOD) searchf.main searchf/test/sample_with_colors.txt
+env: $(VENV_DIR)
 
-debug:
-	$(RUN_PY_MOD) searchf.main --debug $(FILE)
+run: env
+	$(RUN_SEARCHF) $(FILE)
 
-debug+:
-	$(RUN_PY_MOD) searchf.main --debug --show-events $(FILE)
+runc: env
+	$(RUN_SEARCHF) searchf/test/sample_with_colors.txt
 
-tests:
+runr: env
+	$(RUN_SEARCHF) searchf/test/rulers.txt
+
+debug: env
+	$(RUN_SEARCHF) --debug $(FILE)
+
+debug+: env
+	$(RUN_SEARCHF) --debug --show-events $(FILE)
+
+tests: env
 	$(RUN_PY_MOD) pytest searchf
 	$(RUN_PY_MOD) searchf.test.all
 
-cover_all:
+cover-all: env
 	$(RUN_PY_MOD) coverage run -m searchf.test.all
 	$(GENERATE_REPORT)
 
-cover_unit:
+cover-unit: env
 	$(RUN_PY_MOD) coverage run -m pytest searchf
 	$(GENERATE_REPORT)
 
-test_color:
+test-color: env
 	$(RUN_PY_MOD) searchf.test.color
 
-profile:
+profile: env
 	$(RUN_PY_MOD) cProfile -s cumtime -m searchf.test.all
 
 type:
@@ -46,19 +56,12 @@ lint:
 
 checks: type lint
 
-# sudo_deps target must be invoked with "sudo make sudo_deps"...
+# sudo-xxx targets must be invoked with sudo (eg "sudo make sudo-deps"...)
 sudo-deps:
-	apt-get -y install python3 python3-venv mypy pip pylint
+	apt-get -y install python3 python3-venv mypy pylint
 
 sudo-deps-clean:
 	apt-get purge python3 python3-venv pip pylint
-
-$(VENV_DIR):
-	python3 -m venv $(VENV_DIR)
-
-deps: $(VENV_DIR)
-	# Install python packages in venv
-	$(PIP) install build pytest pytest-cov flake8
 
 deps-clean:
 	rm -Rf $(VENV_DIR)
@@ -76,6 +79,6 @@ clean:
 	find -type f -name "*~" -print -delete
 	rm -Rf dist
 
-cover: cover_all
+cover: cover-all
 
-all: type lint cover_all
+all: type lint cover-all

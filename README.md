@@ -8,10 +8,15 @@ Utility program to interactively search keywords in text files. Works in termina
 
 ## Installation
 
+```
+sudo apt install pipx
+pipx install searchf
+```
+
 `pip install searchf`
 
 Requirements:
-- Python 3.6 or greater
+- Python 3.10 or greater
 - Terminal with color support (ie. `TERM=screen-256color` or `TERM=xterm-256color`).
 
 ## Features

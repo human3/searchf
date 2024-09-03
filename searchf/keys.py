@@ -7,6 +7,7 @@ from typing import Optional
 import datetime
 import curses
 import curses.ascii
+import sys
 
 from . import enums
 
@@ -91,14 +92,19 @@ KEYS_TO_COMMAND = {
 MOUSE_STATE_TO_CMD = {}
 
 MOUSE_STATE_TO_CMD[curses.BUTTON4_PRESSED] = enums.Command.GO_UP
-if curses.ncurses_version.major >= 6:
+if getattr(curses, 'BUTTON5_PRESSED', None):
     MOUSE_STATE_TO_CMD[curses.BUTTON5_PRESSED] = enums.Command.GO_DOWN
-else:
-    # Workaround the fact that curses.BUTTON5_PRESSED is not defined on mac by
-    # using the 0x8000000 bitmask found experimentally.
+    # If BUTTON5_PRESSED is not defined, we need to workaround it see:
     # https://github.com/peterbrittain/asciimatics/issues/345
     # https://github.com/python/cpython/issues/91132
+elif sys.platform == 'darwin':
+    # mac use old curses (see https://github.com/python/cpython/issues/91132)
     MOUSE_STATE_TO_CMD[0x8000000] = enums.Command.GO_DOWN
+else:
+    # we assume PDCurses
+    # https://github.com/mattn/pdcurses/blob/master/curses.h#L194
+    MOUSE_STATE_TO_CMD[0x200000] = enums.Command.GO_DOWN
+
 
 KEYS_TO_TEXT = {
     POLL:                 'POLL',

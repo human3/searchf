@@ -20,6 +20,12 @@ run: env
 runc: env
 	$(RUN_SEARCHF) searchf/test/sample_with_colors.txt
 
+runi: env
+	$(RUN_SEARCHF) searchf/test/sample_international.txt
+
+runb: env
+	$(RUN_SEARCHF) --debug searchf/test/sample_bug.txt
+
 runr: env
 	$(RUN_SEARCHF) searchf/test/rulers.txt
 

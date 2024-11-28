@@ -149,8 +149,7 @@ class TextView:
         if not self._config.has_filters():
             self._win.addstr(' No filter ', style)
         else:
-            self._win.addstr(f'{self._selected.hits_count():>8}',
-                             style)
+            self._win.addstr(f'{self._selected.hits_count():>8}', style)
             self._win.addstr(f' | {"Case":^{CASE_COL_LEN}}', style)
             self._win.addstr(f' | {"Shown":^{SHOWN_COL_LEN}}', style)
             self._win.addstr(' | Keywords ', style)
@@ -195,6 +194,7 @@ class TextView:
 
     def _draw_prefix(
             self,
+            *,
             y: int,
             prefix_info: PrefixInfo,
             line_idx: int,
@@ -205,10 +205,14 @@ class TextView:
         if is_first_line and w_index > 0:
             assert line_idx >= 0
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
+        else:
+            fill = ' '
+            self._win.addstr(y, 0, f'{fill:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
     def _draw_content(
             self,
+            *,
             pos: types.Position,
             text: str,
             segs: List[segments.Segment],
@@ -235,7 +239,10 @@ class TextView:
                 attr = self._get_color_pair(attr)
             # otherwise use attributes from segment as is
             self._win.addnstr(pos.y, x, text[start:end], length, attr)
-            x += length
+            # Some characters like emojs and chinese characters actually
+            # take 2 spot on the screen, so we just use current cursor
+            # position after last write
+            _, x = self._win.getyx()
 
     def draw(self) -> None:
         '''Draws the view.'''
@@ -274,15 +281,17 @@ class TextView:
             # filter_idx is the index of the first filter that is matching
             # current line
             ffcolor = self._get_color_pair(filter_idx)
-            self._draw_prefix(y, prefix_info, line_idx, ffcolor, offset == 0)
+            self._draw_prefix(y=y, prefix_info=prefix_info,
+                              line_idx=line_idx, color=ffcolor,
+                              is_first_line=offset == 0)
             offset += self._offsets.hoffset
             self._draw_content(
-                types.Position(prefix_info.length, y),
-                text,
-                segs,
-                offset,
-                filter_idx,
-                ffcolor)
+                pos=types.Position(prefix_info.length, y),
+                text=text,
+                segs=segs,
+                offset=offset,
+                ffidx=filter_idx,
+                ffcolor=ffcolor)
 
         self._draw_bar(self._content_available_size[0])
         self._win.refresh()

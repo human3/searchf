@@ -43,7 +43,7 @@ class KeywordsInjector:
         '''Returns the next keyword'''
         return self._keywords.pop(0)
 
-    def get_text(self, scr, y, x, text_prompt, handler, text) -> str:
+    def get_text(self, *, scr, y, x, text_prompt, handler, text) -> str:
         '''Function to replace main.get_next'''
         # pylint: disable=unused-argument
         return self.get_next()
@@ -136,7 +136,8 @@ def _run(stdscr, t: AppTest, f: str):
                        MtimeInjector()):
         margins = types.Margins()
         margins.bottom += 1
-        main.APP.create(store, stdscr, margins, True, f)
+        main.APP.create(store=store, scr=stdscr, margins=margins,
+                        show_events=True, path=f)
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
@@ -161,10 +162,12 @@ def _test_main_get_text(stdscr):
     def my_handler_throwing(_):
         raise app.EscapeException
 
-    app.get_text(stdscr, 0, 0,
-                 "Testing prompt", my_handler, 'Editable content')
-    app.get_text(stdscr, 0, 0,
-                 "Testing prompt", my_handler_throwing, '')
+    app.get_text(scr=stdscr, x=0, y=0,
+                 text_prompt="Testing prompt", handler=my_handler,
+                 text='Editable content')
+    app.get_text(scr=stdscr, x=0, y=0,
+                 text_prompt="Testing prompt", handler=my_handler_throwing,
+                 text='')
 
 
 def _test_app_validate():

@@ -149,8 +149,7 @@ class TextView:
         if not self._config.has_filters():
             self._win.addstr(' No filter ', style)
         else:
-            self._win.addstr(f'{self._selected.hits_count():>8}',
-                             style)
+            self._win.addstr(f'{self._selected.hits_count():>8}', style)
             self._win.addstr(f' | {"Case":^{CASE_COL_LEN}}', style)
             self._win.addstr(f' | {"Shown":^{SHOWN_COL_LEN}}', style)
             self._win.addstr(' | Keywords ', style)
@@ -205,6 +204,9 @@ class TextView:
         if is_first_line and w_index > 0:
             assert line_idx >= 0
             self._win.addstr(y, 0, f'{line_idx:>{w_index}}', color | USE_BOLD)
+        else:
+            fill = ' '
+            self._win.addstr(y, 0, f'{fill:>{w_index}}', color | USE_BOLD)
         self._win.addstr(y, w_index, f'{sep}')
 
     def _draw_content(

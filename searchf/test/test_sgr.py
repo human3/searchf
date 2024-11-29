@@ -45,6 +45,20 @@ Black\x1B[0m \
     assert len(a) == 6, a
     assert new_line == line_bare
 
+    # Support for i18n and UTF8 encoding
+    line = '\x1B[31m|아파트---|\x1B[0m*****\x1B[31m'
+    line_bare = '|아파트---|*****'
+    assert len(line_bare) == 13
+    a, new_line = p.filter(line, enums.SgrMode.NONE)
+    assert len(a) == 0
+    assert new_line == line
+    a, new_line = p.filter(line, enums.SgrMode.REMOVE)
+    assert len(a) == 0
+    assert new_line == line_bare
+    a, new_line = p.filter(line, enums.SgrMode.PROCESS)
+    assert len(a) == 1, a
+    assert new_line == line_bare
+
     # Attributes carry over properly accross multiple lines
     a, new_line = p.filter('\x1B[31mSomething red', enums.SgrMode.PROCESS)
     assert len(a) == 1

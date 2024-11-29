@@ -235,7 +235,10 @@ class TextView:
                 attr = self._get_color_pair(attr)
             # otherwise use attributes from segment as is
             self._win.addnstr(pos.y, x, text[start:end], length, attr)
-            x += length
+            # Some characters like emojs and chinese characters actually
+            # take 2 spot on the screen, so we just use current cursor
+            # position after last write
+            _, x = self._win.getyx()
 
     def draw(self) -> None:
         '''Draws the view.'''

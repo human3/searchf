@@ -16,6 +16,7 @@ from . import enums
 from . import keys
 from . import types
 from . import views
+from . import debug
 
 # Changes layout to show a debug window in which debug() function will output
 USE_DEBUG = False
@@ -52,13 +53,15 @@ def validate(k: int) -> int:
         k = curses.KEY_BACKSPACE
     elif k == curses.ascii.ESC:
         raise EscapeException()
+    debug.out(f'Validate {k}')
     return k
 
 
-def get_text(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
+def get_text_old(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
     '''Gets text interactively from end user.'''
     _, maxw = get_max_yx(scr)
     scr.addstr(y, x, text_prompt)
+    debug.out(f'INIT {text_prompt} {text}')
     x += len(text_prompt)
     width = max(0, maxw - x)
     editwin = curses.newwin(1, width, y, x)
@@ -78,6 +81,43 @@ def get_text(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
     clear(scr, y, 0, len(text_prompt))
     return text if text else ''
 
+def get_text(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
+    '''Gets text interactively from end user.'''
+    _, maxw = get_max_yx(scr)
+    scr.addstr(y, x, text_prompt)
+    debug.out(f'INIT {text_prompt} {text}')
+    x += len(text_prompt)
+    width = max(0, maxw - x)
+    editwin = curses.newwin(1, width, y, x)
+    editwin.addstr(text)
+    scr.refresh()
+    new_text = text
+    try:
+        while True:
+            c = editwin.get_wch()
+            debug.out(f'GOT {new_text} {c} {ord(c)}')
+            if ord(c) == curses.ascii.ESC:
+                debug.out(f'DONE CANCEL {new_text}')
+                break
+            if c == '\n':
+                debug.out(f'DONE OK {new_text}')
+                text = new_text
+                break
+            if ord(c) == curses.ascii.DEL:
+                new_text = new_text[:-1]
+                debug.out(f'DEL edit {new_text}')
+            else:
+                new_text += c
+            debug.out(f'>>> {new_text}')
+            editwin.clear()
+            editwin.addstr(0, 0, new_text)
+            #text = box.gather().strip()
+    except EscapeException:
+        pass
+    editwin.clear()
+    editwin.refresh()
+    clear(scr, y, 0, len(text_prompt))
+    return text if text else ''
 
 def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
     '''Prompts user to enter some text.'''

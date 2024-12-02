@@ -55,7 +55,7 @@ def validate(k: int) -> int:
     return k
 
 
-def get_text(scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
+def get_text(*, scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
     '''Gets text interactively from end user.'''
     _, maxw = get_max_yx(scr)
     scr.addstr(y, x, text_prompt)
@@ -83,7 +83,8 @@ def prompt(scr, y: int, x: int, text_prompt: str, text: str) -> str:
     '''Prompts user to enter some text.'''
     def handle(box):
         box.edit(validate=validate)
-    return get_text(scr, y, x, text_prompt, handle, text)
+    return get_text(scr=scr, y=y, x=x,
+                    text_prompt=text_prompt, handler=handle, text=text)
 
 
 def clear(scr, y: int, x: int, length: int):
@@ -186,6 +187,7 @@ class App:
 
     def create(
             self,
+            *,
             store,
             scr,
             margins: types.Margins,

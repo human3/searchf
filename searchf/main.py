@@ -72,7 +72,8 @@ def main_loop(scr,
     store = storage.Store('.searchf')
     margins = types.Margins()
     margins.bottom += 1
-    APP.create(store, scr, margins, show_events, path)
+    APP.create(store=store, scr=scr, margins=margins,
+               show_events=show_events, path=path)
     v = StatusView(scr)
     v.layout()
 

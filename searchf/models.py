@@ -327,13 +327,13 @@ def apply_filters(
                 segs.append(matching_segments)
                 if first_show_idx < 0:
                     first_show_idx = fidx
+    if hide_count > 0:
+        return False, -1, background
     if show_count > 0:
         assert first_show_idx >= 0
         assert len(segs) > 0
         return True, first_show_idx, segments.flatten(segs)
-    if hide_count <= 0:
-        return True, -1, background
-    return False, -1, background
+    return True, -1, background
 
 
 class RawContent:

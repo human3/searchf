@@ -27,6 +27,7 @@ KEYS_TO_COMMAND = {
     ord('-'):              enums.Command.POP_KEYWORD,
     ord('_'):              enums.Command.POP_KEYWORD,
     ord('n'):              enums.Command.VSCROLL_TO_NEXT_MATCH,
+    ord('N'):              enums.Command.VSCROLL_TO_PREV_MATCH,
     ord('p'):              enums.Command.VSCROLL_TO_PREV_MATCH,
     ord('l'):              enums.Command.TOGGLE_LINE_NUMBERS,
     ord('k'):              enums.Command.TOGGLE_WRAP,

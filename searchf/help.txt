@@ -53,10 +53,10 @@
   ARROWS        Scroll up/down/left/right
   SPACE         Scroll down a page
   b             Scroll back a page
-  <  g          Scroll to the top
-  >  G          Scroll to the bottom
-  p             Scroll to previous matching line
+  < g           Scroll to the top
+  > G           Scroll to the bottom
   n             Scroll to next matching line
+  N p           Scroll to previous matching line
   TAB  ^G       Goto line number
   /             Start a search, kinda like "less", but only if
                 there are currently no filter defined...

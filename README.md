@@ -13,10 +13,8 @@ sudo apt install pipx
 pipx install searchf
 ```
 
-`pip install searchf`
-
 Requirements:
-- Python 3.10 or greater
+- Python 3.9 or greater
 - Terminal with color support (ie. `TERM=screen-256color` or `TERM=xterm-256color`).
 
 ## Features
@@ -42,7 +40,7 @@ Press `ENTER` to define the first keyword of a filter and reveal only the lines 
 
 A filter is a list of keywords that a line must contain to match and get highlighted in a specific color. By defining multiple filters, you can reveal more content of the file. By default, lines not matching any filter are hidden, but you can progressively reveal context surrounding matching lines by pressing `m` multiple times, all the way to the whole content of the file. Filters can also be used to filter out content you do not want to see (press `x` to toggle this mode).
 
-![Screenshot searchf help](https://user-images.githubusercontent.com/15265841/209476860-4e4e4600-0333-43f2-9cd7-65777448f927.png)
+<img width="689" alt="Screenshot 2025-04-20 at 8 13 19 AM" src="https://github.com/user-attachments/assets/c0d5b894-215a-485a-9637-cb3731974743" />
 
 ## Why?
 

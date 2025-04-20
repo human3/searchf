@@ -198,6 +198,7 @@ LEFT = 'D'
 # Some OS are eating up lots of dead key + arrow combinations, so
 # we aggressively map many cases in the hope we will get something
 ESCAPED_TO_COMMAND = {
+    '\n':                  enums.Command.EDIT_KEYWORD,
     'w':                   enums.Command.ROTATE_FILTERS_UP,
     chr(curses.KEY_UP):    enums.Command.ROTATE_FILTERS_UP,
     CTRL + UP:             enums.Command.ROTATE_FILTERS_UP,
@@ -250,7 +251,7 @@ class Processor:
         self._seq = ''
 
     def _stop_esc(self) -> str:
-        seq = self._seq
+        seq = chr(curses.ascii.ESC) + self._seq
         self._escaping = False
         self._seq = ''
         return seq
@@ -278,8 +279,9 @@ class Processor:
         if key < 0:
             # Assume sequence timed out
             seq = self._stop_esc()
-            if len(seq) <= 0:
-                # Emtpy escaped sequence, we remit the ESC key we swallowed
+            assert len(seq) > 0
+            if len(seq) == 1:
+                # Empty escaped sequence, we re-emit the ESC key we swallowed
                 key = curses.ascii.ESC
             else:
                 # The sequence we captured is unrecognised
@@ -288,17 +290,19 @@ class Processor:
         delta = datetime.datetime.now() - self.start_
         if delta.total_seconds() > ESCAPE_TIMEOUT:
             # Stop escaping regardless of sequence after 200ms
-            seq = self._stop_esc()
+            self._stop_esc()
             return KeyEvent(key)
 
         # Ok to store key in sequence
         self._seq += chr(key)
-        # debug.out(f'{key} {chr(key)} {str(key)} {delta.total_seconds()}')
-        if self._seq not in ESCAPED_TO_COMMAND:
-            return KeyEvent(POLL)
-        seq = self._stop_esc()
-        cmd = ESCAPED_TO_COMMAND[seq]
-        return KeyEvent(key, seq, cmd)
+        mapped = self._seq in ESCAPED_TO_COMMAND
+        # debug.out(f'{key} {chr(key)} {str(key)} {mapped}')
+        if mapped:
+            cmd = ESCAPED_TO_COMMAND[self._seq]
+            seq = self._stop_esc()
+            return KeyEvent(key, seq, cmd)
+
+        return KeyEvent(POLL)
 
     def get(self) -> KeyEvent:
         '''Wait on next key event typed by user or -1 if none'''

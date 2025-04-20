@@ -5,7 +5,7 @@
     C-x   means Control-x
     M-x   means Alt-x or Option-x (depending on your system),
           which can also be triggered by pressing Escape then x
-	  Wasd  refers to any 'w', 'a', 's' or 'd' key press
+    Wasd  refers to any 'w', 'a', 's' or 'd' key press
 
 
       GENERAL KEYS
@@ -37,7 +37,7 @@
   Backspace or F      Remove filter at the bottom
   + or =              Push a new keyword to bottom filter
   - or _              Pop last keyword from bottom filter
-  e                   Edit last keyword from bottom filter
+  e or M-Enter        Edit last keyword from bottom filter
   M-Up or M-w         Rotate all the filters up
   M-Down or M-s       Rotate all the filters down
   M-Left or M-a       Rotate all the keywords of bottom filter to the left

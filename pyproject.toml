@@ -8,3 +8,15 @@ description = "A text-based application running in terminals to search into text
 readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.9"
+keywords = [ "search", "file", "terminal", "console", "highlighter", "keyword", "curses", "utilities" ]
+authors = [
+    { name = "Adrien Felon" }
+]
+license = "Apache-2.0"
+
+[project.urls]
+Homepage = "https://github.com/human3/searchf"
+
+[project.scripts]
+searchf = "searchf.main:main"
+searchf-test = "searchf.test.all:test_main"

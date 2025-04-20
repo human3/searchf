@@ -526,6 +526,14 @@ class TextView:
         self._sync(True)
         return 'Filters rotated'
 
+    def rotate_keywords(self, go_left: bool) -> types.Status:
+        '''Rotate the keywords.'''
+        if self._config.get_filters_count() < 1:
+            return 'Not enough filter'
+        self._config.rotate_keywords(go_left)
+        self._sync(True)
+        return 'Keywords rotated'
+
     def _vscroll_to_match(
             self,
             starting: bool,
@@ -630,6 +638,10 @@ class TextView:
                 lambda: self.rotate_filters(True),
             enums.Command.ROTATE_FILTERS_DOWN:
                 lambda: self.rotate_filters(False),
+            enums.Command.ROTATE_KEYWORDS_LEFT:
+                lambda: self.rotate_keywords(True),
+            enums.Command.ROTATE_KEYWORDS_RIGHT:
+                lambda: self.rotate_keywords(False),
             enums.Command.SLOT_SAVE:
                 self._slot_save,
             enums.Command.SLOT_DELETE:

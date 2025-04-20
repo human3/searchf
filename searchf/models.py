@@ -75,19 +75,24 @@ class Filter:
     '''
     ignore_case: bool = False
     hiding: bool = False
+    keywords: Dict[str, None]
+    mods: List[bool]
 
     def __init__(self) -> None:
         # We use a Dict to make sure that keywords are never added
         # twice (ie like a set) and that insertion order is preserved
         # (ie like a stack).
-        self.keywords: Dict[str, None] = {}
+        self.keywords = {}
+        self.mods = []
 
     def add(self, keyword: str) -> None:
         '''Adds given keyword to this filter.'''
         self.keywords[keyword] = None
+        self.mods.append(True)
 
     def pop(self) -> Tuple[str, None]:
         '''Removes most recently added keyword from this filter.'''
+        del self.mods[-1]
         return self.keywords.popitem()
 
     def get_count_and_last_keyword(self) -> Tuple[int, Optional[str]]:
@@ -99,6 +104,16 @@ class Filter:
         keyword, _ = self.pop()
         self.add(keyword)
         return count, keyword
+
+    def rotate(self, go_left: bool) -> None:
+        '''Rotates the keywords either left or right.'''
+        k = self.keywords
+        if go_left:
+            self.keywords = \
+                dict(list(k.items())[1:]) | dict(list(k.items())[:1])
+        else:
+            self.keywords = \
+                dict(list(k.items())[-1:]) | dict(list(k.items())[:-1])
 
 
 def digits_count(number: int) -> int:
@@ -454,6 +469,13 @@ class ViewConfig:
             self.filters = self.filters[1:] + self.filters[:1]
         else:
             self.filters = self.filters[-1:] + self.filters[:-1]
+
+    def rotate_keywords(self, go_left: bool) -> None:
+        '''Rotates keywords.'''
+        self.dirty = True
+        count = len(self.filters)
+        assert count >= 1
+        self.filters[count-1].rotate(go_left)
 
     def set_palette(self, pid: types.PaletteId) -> None:
         '''Select the next palette in the given direction.'''

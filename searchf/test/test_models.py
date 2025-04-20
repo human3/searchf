@@ -18,6 +18,29 @@ def test_filter():
     assert count == 0
     assert not keyword
 
+    # Test keywords rotation
+    f = models.Filter()
+    assert len(f.keywords) == 0
+    f.rotate(True)
+    f.rotate(False)
+
+    f.add('1')
+    assert len(f.keywords) == 1
+    f.rotate(True)
+    f.rotate(False)
+
+    f.add('2')
+    f.add('3')
+    assert len(f.keywords) == 3
+    assert list(f.keywords.items()) \
+        == list({'1': None, '2': None, '3': None}.items())
+    f.rotate(False)
+    assert list(f.keywords.items()) == \
+        list({'3': None, '1': None, '2': None}.items())
+    f.rotate(True)
+    assert list(f.keywords.items()) == \
+        list({'1': None, '2': None, '3': None}.items())
+
 
 def test_digit_count():
     '''Test models.digit_count()'''
@@ -31,7 +54,7 @@ def test_digit_count():
 SGR_MODE = enums.SgrMode.REMOVE
 
 
-def test_model():
+def test_raw_content():
     '''Test models.RawContent'''
     rc = models.RawContent()
     assert rc.line_count() == 0
@@ -97,9 +120,29 @@ def test_model():
     assert sc.hits_count() == 2
 
 
+def test_raw_content_hiding():
+    '''Test models.RawContent hiding'''
+    rc = models.RawContent()
+    all_lines = [
+        'A very simple first line',
+        'Another line',
+        'And a third one',
+        'A fourth',
+        'And finally the very last one']
+    rc.set_lines(all_lines)
+
+    f = models.Filter()
+    f.add('very')
+    f.hiding = True
+    sc = rc.filter([f], enums.LineVisibility.ALL, SGR_MODE)
+    assert sc.hits_count() == 2
+    f.hiding = False
+
+
 def test_display_content():
     '''Test models.DisplayContent'''
     dc = models.DisplayContent()
+    assert dc.lines_count() == 0
 
     rc = models.RawContent()
     rc.set_lines([
@@ -110,6 +153,7 @@ def test_display_content():
 
     dc = sc.layout(1, 1, True)
     assert dc
+    assert dc.lines_count() > 0
     dc = sc.layout(1, 1, False)
     assert dc
 
@@ -118,6 +162,13 @@ def test_display_content():
     sc = rc.filter([f], enums.LineVisibility.CONTEXT_1, SGR_MODE)
     dc = sc.layout(1, 1, True)
     assert dc
+
+
+def test_selected_content():
+    '''Test models.SelectedContent'''
+    sc = models.SelectedContent()
+    assert len(sc.hits) == 0
+    assert len(sc.lines) == 0
 
 
 def test_offsets():
@@ -159,5 +210,7 @@ def test_view_config():
     assert last == vc.top_filter()
     vc.rotate_filters(True)
     assert last != vc.top_filter()
+
+    vc.rotate_keywords(False)
 
     vc.set_palette(1)

@@ -55,7 +55,8 @@ def validate(k: int) -> int:
     return k
 
 
-def get_text(*, scr, y: int, x: int, text_prompt: str, handler, text: str) -> str:
+def get_text(*, scr, y: int, x: int, text_prompt: str, handler, text: str)\
+        -> str:
     '''Gets text interactively from end user.'''
     _, maxw = get_max_yx(scr)
     scr.addstr(y, x, text_prompt)
@@ -280,6 +281,19 @@ class App:
             v.push_keyword(keyword, count == 1)
             return 'Keyword updated'
 
+        def negate_keyword() -> types.Status:
+            count, keyword = v.get_last_keyword()
+            if count <= 0 or not keyword:
+                return 'No keyword to negate'
+            assert len(keyword) > 0
+            if keyword[0] == '!':
+                keyword = keyword[1:]
+            else:
+                keyword = '!' + keyword
+            v.execute(enums.Command.POP_KEYWORD)
+            v.push_keyword(keyword, count == 1)
+            return 'Keyword updated'
+
         def resize() -> types.Status:
             self._scr.clear()
             self._scr.refresh()
@@ -306,6 +320,8 @@ class App:
                 self._help_view_push,
             enums.Command.EDIT_KEYWORD:
                 edit_keyword,
+            enums.Command.TOGGLE_NEGATE:
+                negate_keyword,
             enums.Command.PUSH_KEYWORD:
                 lambda: new_keyword(False),
             enums.Command.PUSH_FILTER_AND_KEYWORD:

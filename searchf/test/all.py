@@ -269,6 +269,9 @@ def _run_app_tests(stdscr):
         AppTest('Test editing keywords',
                 ['e', '+', 'e', 'e'],
                 ['something', 'good', '']),
+        AppTest('Test rotating keywords',
+                ['(', '+', '+', '(', ')'],
+                ['something', 'good']),
         AppTest('Test keyword search',
                 ['/', 'n', 'n', 'n', 'p', 'p', 'p', 'p', '/'],
                 ['filter']),
@@ -278,11 +281,14 @@ def _run_app_tests(stdscr):
         AppTest('Test toggling hiden/shown filter',
                 ['x', 'f', 'x', 'x'],
                 ['python']),
+        AppTest('Test toggling absence/presence of keyword',
+                ['X', 'f', 'X', 'X'],
+                ['python']),
         AppTest('Test swapping filters',
                 ['d', 'f', 'f', 'd'],
                 ['key', 'python']),
         AppTest('Test rotating filters',
-                ['w', 'f', 'f', 'w', 's'],
+                ['z', '{', 'f', 'f', 'w', 'z', '{', '}'],
                 ['key', 'python']),
         AppTest('Test save/load/delete slots',
                 ['[', '\\', '|', 'f', 'f', '\\', '\\', '[', ']', '|'],
@@ -327,10 +333,14 @@ def _run_unit_tests():
     test_models.test_filter()
     print('Test models.test_digit_count()')
     test_models.test_digit_count()
-    print('Test models.test_model()')
-    test_models.test_model()
+    print('Test models.test_raw_content()')
+    test_models.test_raw_content()
+    print('Test models.test_raw_content_hiding()')
+    test_models.test_raw_content_hiding()
     print('Test models.test_display_content()')
     test_models.test_display_content()
+    print('Test models.test_selected_content()')
+    test_models.test_selected_content()
     print('Test models.test_offsets()')
     test_models.test_offsets()
     print('Test models.test_view_config()')

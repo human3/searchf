@@ -90,6 +90,14 @@ def test_find_matching():
     # Overlapping matches
     _find_matching('abcdef', {'bcd', 'cde'}, False,
                    (True, [(1, 5, -1)]))
+    # Check we have no match when we request a keyword to be absent
+    _find_matching('Some text', {'some', '!text'}, True, no_match)
+    _find_matching('Some text', {'!some', 'text'}, True, no_match)
+    # Check we match when keyword requested absent is not there
+    _find_matching('Some text', {'some', '!foobar'}, True,
+                   (True, [(0, 4, -1)]))
+    _find_matching('Some text', {'text', '!foobar'}, True,
+                   (True, [(5, 9, -1)]))
 
 
 def make_s(args):

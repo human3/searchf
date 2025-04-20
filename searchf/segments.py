@@ -132,12 +132,20 @@ def find_matching(
     # matching is a set() as multiple matches are possible
     for k in keywords:
         is_matching = False
+        inverse = False
+        assert len(k) > 0, 'Missing keyword'
+        if k[0] == '!':
+            k = k[1:]
+            inverse = True
         for match in re.finditer(k, text, flags):
             if match.start() >= match.end():
                 continue
             is_matching = True
             matching.add(Segment(match.start(), match.end(), attr))
-        if not is_matching:
+        if inverse and is_matching:
+            # Bail out early as soon as one keyword is matching and should not
+            return False, []
+        if not inverse and not is_matching:
             # Bail out early as soon as one keyword has no match
             return False, []
 

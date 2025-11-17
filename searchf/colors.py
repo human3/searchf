@@ -161,7 +161,6 @@ def init_color_pairs():
 def init():
     '''Initializes color support.'''
     assert curses.has_colors()
-    assert curses.COLORS >= 256, 'Not enough colors (try TERM=screen-256color)'
     curses.start_color()
     curses.use_default_colors()
     init_color_pairs()

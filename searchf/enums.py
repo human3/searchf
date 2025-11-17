@@ -119,6 +119,6 @@ class Command(Enum):
     RELOAD_HEAD_AUTO = auto()
     RELOAD_TAIL = auto()
     RELOAD_TAIL_AUTO = auto()
-    TRY_SEARCH = auto()
+    TRY_SEARCH_OR_VSCROLL_TO_NEXT_MATCH = auto()
     GOTO_LINE = auto()
     RESIZE = auto()

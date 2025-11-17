@@ -70,7 +70,7 @@ SGR_BG_COLOR_TO_COLOR_ID: Dict[int, colors.ColorId] = {
     107: 15,
 }
 
-FG_BG_TO_COLOR_PAIR_FUNC: \
+fg_bg_to_color_pair_func: \
     Callable[[colors.ColorId, colors.ColorId], colors.Pair] = \
     colors.get_fg_bg_color_pair
 
@@ -131,7 +131,7 @@ class Processor:
                     self._bg = SGR_BG_COLOR_TO_COLOR_ID[a]
                 else:
                     self._fg = SGR_COLOR_TO_COLOR_ID[a]
-                pair = FG_BG_TO_COLOR_PAIR_FUNC(self._fg, self._bg)
+                pair = fg_bg_to_color_pair_func(self._fg, self._bg)
                 self._a = (~curses.A_COLOR & self._a) | pair
 
         # If we have attribute from previous line, start a pending segment

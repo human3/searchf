@@ -18,7 +18,7 @@ def _setup():
     curses.initscr()
     # curses will not have COLORS attribute when running within pytest,
     # so we artificially provide one
-    curses.COLORS = 256
+    # curses.COLORS = 256
     return True
 
 

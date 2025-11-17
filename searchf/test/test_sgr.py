@@ -7,7 +7,7 @@ from .. import sgr
 # When running test with pytest, curses is not initialized and actual
 # color pairs are not available. We just pretend that color pair id
 # are actual valid color pair (both types resolving to int)
-sgr.FG_BG_TO_COLOR_PAIR_FUNC = colors.get_color_pair_id
+sgr.fg_bg_to_color_pair_func = colors.get_color_pair_id
 
 
 def test_processor():

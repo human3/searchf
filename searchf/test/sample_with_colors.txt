@@ -28,8 +28,16 @@ Real life sample:
          │     [32m~~~[37m
          ╵     [32m;[0m
 
-Other CSI sequences:
+Testing other CSI sequences:
 
-  [32mSome color [39mthen back to default color
+  Some [32mcolor[39m then back to default color
+  Some [32mcolor but only go
+    back to default color[39m now
+  Line with [0Kwords that should remain[0;m normally spaced
+  Line with [0K[36;1mcolored words[0;m[0;m that should still be normally spaced
+  Line with [0K[36;1mcolored words[0;m that[0;m should still be normally spaced
+  Line with [0K[0K[36;1mcolored words[0;m[0;m that should still be normally spaced
 
-[2K[1A[2K[G
+  Brackets should be empty [[0K[36;1m[0;m] with nothing special here
+
+  Brackets should be empty [[2K[1A[2K[G]

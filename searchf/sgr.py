@@ -113,7 +113,7 @@ class Processor:
             self._s = -1
 
         def set_attr(a):
-            if not a:
+            if a is None or len(a) <= 0:
                 return
             a = int(a)
             if a == 0:
@@ -138,19 +138,20 @@ class Processor:
         if self._a:
             self._s = 0
 
-        for match in re.finditer(r'\x1b\[([0-9]+)(;([0-9]+))?m', line):
+        for match in re.finditer(r'\x1b\[([0-9]+)(;([0-9]*))?([mK])', line):
             s, e = match.start(), match.end()
-            assert s < e
+            cmd = match.group(4)
             a_1, a_2 = match.group(1), match.group(3)
             start = s - eaten
             eaten += e - s
             # Finish any pending segment
             seg_end(start)
-            # Mark start a new pending
-            set_attr(a_1)
-            set_attr(a_2)
-            if self._a:
-                self._s = start
+            if cmd == 'm':
+                # Mark start a new pending
+                set_attr(a_1)
+                set_attr(a_2)
+                if self._a:
+                    self._s = start
 
         # Finish any pending segment
         seg_end(len(new_line))

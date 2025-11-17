@@ -16,9 +16,6 @@ def _setup():
     if TERM is None:
         return False
     curses.initscr()
-    # curses will not have COLORS attribute when running within pytest,
-    # so we artificially provide one
-    curses.COLORS = 256
     return True
 
 

@@ -539,6 +539,7 @@ class TextView:
             starting: bool,
             direction: int,
     ) -> types.Status:
+        '''Scroll current view to next match'''
         idline = self._offsets.voffset
         ilinemax = len(self._selected.lines)
         iline, _ = self._display.dlines[idline]

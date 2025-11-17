@@ -227,11 +227,11 @@ class App:
     def _get_keyword(self) -> str:
         return self.prompt('Keyword: ', '')
 
-    def try_start_search(self) -> types.Status:
+    def try_start_search_or_vscroll_to_next_match(self) -> types.Status:
         '''Tries to initiate a less like search.'''
         v = self._views[self._current]
         if v.has_filters():
-            return 'Cannot start search when filters already defined'
+            return v.execute(enums.Command.VSCROLL_TO_NEXT_MATCH)
         t = self._get_keyword()
         return v.search(t)
 
@@ -334,8 +334,8 @@ class App:
                 lambda: self._reload(sys.maxsize),
             enums.Command.RELOAD_TAIL_AUTO:
                 lambda: self._toggle_auto_reload(sys.maxsize),
-            enums.Command.TRY_SEARCH:
-                self.try_start_search,
+            enums.Command.TRY_SEARCH_OR_VSCROLL_TO_NEXT_MATCH:
+                self.try_start_search_or_vscroll_to_next_match,
             enums.Command.GOTO_LINE:
                 goto_line,
             enums.Command.RESIZE:

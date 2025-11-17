@@ -1,78 +1,81 @@
-  Utility to interactively search for keywords in text files.
+      [30;1mSearch interactively for keywords in text files.[0m
 
-  In the following descriptions,
-    x     refers to a simple key press of the 'x' key
-    C-x   means Control-x
-    M-x   means Alt-x or Option-x (depending on your system),
-          which can also be triggered by pressing Escape then x
-    Wasd  refers to any 'w', 'a', 's' or 'd' key press
+  In the descriptions below
 
-
-      GENERAL KEYS
-
-  q                   Quit program, or close this help view
-  ?                   Show this help
-  1 or 2 or 3         Switch to view #1, #2 or #3
-  ! or @ or #         Switch to view #1, #2 or #3 with current filters
+  x                   Refers to a simple key press of the 'x' key.
+  C-x                 Means Control-x.
+  M-x                 Means Alt-x or Option-x.
+  S-x                 Means Shift-x.
+  Arrows              Refers to any of the up / down / left / right keys.
+  Wasd                Refers to any 'w', 'a', 's' or 'd' keys.
 
 
-      MOVING
+      [30;1mGENERAL KEYS[0m
 
-  Arrows or Wasd      Scroll up/down/left/right a line or column
-  S-Arrows or S-Wasd  Scroll up/down/left/right a page
-  Space               Scroll down a page
-  b                   Scroll back a page
-  < or g              Scroll to the top
-  > or G              Scroll to the bottom
-  n                   Scroll to next matching line
-  N or p              Scroll to previous matching line
-  C-g or Tab          Goto line number
-  /                   Start a search, kinda like "less", but only if there is
-                      currently no filter defined...
+  h  H  F1            Display this help.
+  q  Q                Quit program, or close this help.
+  1  2  3             Switch to view #1, #2 or #3.
+  !  @  #             Switch to view #1, #2 or #3 with current filters.
 
 
-      FILTERS
+      [30;1mMOVING[0m
 
-  Enter or f          Push a new filter by prompting for its first keyword
-  Backspace or F      Remove filter at the bottom
-  + or =              Push a new keyword to bottom filter
-  - or _              Pop last keyword from bottom filter
-  e or M-Enter        Edit last keyword from bottom filter
-  M-Up or M-w         Rotate all the filters up
-  M-Down or M-s       Rotate all the filters down
-  M-Left or M-a       Rotate all the keywords of bottom filter to the left
-  M-Right or M-d      Rotate all the keywords of bottom filter to the right
-  i                   Toggle whether or not current filter ignores case
-  x                   Toggle whether or not lines matching a filter are shown
-  X                   Toggle whether last keyword must be present or absent
-
-
-      DISPLAY MODES
-
-  l                   Toggles line numbers visibility
-  k                   Toggles line wrapping
-  *                   Toggles diamonds visibility at line starts (when wrapping)
-  .                   Toggles whitespace displaying as dot
-  c                   Next color palette
-  C                   previous color palette
-  h                   Next highlight and colorization mode
-  H                   Previous highlight and colorization mode
-  m                   Next line visibility mode
-  M                   Previous line visibility mode
-  `                   Next SGR processing mode
-  ~                   Prev SGR processing mode
+  Arrows  Wasd        Scroll up/down/left/right a line or column.
+  S-Arrows  S-Wasd    Scroll up/down/left/right a page.
+  Space               Scroll down a page.
+  b                   Scroll back a page.
+  <  g                Scroll to the top.
+  >  G                Scroll to the bottom.
+  n                   Scroll to next matching line.
+  N  p  ?             Scroll to previous matching line.
+  C-g  Tab            Goto line number.
+  /                   Start a new search (kinda like "less") or
+                        scroll to next matching line.
+  ?                   Scroll to previous matching line.
 
 
-      FILE SYSTEM
+      [30;1mFILTERS[0m
 
-  r                   Reload file
-  R                   Toggle auto reload file
-  t                   Reload file and scroll to end (tail)
-  T                   Toggle auto reload and scroll to end (tail)
-  \                   Save filters and modes into next slot on disk
-  |                   Delete current (last loaded) slot from disk
-  [                   Load filters and modes from next slot on disk
-  ]                   Load filters and modes from previous slot on disk
+  Enter  f            Push a new filter by prompting for its first keyword.
+  Backspace  F        Remove filter at the bottom.
+  +  =                Push a new keyword to bottom filter.
+  -  _                Pop last keyword from bottom filter.
+  e  M-Enter          Edit last keyword from bottom filter.
+  M-w  M-Up           Rotate all the filters up.
+  M-s  M-Down         Rotate all the filters down.
+  M-a  M-Left         Rotate all the keywords of bottom filter to the left.
+  M-d  M-Right        Rotate all the keywords of bottom filter to the right.
+  i                   Toggle whether or not current filter ignores case.
+  x                   Toggle whether or not lines matching a filter are shown.
+  X                   Toggle whether last keyword must be present or absent.
+
+
+      [30;1mDISPLAY MODES[0m
+
+  l                   Toggles line numbers visibility.
+  k                   Toggles line wrapping.
+  *                   Toggles diamonds visibility at line starts (when wrapping).
+  .                   Toggles whitespace displaying as dot.
+  c                   Next color palette.
+  C                   previous color palette.
+  m                   Next line visibility mode.
+  M                   Previous line visibility mode.
+  z                   Next highlight and colorization mode.
+  Z                   Previous highlight and colorization mode.
+  `                   Next SGR processing mode.
+  ~                   Prev SGR processing mode.
+
+
+      [30;1mFILE SYSTEM[0m
+
+  r                   Reload file.
+  R                   Toggle auto reload file.
+  t                   Reload file and scroll to end (tail).
+  T                   Toggle auto reload and scroll to end (tail).
+  \                   Save filters and modes into next slot on disk.
+  |                   Delete current (last loaded) slot from disk.
+  [                   Load filters and modes from next slot on disk.
+  ]                   Load filters and modes from previous slot on disk.
 
 
 Type 'q' to close this help

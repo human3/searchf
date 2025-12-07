@@ -326,6 +326,7 @@ class TextView:
     def _sync(self, redraw: bool) -> None:
         self._selected = self._raw.filter(
             self._config.filters,
+            self._config.line_min,
             self._config.line_visibility,
             self._config.sgr_mode)
         self._layout(redraw)
@@ -482,6 +483,45 @@ class TextView:
     def _vscroll(self, delta: int) -> types.Status:
         self.set_v_offset(self._offsets.voffset + delta, True)
         return STATUS_EMPTY
+
+    def _line_min_auto_set(self) -> types.Status:
+        # Compute the index of the raw content line that would be
+        # shown by a single scroll down.
+        # We just iterate over all the line currently displayed on the
+        # screen
+        count = 0
+        ymax, _ = self._content_available_size
+        ri = models.RIndex(0)
+        start = int(self._offsets.voffset)
+        for si, _ in self._display.dlines[start:]:
+            ri, _, _, _ = self._selected.lines[si]
+            count += 1
+            if count > ymax:
+                break
+        self._config.line_min = ri
+        self._sync(True)
+        return f'Ignoring content before line {ri}'
+
+    def _line_min_reset(self) -> types.Status:
+        if self._config.line_min <= 0:
+            return 'Nothing to do (no content ignored at begining)'
+        self._config.line_min = 0
+        self.set_v_offset(0, False)
+        self._sync(True)
+        return 'No longer ignoring content at begining'
+
+    def line_min_set(self, line_text: str) -> types.Status:
+        '''Makes sure the given line is visible, making it the first line on
+        the screen unless that would make last line of the file not
+        displayed at the bottom.'''
+        try:
+            line = int(line_text)
+        except ValueError:
+            return 'Not a number'
+        self._config.line_min = line
+        self.set_v_offset(0, False)
+        self._sync(True)
+        return f'Ignoring content before line {line}'
 
     def goto_line(self, line_text: str) -> types.Status:
         '''Makes sure the given line is visible, making it the first line on
@@ -651,6 +691,10 @@ class TextView:
                 lambda: self._slot_load(True),
             enums.Command.SLOT_LOAD_PREV:
                 lambda: self._slot_load(False),
+            enums.Command.LINE_MIN_AUTO_SET:
+                self._line_min_auto_set,
+            enums.Command.LINE_MIN_RESET:
+                self._line_min_reset,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()

@@ -15,12 +15,22 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
+from typing import NewType
 
 from . import enums
 from . import segments
 from . import types
 from . import sgr
 
+# RIndex type carries an index into the array of text lines from the raw
+# original file content
+RIndex = NewType('RIndex', int)
+
+# SIndex type carries an index into an array of selected lines
+SIndex = NewType('SIndex', int)
+
+# DIndex type carries an index into an array of display lines
+DIndex = NewType('DIndex', int)
 
 class DisplayLine(NamedTuple):
     '''Holds data associated with a single displayable line on the screen. Each
@@ -34,7 +44,7 @@ class DisplayLine(NamedTuple):
         offset      Offset in the original line of the first char of this
                     displayable line.
     '''
-    line_index: int
+    line_index: SIndex
     offset: int
 
 
@@ -53,7 +63,7 @@ class DisplayContent:
         dlines       List of display lines.
     '''
     def __init__(self) -> None:
-        self.firstdlines: List[int] = []
+        self.firstdlines: List[DIndex] = []
         self.dlines: List[DisplayLine] = []
 
     def lines_count(self) -> int:
@@ -121,7 +131,7 @@ def digits_count(number: int) -> int:
     return math.floor(math.log10(max(1, number))+1)
 
 
-RULER_INDEX = -1
+RULER_INDEX = RIndex(-1)
 
 
 class SelectedLine(NamedTuple):
@@ -139,7 +149,7 @@ class SelectedLine(NamedTuple):
         text          The actual raw text of the line.
         segments      The segments that will be highlighted.
     '''
-    line_index: int
+    line_index: RIndex
     filter_index: int
     text: str
     segments: List[segments.Segment]
@@ -284,24 +294,30 @@ class SelectedContent:
         assert width > 0
 
         dlines: List[DisplayLine] = []
-        firstdlines: List[int] = []
+        firstdlines: List[DIndex] = []
         if not wrapping:
-            for idata, mdata in enumerate(self._lines):
-                firstdlines.append(len(dlines))
-                dlines.append(DisplayLine(idata, 0))
+            for i, mdata in enumerate(self._lines):
+                sel_line_idx = SIndex(i)
+                d_line_idx = DIndex(len(dlines))
+                assert len(firstdlines) == sel_line_idx, f'{len(firstdlines)} {sel_line_idx}'
+                firstdlines.append(d_line_idx)
+                dlines.append(DisplayLine(sel_line_idx, 0))
         else:
-            for idata, mdata in enumerate(self._lines):
-                firstdlines.append(len(dlines))
+            for i, mdata in enumerate(self._lines):
+                sel_line_idx = SIndex(i)
+                d_line_idx = DIndex(len(dlines))
+                assert len(firstdlines) == sel_line_idx, f'{len(firstdlines)} {sel_line_idx}'
+                firstdlines.append(d_line_idx)
                 line_idx, _, text, _ = mdata
                 offset = 0
                 if line_idx == RULER_INDEX:
-                    dlines.append(DisplayLine(idata, offset))
+                    dlines.append(DisplayLine(sel_line_idx, offset))
                     continue
                 left = len(text)
                 # If the line is empty, we still push a DisplayLine for
                 # proper rendering of empty lines
                 while True:
-                    dlines.append(DisplayLine(idata, offset))
+                    dlines.append(DisplayLine(sel_line_idx, offset))
                     offset += width
                     left -= width
                     if left <= 0:
@@ -389,6 +405,7 @@ class RawContent:
             else enums.LineVisibility.ALL
         line_queue = SelectedLineQueue(line_mode)
         for i, line in enumerate(self._lines):
+            ri = RIndex(i)
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
             background, line = self._sgr.filter(line, sgr_mode)
@@ -398,10 +415,10 @@ class RawContent:
             if shown:
                 if fidx >= 0:
                     lines += line_queue.add_matching(
-                        SelectedLine(i, fidx, line, segs))
+                        SelectedLine(ri, fidx, line, segs))
                 else:
                     lines += line_queue.add_non_matching(
-                        SelectedLine(i, -1, line, segs))
+                        SelectedLine(ri, -1, line, segs))
         assert len(filters) == len(hits)
         sc = SelectedContent()
         sc.reset(lines, hits)
@@ -495,7 +512,7 @@ class Offsets:
     '''
     def __init__(self) -> None:
         self.hoffset: int = 0
-        self.voffset: int = 0
+        self.voffset: DIndex = DIndex(0)
         self.voffset_desc: str = ''
         self._ymax: int = 0
 
@@ -527,8 +544,8 @@ class Offsets:
         else:
             percent = int(offset * 100 / self._ymax)
             desc = f'{percent}%'
-        if self.voffset == offset:
+        if self.voffset == DIndex(offset):
             return False
-        self.voffset = offset
+        self.voffset = DIndex(offset)
         self.voffset_desc = desc
         return True

@@ -257,24 +257,24 @@ class TextView:
         # less if some content needs multiple lines (wrapping)
 
         # We iterate over all the display lines using idline
-        idline = self._offsets.voffset
-        idlinemax = self._display.lines_count()
+        di = self._offsets.voffset
+        dimax = self._display.lines_count()
 
         for y in range(ymax):
-            if idline >= idlinemax:
+            if di >= dimax:
                 break
-            iline, offset = self._display.dlines[idline]
-            idline += 1
+            si, offset = self._display.dlines[int(di)]
+            di = models.DIndex(di + 1)
 
-            # iline is the index of the selected line associated with the
+            # si is the index of the selected line associated with the
             # current display line. offset is the horizontal offset in
             # original content line where this display line starts.  If offset
             # is not 0, this means the original content line is effectively
             # being wrapped on to multiple lines on the screen.
 
-            line_idx, filter_idx, text, segs = \
-                self._selected.lines[iline]
-            if line_idx == models.RULER_INDEX:
+            ri, filter_idx, text, segs = \
+                self._selected.lines[si]
+            if ri == models.RULER_INDEX:
                 self._win.addstr(y, 0, self._ruler)
                 continue
 
@@ -282,7 +282,7 @@ class TextView:
             # current line
             ffcolor = self._get_color_pair(filter_idx)
             self._draw_prefix(y=y, prefix_info=prefix_info,
-                              line_idx=line_idx, color=ffcolor,
+                              line_idx=ri, color=ffcolor,
                               is_first_line=offset == 0)
             offset += self._offsets.hoffset
             self._draw_content(
@@ -540,21 +540,21 @@ class TextView:
             direction: int,
     ) -> types.Status:
         '''Scroll current view to next match'''
-        idline = self._offsets.voffset
-        ilinemax = len(self._selected.lines)
-        iline, _ = self._display.dlines[idline]
+        di = self._offsets.voffset
+        simax = len(self._selected.lines)
+        si, _ = self._display.dlines[int(di)]
         if not starting:
-            iline += direction
-        while 0 <= iline < ilinemax:
-            _, fidx, _, _ = self._selected.lines[iline]
+            si = models.SIndex(si + direction)
+        while 0 <= si < simax:
+            _, fidx, _, _ = self._selected.lines[si]
             if fidx >= 0:
-                idline = self._display.firstdlines[iline]
+                di = self._display.firstdlines[si]
                 break
-            iline += direction
+            si = models.SIndex(si + direction)
         # Remember current offset to be able to return a side-effect
         # description
         prev_offset = self._offsets.voffset
-        self.set_v_offset(idline, True)
+        self.set_v_offset(di, True)
         if prev_offset == self._offsets.voffset:
             return '(END)' if direction > 0 else '(BEGIN)'
         return 'Next match' if direction > 0 else 'Previous match'

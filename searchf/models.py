@@ -392,6 +392,7 @@ class RawContent:
 
     def filter(self,
                filters: List[Filter],
+               line_min: int,
                line_mode: enums.LineVisibility,
                sgr_mode: enums.SgrMode,
                ) -> SelectedContent:
@@ -399,12 +400,16 @@ class RawContent:
         (line visibility, SGR) and returns an instance of SelectedContent.
 
         '''
+        # pylint: disable=too-many-locals
+
         lines: List[SelectedLine] = []
         hits = [0 for f in filters]
         line_mode = line_mode if sum(not f.hiding for f in filters) > 0 \
             else enums.LineVisibility.ALL
         line_queue = SelectedLineQueue(line_mode)
         for i, line in enumerate(self._lines):
+            if i < line_min:
+                continue
             ri = RIndex(i)
             # Replace tabs with 4 spaces (not clean!!!)
             line = line.replace('\t', '    ')
@@ -440,6 +445,7 @@ class ViewConfig:
     bullets: bool = False
     reverse_matching: bool = False
     line_visibility: enums.LineVisibility = enums.LineVisibility.ONLY_MATCHING
+    line_min: int = 0
     show_all_lines: bool = True
     show_spaces: bool = False
     sgr_mode: enums.SgrMode = enums.SgrMode.PROCESS

@@ -270,6 +270,10 @@ class App:
             line_as_text = self.prompt('Enter line: ', '')
             return v.goto_line(line_as_text)
 
+        def line_min_set() -> types.Status:
+            line_as_text = self.prompt('Enter line: ', '')
+            return v.line_min_set(line_as_text)
+
         def edit_keyword() -> types.Status:
             count, keyword = v.get_last_keyword()
             if count <= 0:
@@ -340,6 +344,8 @@ class App:
                 goto_line,
             enums.Command.RESIZE:
                 resize,
+            enums.Command.LINE_MIN_SET:
+                line_min_set,
         }
 
         handled: bool = True  # Assumed until otherwise

@@ -8,6 +8,7 @@ import time
 
 from typing import List
 from typing import NamedTuple
+from typing import Optional
 from contextlib import contextmanager
 
 from .. import app
@@ -18,6 +19,7 @@ from .. import main
 from .. import storage
 from .. import types
 from .. import utils
+from .. import enums
 
 from . import test_enums
 from . import test_keys
@@ -120,6 +122,7 @@ class AppTest(NamedTuple):
     description: str
     keys: List[str]
     inputs: List[str]
+    cmds: Optional[List[enums.Command]] = None
 
 
 HANDLE_EVENT_DELAY = 0.01
@@ -144,6 +147,12 @@ def _run(stdscr, t: AppTest, f: str):
             time.sleep(HANDLE_EVENT_DELAY)
             i = key if isinstance(key, int) else ord(key)
             main.APP.handle_event(keys.KeyEvent(i))
+        for cmd in (t.cmds or []):
+            stdscr.refresh()
+            # Add sleep just to see something, test can run without it
+            time.sleep(HANDLE_EVENT_DELAY)
+            main.APP.handle_event(keys.KeyEvent(keys.UNMAP, '', cmd))
+
     store.destroy()
 
 
@@ -239,10 +248,13 @@ def _run_app_tests(stdscr):
     print()
 
     app_tests = [
+        AppTest('Test unknown key binding',
+                ['y', 'u', ':'],
+                []),
         AppTest('Test keywords that are invalid regex',
                 ['f'], ['?']),
         AppTest('Test that help can get displayed',
-                ['?', 'q'], []),
+                ['h', 'h', 'q'], []),
         AppTest('Test view switching',
                 ['r', 't', '1', '2', '3', '!', '@', '#'], []),
         AppTest('Test reloading',
@@ -256,7 +268,7 @@ def _run_app_tests(stdscr):
         AppTest('Test various display modes',
                 ['l', 'k', 'k', '.', '.', '*', '*', 'm', 'M', 'm'], []),
         AppTest('Test entering one letter keywords',
-                ['+', '+', 'f', 'f', 'v', 'h', 'h', 'v', 'v', 'V', 'c', 'c',
+                [';', '+', '+', 'f', 'f', ';', 'h', 'h', 'c', 'c',
                  'F', '-', '-', '+'],
                 ['a', 'b', 'c', 'd', '']),
         AppTest('Test entering and removing keywords',
@@ -299,6 +311,10 @@ def _run_app_tests(stdscr):
         AppTest('Test SGR Processing modes',
                 ['`', '`', '`', '~', '~', '~'],
                 ['', '']),
+        AppTest('Test selecting content',
+                ['s', 's', 'v', 'v', 'V', 'V'],
+                ['123', 'not a number'],
+                [enums.Command.LINE_MIN_SET, enums.Command.LINE_MIN_SET]),
     ]
 
     for test in app_tests:

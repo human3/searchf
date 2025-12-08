@@ -90,9 +90,9 @@ KEYS_TO_COMMAND = {
     ord('T'):              enums.Command.RELOAD_TAIL_AUTO,
     ord('/'):              enums.Command.TRY_SEARCH_OR_VSCROLL_TO_NEXT_MATCH,
     ord('?'):              enums.Command.VSCROLL_TO_PREV_MATCH,
-    ord('v'):              enums.Command.SWAP_FILTERS,
     ord('z'):              enums.Command.NEXT_COLORIZE_MODE,
     ord('Z'):              enums.Command.PREV_COLORIZE_MODE,
+    ord(';'):              enums.Command.SWAP_FILTERS,
 
     curses.ascii.TAB:      enums.Command.GOTO_LINE,
     curses.ascii.BEL:      enums.Command.GOTO_LINE,
@@ -104,6 +104,8 @@ KEYS_TO_COMMAND = {
     ord('}'):              enums.Command.ROTATE_FILTERS_DOWN,
     ord('('):              enums.Command.ROTATE_KEYWORDS_LEFT,
     ord(')'):              enums.Command.ROTATE_KEYWORDS_RIGHT,
+    ord('v'):              enums.Command.LINE_MIN_AUTO_SET,
+    ord('V'):              enums.Command.LINE_MIN_RESET,
 }
 
 MOUSE_STATE_TO_CMD = {}
@@ -229,6 +231,7 @@ ESCAPED_TO_COMMAND = {
     SHIFT + RIGHT:         enums.Command.GO_SRIGHT,
     'OH':                  enums.Command.GO_HOME,
     'OF':                  enums.Command.GO_END,
+    'v':                   enums.Command.LINE_MIN_SET,
 }
 
 

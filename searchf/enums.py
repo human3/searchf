@@ -122,3 +122,6 @@ class Command(Enum):
     TRY_SEARCH_OR_VSCROLL_TO_NEXT_MATCH = auto()
     GOTO_LINE = auto()
     RESIZE = auto()
+    LINE_MIN_RESET = auto()
+    LINE_MIN_SET = auto()
+    LINE_MIN_AUTO_SET = auto()

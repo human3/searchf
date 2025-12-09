@@ -484,7 +484,13 @@ class TextView:
         self.set_v_offset(self._offsets.voffset + delta, True)
         return STATUS_EMPTY
 
-    def _line_min_auto_set(self) -> types.Status:
+    def _line_min(self, ri: models.RIndex) -> types.Status:
+        self._config.line_min = ri
+        self.set_v_offset(0, False)
+        self._sync(True)
+        return f'Ignoring content before line {ri}'
+
+    def _line_min_set_bottom(self) -> types.Status:
         # Compute the index of the raw content line that would be
         # shown by a single scroll down.
         # We just iterate over all the line currently displayed on the
@@ -498,15 +504,19 @@ class TextView:
             count += 1
             if count > ymax:
                 break
-        self._config.line_min = ri
-        self._sync(True)
-        return f'Ignoring content before line {ri}'
+        return self._line_min(ri)
+
+    def _line_min_set_top(self) -> types.Status:
+        ri = models.RIndex(0)
+        start = int(self._offsets.voffset)
+        si, _ = self._display.dlines[start]
+        ri, _, _, _ = self._selected.lines[si]
+        return self._line_min(ri)
 
     def _line_min_reset(self) -> types.Status:
         if self._config.line_min <= 0:
             return 'Nothing to do (no content ignored at begining)'
         self._config.line_min = 0
-        self.set_v_offset(0, False)
         self._sync(True)
         return 'No longer ignoring content at begining'
 
@@ -518,10 +528,7 @@ class TextView:
             line = int(line_text)
         except ValueError:
             return 'Not a number'
-        self._config.line_min = line
-        self.set_v_offset(0, False)
-        self._sync(True)
-        return f'Ignoring content before line {line}'
+        return self._line_min(models.RIndex(line))
 
     def goto_line(self, line_text: str) -> types.Status:
         '''Makes sure the given line is visible, making it the first line on
@@ -691,10 +698,12 @@ class TextView:
                 lambda: self._slot_load(True),
             enums.Command.SLOT_LOAD_PREV:
                 lambda: self._slot_load(False),
-            enums.Command.LINE_MIN_AUTO_SET:
-                self._line_min_auto_set,
             enums.Command.LINE_MIN_RESET:
                 self._line_min_reset,
+            enums.Command.LINE_MIN_SET_BOTTOM:
+                self._line_min_set_bottom,
+            enums.Command.LINE_MIN_SET_TOP:
+                self._line_min_set_top,
         }
         assert command in dispatch, f'command {command}'
         return dispatch[command]()

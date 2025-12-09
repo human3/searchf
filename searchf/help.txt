@@ -52,9 +52,10 @@
 
       [30;1mSELECTING CONTENT[0m
 
-  v                   Ignore all content before and including current screen.
-  V                   Stop ignoring content at beginning.
-  M-v                 Ignore all content before a given line number.
+  u                   Ignore all content before current screen.
+  U                   Stop ignoring content at beginning.
+  M-u                 Ignore all content before and including current screen.
+  C-u                 Ignore all content before a given line number.
 
 
       [30;1mDISPLAY MODES[0m

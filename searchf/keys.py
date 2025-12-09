@@ -104,8 +104,9 @@ KEYS_TO_COMMAND = {
     ord('}'):              enums.Command.ROTATE_FILTERS_DOWN,
     ord('('):              enums.Command.ROTATE_KEYWORDS_LEFT,
     ord(')'):              enums.Command.ROTATE_KEYWORDS_RIGHT,
-    ord('v'):              enums.Command.LINE_MIN_AUTO_SET,
-    ord('V'):              enums.Command.LINE_MIN_RESET,
+    ord('u'):              enums.Command.LINE_MIN_SET_TOP,
+    ord('U'):              enums.Command.LINE_MIN_RESET,
+    curses.ascii.NAK:      enums.Command.LINE_MIN_SET,
 }
 
 MOUSE_STATE_TO_CMD = {}
@@ -231,7 +232,7 @@ ESCAPED_TO_COMMAND = {
     SHIFT + RIGHT:         enums.Command.GO_SRIGHT,
     'OH':                  enums.Command.GO_HOME,
     'OF':                  enums.Command.GO_END,
-    'v':                   enums.Command.LINE_MIN_SET,
+    'u':                   enums.Command.LINE_MIN_SET_BOTTOM,
 }
 
 

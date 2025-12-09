@@ -124,4 +124,5 @@ class Command(Enum):
     RESIZE = auto()
     LINE_MIN_RESET = auto()
     LINE_MIN_SET = auto()
-    LINE_MIN_AUTO_SET = auto()
+    LINE_MIN_SET_BOTTOM = auto()
+    LINE_MIN_SET_TOP = auto()

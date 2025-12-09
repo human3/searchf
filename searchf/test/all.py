@@ -312,9 +312,9 @@ def _run_app_tests(stdscr):
                 ['`', '`', '`', '~', '~', '~'],
                 ['', '']),
         AppTest('Test selecting content',
-                ['s', 's', 'v', 'v', 'V', 'V'],
-                ['123', 'not a number'],
-                [enums.Command.LINE_MIN_SET, enums.Command.LINE_MIN_SET]),
+                ['s', 's', 'u', 'u', 'U', 'U'],
+                ['not a number', '0'],
+                [enums.Command.LINE_MIN_SET_BOTTOM, enums.Command.LINE_MIN_SET, enums.Command.LINE_MIN_SET]),
     ]
 
     for test in app_tests:

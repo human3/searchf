@@ -140,7 +140,7 @@ def _run(stdscr, t: AppTest, f: str):
         margins = types.Margins()
         margins.bottom += 1
         main.APP.create(store=store, scr=stdscr, margins=margins,
-                        show_events=True, path=f)
+                        show_events=True, filters=None, path=f)
         for key in t.keys:
             stdscr.refresh()
             # Add sleep just to see something, test can run without it
@@ -196,14 +196,14 @@ def _test_main_main_loop(stdscr):
     keys_processor = keys.Processor(keys.Provider(
         [' ', '>', 'l', keys.POLL, 'q']),
                                     MouseProvider([]))
-    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, False, None, keys_processor)
 
 
 def _test_main_resize(stdscr):
     print('Test main.resize')
     keys_processor = keys.Processor(keys.Provider([curses.KEY_RESIZE, 'q']),
                                     MouseProvider([]))
-    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, False, None, keys_processor)
 
 
 def _test_main_mouse(stdscr):
@@ -212,7 +212,7 @@ def _test_main_mouse(stdscr):
         [curses.KEY_MOUSE, curses.KEY_MOUSE, 'q']),
                                     MouseProvider(
         [curses.BUTTON4_PRESSED, 123456]))
-    main.main_loop(stdscr, TEST_FILE, False, False, keys_processor)
+    main.main_loop(stdscr, TEST_FILE, False, False, None, keys_processor)
 
 
 def _test_main_debug_view(stdscr):
@@ -390,6 +390,7 @@ def _test_main_main():
         parser.add_argument('-file', default=TEST_FILE)
         parser.add_argument('-debug', default=False)
         parser.add_argument('-show-events', default=False)
+        parser.add_argument('-filters', default=None)
         print('test_env')
         return parser
 

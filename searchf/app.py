@@ -4,6 +4,7 @@ import copy
 import curses
 import curses.ascii
 import os
+import pathlib
 import sys
 
 from curses.textpad import Textbox
@@ -193,7 +194,8 @@ class App:
             scr,
             margins: types.Margins,
             show_events: bool,
-            path: str,
+            filters: pathlib.Path,
+            path: pathlib.Path,
     ) -> None:
         '''Creates all views in the given screen, and loads the content from
         the given file.'''

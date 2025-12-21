@@ -3,6 +3,7 @@
 import os
 import argparse
 import curses
+import pathlib
 
 from . import __version__
 from . import __url__
@@ -59,9 +60,10 @@ class StatusView:
 
 
 def main_loop(scr,
-              path: str,
+              path: pathlib.Path,
               use_debug: bool,
               show_events: bool,
+              filters: pathlib.Path,
               keys_processor: keys.Processor
               ) -> None:
     '''Main loop consuming keys and events.'''
@@ -73,7 +75,7 @@ def main_loop(scr,
     margins = types.Margins()
     margins.bottom += 1
     APP.create(store=store, scr=scr, margins=margins,
-               show_events=show_events, path=path)
+               show_events=show_events, filters=filters, path=path)
     v = StatusView(scr)
     v.layout()
 
@@ -103,7 +105,15 @@ def main_curses(scr, args) -> None:
               args.file,
               args.debug,
               args.show_events,
+              args.filters,
               keys.Processor(scr, curses))
+
+
+def valid_path(path_str: str) -> pathlib.Path:
+    path = pathlib.Path(path_str)
+    if not path.exists():
+        raise argparse.ArgumentTypeError(f"The file {path_str} does not exist.")
+    return path
 
 
 def init_env() -> argparse.ArgumentParser:
@@ -116,13 +126,18 @@ def init_env() -> argparse.ArgumentParser:
 highlight keywords.',
         epilog='Press ? in the application for more information, or go to \
 https://github.com/human3/searchf')
-    parser.add_argument('file')
+    parser.add_argument('file',
+                        type=valid_path,
+                        help="Path to the file to interactively search into")
     parser.add_argument('--debug',
                         help='Use debug layout',
                         action='store_true')
     parser.add_argument('--show-events',
                         help='Show events like key presses',
                         action='store_true')
+    parser.add_argument('--filters',
+                        type=valid_path,
+                        help='Use the filters in the given yaml file')
     return parser
 
 

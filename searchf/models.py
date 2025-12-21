@@ -32,6 +32,7 @@ SIndex = NewType('SIndex', int)
 # DIndex type carries an index into an array of display lines
 DIndex = NewType('DIndex', int)
 
+
 class DisplayLine(NamedTuple):
     '''Holds data associated with a single displayable line on the screen. Each
     line in the original file might not entirely fit on screen, and can be
@@ -295,14 +296,16 @@ class SelectedContent:
             for i, mdata in enumerate(self._lines):
                 sel_line_idx = SIndex(i)
                 d_line_idx = DIndex(len(dlines))
-                assert len(firstdlines) == sel_line_idx, f'{len(firstdlines)} {sel_line_idx}'
+                assert len(firstdlines) == sel_line_idx, \
+                    f'{len(firstdlines)} {sel_line_idx}'
                 firstdlines.append(d_line_idx)
                 dlines.append(DisplayLine(sel_line_idx, 0))
         else:
             for i, mdata in enumerate(self._lines):
                 sel_line_idx = SIndex(i)
                 d_line_idx = DIndex(len(dlines))
-                assert len(firstdlines) == sel_line_idx, f'{len(firstdlines)} {sel_line_idx}'
+                assert len(firstdlines) == sel_line_idx, \
+                    f'{len(firstdlines)} {sel_line_idx}'
                 firstdlines.append(d_line_idx)
                 line_idx, _, text, _ = mdata
                 offset = 0

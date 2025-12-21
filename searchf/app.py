@@ -4,6 +4,7 @@ import copy
 import curses
 import curses.ascii
 import os
+import pathlib
 import sys
 
 from curses.textpad import Textbox
@@ -23,7 +24,7 @@ USE_DEBUG = False
 STATUS_UNCHANGED = 'unchanged'
 
 
-def load_lines(path: str) -> List[str]:
+def load_lines(path: pathlib.Path) -> List[str]:
     '''Load all the lines of the given file.'''
     with open(path, encoding='utf-8') as f:
         # splitlines() ensures that any newline char is removed
@@ -109,7 +110,7 @@ class App:
         self._scr: Any = None
         self._margins: types.Margins = types.Margins()
         self._show_events: bool = False
-        self._path: str = ''
+        self._path: pathlib.Path = pathlib.Path()
         self._views: List[views.TextView] = []
         self._help_view_index: int = -1
         self._current: int = -1
@@ -193,7 +194,7 @@ class App:
             scr,
             margins: types.Margins,
             show_events: bool,
-            path: str,
+            path: pathlib.Path,
     ) -> None:
         '''Creates all views in the given screen, and loads the content from
         the given file.'''
@@ -205,7 +206,7 @@ class App:
         self._views.append(views.TextView(store, scr, 'View 1', path))
         self._views.append(views.TextView(store, scr, 'View 2', path))
         self._views.append(views.TextView(store, scr, 'View 3', path))
-        self._views.append(views.TextView(store, scr, 'Help', 'Help'))
+        self._views.append(views.TextView(store, scr, 'Help', pathlib.Path()))
         self._help_view_index = len(self._views) - 1
         self._views[self._help_view_index].get_config().line_numbers = False
         if USE_DEBUG:

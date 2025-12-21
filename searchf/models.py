@@ -86,23 +86,19 @@ class Filter:
     ignore_case: bool = False
     hiding: bool = False
     keywords: Dict[str, None]
-    mods: List[bool]
 
     def __init__(self) -> None:
         # We use a Dict to make sure that keywords are never added
         # twice (ie like a set) and that insertion order is preserved
         # (ie like a stack).
         self.keywords = {}
-        self.mods = []
 
     def add(self, keyword: str) -> None:
         '''Adds given keyword to this filter.'''
         self.keywords[keyword] = None
-        self.mods.append(True)
 
     def pop(self) -> Tuple[str, None]:
         '''Removes most recently added keyword from this filter.'''
-        del self.mods[-1]
         return self.keywords.popitem()
 
     def get_count_and_last_keyword(self) -> Tuple[int, Optional[str]]:

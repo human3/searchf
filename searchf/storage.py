@@ -2,11 +2,11 @@
 
 import os
 import pathlib
-import pickle
+import yaml
 
 from typing import Optional
 
-SUFFIX = '.pickle'
+SUFFIX = '.yaml'
 
 SlotId = int
 
@@ -60,8 +60,8 @@ class Store:
         saved = self._next_slot_id
         prefix = _slot_id_to_prefix(saved)
         path = self._base_dir.joinpath(f'{prefix}{SUFFIX}')
-        with path.open("wb") as fout:
-            pickle.dump(obj, fout)
+        with path.open("w") as fout:
+            yaml.dump(obj, fout, default_flow_style=False)
         self._scan()
         count = len(self._files)
         assert count > 0
@@ -96,5 +96,5 @@ class Store:
         self._cur_idx = (self._cur_idx + inc) % count
         path = self._files[self._cur_idx]
         slot_id = self._slot_ids[self._cur_idx]
-        with path.open("rb") as fin:
-            return pickle.load(fin), slot_id
+        with path.open("r") as fin:
+            return yaml.safe_load(fin), slot_id

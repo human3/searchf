@@ -93,6 +93,7 @@ KEYS_TO_COMMAND = {
     ord('z'):              enums.Command.NEXT_COLORIZE_MODE,
     ord('Z'):              enums.Command.PREV_COLORIZE_MODE,
     ord(';'):              enums.Command.SWAP_FILTERS,
+    ord('o'):              enums.Command.SELECT_FILE,
 
     curses.ascii.TAB:      enums.Command.GOTO_LINE,
     curses.ascii.BEL:      enums.Command.GOTO_LINE,

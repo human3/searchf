@@ -18,6 +18,7 @@ from . import keys
 from . import models
 from . import segments
 from . import types
+from . import storage
 
 # Do not use curses.A_BOLD on Windows as it just renders horribly when
 # highlighting
@@ -67,7 +68,7 @@ class TextView:
             models.DisplayContent()
         self._offsets: models.Offsets = models.Offsets()
         self._config: models.ViewConfig = models.ViewConfig()
-        self._store = store
+        self._store: storage.Store = store
         self._scr = scr
         self._name: str = name
         self._basename: str = os.path.basename(path)

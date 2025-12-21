@@ -9,6 +9,7 @@ classes are:
 '''
 
 import math
+import yaml
 
 from typing import Dict
 from typing import List
@@ -21,6 +22,7 @@ from . import enums
 from . import segments
 from . import types
 from . import sgr
+
 
 # RIndex type carries an index into the array of text lines from the raw
 # original file content
@@ -72,7 +74,7 @@ class DisplayContent:
         return len(self.dlines)
 
 
-class Filter:
+class Filter(yaml.YAMLObject):
     '''Filters are used to select lines and highlight keywords in these
     matching lines. In practice, each filter holds properties defining
     how matching is done and a list of keywords. Keywords can be added
@@ -83,26 +85,26 @@ class Filter:
         hiding       Defines the visibility of lines matching this filter.
         keywords     List of keywords.
     '''
+
+    yaml_tag = u'!Filter'
+    yaml_loader = yaml.SafeLoader
+
     ignore_case: bool = False
     hiding: bool = False
     keywords: Dict[str, None]
-    mods: List[bool]
 
     def __init__(self) -> None:
         # We use a Dict to make sure that keywords are never added
         # twice (ie like a set) and that insertion order is preserved
         # (ie like a stack).
         self.keywords = {}
-        self.mods = []
 
     def add(self, keyword: str) -> None:
         '''Adds given keyword to this filter.'''
         self.keywords[keyword] = None
-        self.mods.append(True)
 
     def pop(self) -> Tuple[str, None]:
         '''Removes most recently added keyword from this filter.'''
-        del self.mods[-1]
         return self.keywords.popitem()
 
     def get_count_and_last_keyword(self) -> Tuple[int, Optional[str]]:
@@ -430,13 +432,16 @@ class RawContent:
         return sc
 
 
-class ViewConfig:
+class ViewConfig(yaml.YAMLObject):
     '''This class holds the configuration of a view, like filters to use or the
     display modes, typically changed by end users to match their need. Does not
     contain any data related to actual file content, and can get serialized for
     persistence (see storage.py). This class is not a view class per-se in the
     sense that it does NOT depend on curses or anything UI related.
     '''
+
+    yaml_tag = u'!ViewConfig'
+    yaml_loader = yaml.SafeLoader
 
     # pylint: disable=too-many-instance-attributes
 

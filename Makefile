@@ -10,7 +10,7 @@ FILE=README.md
 $(VENV_DIR):
 	python3 -m venv $(VENV_DIR)
 	# Install python packages in venv
-	$(PIP) install build pytest pytest-cov flake8
+	$(PIP) install build pytest pytest-cov flake8 pyyaml
 
 env: $(VENV_DIR)
 

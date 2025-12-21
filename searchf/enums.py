@@ -126,3 +126,4 @@ class Command(Enum):
     LINE_MIN_SET = auto()
     LINE_MIN_SET_BOTTOM = auto()
     LINE_MIN_SET_TOP = auto()
+    SELECT_FILE = auto()

@@ -3,6 +3,7 @@
 import os
 import argparse
 import curses
+import pathlib
 
 from . import __version__
 from . import __url__
@@ -25,6 +26,14 @@ def _load_help_lines():
     lines += [f'  {__url__}']
     lines += [f'  {__url__}/releases/tag/{__version__}']
     return lines
+
+
+def _valid_path(path_str: str) -> pathlib.Path:
+    path = pathlib.Path(path_str)
+    if not path.exists():
+        raise argparse.ArgumentTypeError(
+            f"The file '{path_str}' does not exist.")
+    return path
 
 
 HELP_LINES = _load_help_lines()
@@ -59,7 +68,7 @@ class StatusView:
 
 
 def main_loop(scr,
-              path: str,
+              path: pathlib.Path,
               use_debug: bool,
               show_events: bool,
               keys_processor: keys.Processor
@@ -100,7 +109,7 @@ def main_loop(scr,
 def main_curses(scr, args) -> None:
     '''Main entry point requiring curse environment.'''
     main_loop(scr,
-              args.file,
+              args.FILE,
               args.debug,
               args.show_events,
               keys.Processor(scr, curses))
@@ -116,7 +125,9 @@ def init_env() -> argparse.ArgumentParser:
 highlight keywords.',
         epilog='Press ? in the application for more information, or go to \
 https://github.com/human3/searchf')
-    parser.add_argument('file')
+    parser.add_argument('FILE',
+                        type=_valid_path,
+                        help="Path to the file to interactively search into")
     parser.add_argument('--debug',
                         help='Use debug layout',
                         action='store_true')

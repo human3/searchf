@@ -2,7 +2,7 @@
 
 import curses
 import curses.ascii
-import os
+import pathlib
 import re
 import sys
 
@@ -58,7 +58,7 @@ class TextView:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, store, scr, name: str, path: str) -> None:
+    def __init__(self, store, scr, name: str, path: pathlib.Path) -> None:
         self._raw: models.RawContent = \
             models.RawContent()
         self._selected: models.SelectedContent = \
@@ -70,7 +70,7 @@ class TextView:
         self._store = store
         self._scr = scr
         self._name: str = name
-        self._basename: str = os.path.basename(path)
+        self._basename: str = path.name
         # self._win: Optional[curses._CursesWindow]
         self._win: Any = None
         self._size: types.Size = (0, 0)

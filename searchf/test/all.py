@@ -4,6 +4,7 @@
 import argparse
 import curses
 import os
+import pathlib
 import time
 
 from typing import List
@@ -28,10 +29,8 @@ from . import test_segments
 from . import test_sgr
 from . import test_storage
 
-TEST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'sample.txt')
-TEST_FILE_C = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           'sample_with_colors.txt')
+TEST_FILE = pathlib.Path(os.path.dirname(__file__), 'sample.txt')
+TEST_FILE_C = pathlib.Path(os.path.dirname(__file__), 'sample_with_colors.txt')
 
 
 class KeywordsInjector:
@@ -128,7 +127,7 @@ class AppTest(NamedTuple):
 HANDLE_EVENT_DELAY = 0.01
 
 
-def _run(stdscr, t: AppTest, f: str):
+def _run(stdscr, t: AppTest, f: pathlib.Path):
     '''Helper function to run the given AppTest'''
     print(t.description)
     stdscr.clear()
@@ -387,7 +386,7 @@ def _test_main_main():
 
     def _init_env():
         parser = argparse.ArgumentParser(description='Dummy parser')
-        parser.add_argument('-file', default=TEST_FILE)
+        parser.add_argument('-FILE', default=TEST_FILE)
         parser.add_argument('-debug', default=False)
         parser.add_argument('-show-events', default=False)
         print('test_env')

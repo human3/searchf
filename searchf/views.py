@@ -102,7 +102,7 @@ class TextView:
     def _slot_load(self, goto_next: bool) -> types.Status:
         if not self._store.can_load():
             return 'Nothing to load. All slots are empty.'
-        self._config, idx = self._store.load(goto_next)
+        self._config, idx = self._store.load(models.ViewConfig, goto_next)
         self._sync(True)
         self._config.dirty = False
         return f'Slot {idx} loaded'

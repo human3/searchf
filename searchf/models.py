@@ -8,7 +8,11 @@ classes are:
 - DisplayContent: line-wrapped version of SelectedContent.
 '''
 
+import enum
 import math
+import pathlib
+import dataclasses
+import pydantic
 
 from typing import Dict
 from typing import List
@@ -72,8 +76,7 @@ class DisplayContent:
         without clipping any of it.'''
         return len(self.dlines)
 
-
-class Filter:
+class Filter(pydantic.BaseModel):
     '''Filters are used to select lines and highlight keywords in these
     matching lines. In practice, each filter holds properties defining
     how matching is done and a list of keywords. Keywords can be added
@@ -84,15 +87,10 @@ class Filter:
         hiding       Defines the visibility of lines matching this filter.
         keywords     List of keywords.
     '''
+
     ignore_case: bool = False
     hiding: bool = False
-    keywords: Dict[str, None]
-
-    def __init__(self) -> None:
-        # We use a Dict to make sure that keywords are never added
-        # twice (ie like a set) and that insertion order is preserved
-        # (ie like a stack).
-        self.keywords = {}
+    keywords: Dict[str, None] = pydantic.Field(default_factory=dict)
 
     def add(self, keyword: str) -> None:
         '''Adds given keyword to this filter.'''
@@ -400,7 +398,6 @@ class RawContent:
 
         '''
         # pylint: disable=too-many-locals
-
         lines: List[SelectedLine] = []
         hits = [0 for f in filters]
         line_mode = line_mode if sum(not f.hiding for f in filters) > 0 \
@@ -428,8 +425,7 @@ class RawContent:
         sc.reset(lines, hits)
         return sc
 
-
-class ViewConfig:
+class ViewConfig(pydantic.BaseModel):
     '''This class holds the configuration of a view, like filters to use or the
     display modes, typically changed by end users to match their need. Does not
     contain any data related to actual file content, and can get serialized for
@@ -439,6 +435,7 @@ class ViewConfig:
 
     # pylint: disable=too-many-instance-attributes
 
+    filters: List[Filter] = [] # dataclasses.field(default_factory=List)
     line_numbers: bool = True
     wrap: bool = True
     bullets: bool = False
@@ -451,9 +448,6 @@ class ViewConfig:
     colorize_mode: enums.ColorizeMode = enums.ColorizeMode.KEYWORD_HIGHLIGHT
     palette_id: types.PaletteId = 0
     dirty: bool = False
-
-    def __init__(self) -> None:
-        self.filters: List[Filter] = []
 
     def get_filters_count(self) -> int:
         '''Returns the number of filters currently defined.'''

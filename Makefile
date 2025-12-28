@@ -10,7 +10,7 @@ FILE=README.md
 $(VENV_DIR):
 	python3 -m venv $(VENV_DIR)
 	# Install python packages in venv
-	$(PIP) install build pytest pytest-cov flake8
+	$(PIP) install build pytest pytest-cov flake8 pydantic-yaml
 
 env: $(VENV_DIR)
 
@@ -82,8 +82,9 @@ install: build
 
 clean:
 	$(PIP) uninstall -y searchf
-	find -type f -name "*~" -print -delete
 	rm -Rf dist
+	rm -Rf .searchf
+	find . -type f -name "*~" -delete -print
 
 cover: cover-all
 

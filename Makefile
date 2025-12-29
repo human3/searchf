@@ -10,7 +10,7 @@ FILE=README.md
 $(VENV_DIR):
 	python3 -m venv $(VENV_DIR)
 	# Install python packages in venv
-	$(PIP) install build pytest pytest-cov flake8 pydantic-yaml
+	$(PIP) install build pytest pytest-cov flake8 pydantic pydantic_yaml pylint
 
 env: $(VENV_DIR)
 
@@ -54,10 +54,10 @@ profile: env
 	$(RUN_PY_MOD) cProfile -s cumtime -m searchf.test.all
 
 type:
-	mypy searchf
+	mypy --python-executable $(PY) searchf
 
 lint:
-	pylint searchf
+	$(PY) -m pylint searchf
 	$(RUN_PY_MOD) flake8 searchf
 
 checks: type lint

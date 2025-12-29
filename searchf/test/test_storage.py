@@ -1,15 +1,23 @@
 '''Unit tests for storage'''
 
-import dataclasses
-import json
+import pydantic
 
 from .. import enums
 from .. import storage
 from .. import models
 
-@dataclasses.dataclass
-class Dummy():
-    object: any = None
+
+class Dummy(pydantic.BaseModel):
+    '''Dummy class for tests'''
+    a_int: int = 0
+    a_bool: bool = False
+    a_str: str = ''
+
+    def setup(self, _int: int, _bool: bool, _str: str):
+        '''Pseudo init function'''
+        self.a_int = _int
+        self.a_bool = _bool
+        self.a_str = _str
 
 
 def test_store():
@@ -19,74 +27,60 @@ def test_store():
     assert not store.can_load()
 
     # Check we can save and then load
-    slot_id = store.save(Dummy({'text': 'My object 1'}))
+    o1 = Dummy()
+    o1.setup(123, True, "o1")
+    slot_id = store.save(o1)
     assert store.can_load()
     assert slot_id == 0
 
     # Check we load expected object
-    obj, slot_id2 = store.load(False)
-    assert slot_id == slot_id2
-    assert obj['object']['text'] == 'My object 1'
+    obj, slot_id1 = store.load(Dummy, True)
+    assert slot_id == slot_id1
+    assert obj == o1
 
     # Check we can delete
-    slot_id3 = store.delete()
-    assert slot_id == slot_id3
+    slot_id2 = store.delete()
+    assert slot_id == slot_id2
 
     # Check we cannot delete when we have no current slot
     assert not store.delete()
 
     # Save a new object
-    slot_id = store.save(Dummy({'text': 'My object 2'}))
+    o2 = Dummy()
+    o2.setup(123, True, "o2")
+
+    slot_id = store.save(o2)
     assert slot_id == 0
 
     # Create a brand new store and check we can load
     store = storage.Store('.searchf.test')
     assert store.can_load()
-    obj, slot_id = store.load(False)
+    obj, slot_id = store.load(Dummy, False)
     assert slot_id == 0
-    assert obj['object']['text'] == 'My object 2'
+    assert obj == o2
 
     # Check destroying
     store.destroy()
 
 
-# # Capture the original error-raising function
-# original_error = yaml.representer.SafeRepresenter.represent_undefined
-
-# def debug_representer(self, data):
-#     print(f"DEBUG: Attempting to represent type: {type(data)}")
-#     print(f"DEBUG: Data value: {data}")
-#     return original_error(self, data)
-
-# # Apply the patch
-# yaml.representer.SafeRepresenter.represent_undefined = debug_representer
-
-# def clean_for_yaml(data):
-#     # Round-trip through JSON to strip non-standard types
-#     # (like Path, NumPy types, or custom objects)
-#     return json.loads(json.dumps(data, default=str))
-
 def test_model_persists():
     '''Test model persists'''
-    print('test_model_persists')
 
     store = storage.Store('.searchf.test')
     store.destroy()
+    assert not store.can_load()
+
     f = models.Filter()
-    slot_id = store.save(f)
-    print(f'models.Filter: {slot_id}')
+    store.save(f)
     f2 = store.load(models.Filter, True)
-    print(f'loaded {f2}')
+    assert f == f2, f'{f} {f2}'
 
     vc = models.ViewConfig()
     vc.line_visibility = enums.LineVisibility.CONTEXT_1
     vc.colorize_mode = enums.ColorizeMode.LINE
-    slot_id = store.save(vc)
-    print(f'models.ViewConfig: {slot_id}')
+    store.save(vc)
     vc2 = store.load(models.ViewConfig, True)
-    print(f'loaded {vc2}')
-    assert vc.line_visibility == enums.LineVisibility.CONTEXT_1
-    assert vc.colorize_mode == enums.ColorizeMode.LINE
+    assert vc2 == vc
 
     vc = models.ViewConfig()
     vc.line_visibility = enums.LineVisibility.CONTEXT_1
@@ -97,14 +91,11 @@ def test_model_persists():
     f = models.Filter()
     f.add('bad')
     vc.filters.append(f)
-    slot_id = store.save(vc)
-    print(f'models.ViewConfig: {slot_id}')
+    store.save(vc)
     vc2 = store.load(models.ViewConfig, True)
+    assert vc == vc2
     vc2 = store.load(models.ViewConfig, True)
-    print(f'loaded {vc2}')
-    assert vc.line_visibility == enums.LineVisibility.CONTEXT_1
-    assert vc.colorize_mode == enums.ColorizeMode.LINE
 
-# test_store()
+
+test_store()
 test_model_persists()
-

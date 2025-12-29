@@ -8,11 +8,6 @@ classes are:
 - DisplayContent: line-wrapped version of SelectedContent.
 '''
 
-import enum
-import math
-import pathlib
-import dataclasses
-import pydantic
 
 from typing import Dict
 from typing import List
@@ -20,6 +15,9 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 from typing import NewType
+
+import math
+import pydantic
 
 from . import enums
 from . import segments
@@ -75,6 +73,7 @@ class DisplayContent:
         '''Gets the number of lines required to display the whole content
         without clipping any of it.'''
         return len(self.dlines)
+
 
 class Filter(pydantic.BaseModel):
     '''Filters are used to select lines and highlight keywords in these
@@ -425,6 +424,7 @@ class RawContent:
         sc.reset(lines, hits)
         return sc
 
+
 class ViewConfig(pydantic.BaseModel):
     '''This class holds the configuration of a view, like filters to use or the
     display modes, typically changed by end users to match their need. Does not
@@ -435,7 +435,7 @@ class ViewConfig(pydantic.BaseModel):
 
     # pylint: disable=too-many-instance-attributes
 
-    filters: List[Filter] = [] # dataclasses.field(default_factory=List)
+    filters: List[Filter] = []  # dataclasses.field(default_factory=List)
     line_numbers: bool = True
     wrap: bool = True
     bullets: bool = False

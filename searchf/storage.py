@@ -1,23 +1,24 @@
 '''Implement persistent storage of any objects.'''
 
 
-import dataclasses
 import os
 import pathlib
-import pydantic
-import pydantic_yaml
 
+from typing import cast
 from typing import Optional
 from typing import TypeVar
 from typing import Type
+from typing import Tuple
 
-from . import models
+import pydantic
+import pydantic_yaml
 
 SUFFIX = '.yml'
 
 SlotId = int
 
 T = TypeVar("T", bound=pydantic.BaseModel)
+
 
 def _slot_id_to_prefix(idx: SlotId) -> str:
     return f'{idx:03}'
@@ -93,7 +94,7 @@ class Store:
         '''Returns whether we have anything to load'''
         return len(self._files) > 0
 
-    def load(self, model_cls: Type[T], goto_next: bool) -> T:
+    def load(self, model_cls: Type[T], goto_next: bool) -> Tuple[T, int]:
         '''Loads the next or previous object'''
         count = len(self._files)
         assert count > 0
@@ -103,7 +104,5 @@ class Store:
         self._cur_idx = (self._cur_idx + inc) % count
         path = self._files[self._cur_idx]
         slot_id = self._slot_ids[self._cur_idx]
-
-        data = pydantic_yaml.parse_yaml_file_as(model_cls, path)
-
+        data = cast(T, pydantic_yaml.parse_yaml_file_as(model_cls, path))
         return data, slot_id
